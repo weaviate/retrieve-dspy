@@ -1,0 +1,1 @@
+Pre-built RAG pipelines are in `retrievers/`.
