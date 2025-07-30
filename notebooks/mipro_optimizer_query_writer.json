@@ -1,0 +1,128 @@
+{
+  "query_writer.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "question": "I Am trying to download a PDF file from a GCS storage bucket and read the content into memory.\nWhen using Langchain with python, i can just use the GCSDirectoryLoader to read all the files in a bucket and the pdf text.\nLangchain for NodeJs doesnt have GCSDirectoryLoader or a webloader for PDF files.\nWhen downloading the file, i get a Document with the binary representation as content.\nWhat is the best way to download pdf content from GCS bucket into memory?\n",
+        "reasoning": "The user wants to download a PDF file from a Google Cloud Storage (GCS) bucket and read its content into memory using Node.js. They mention that Langchain's Python version has a GCSDirectoryLoader that can read PDFs directly, but the Node.js version lacks this feature. When they download the file, they get a Document with binary content, but they want to extract the text content from the PDF in memory.\n\nTo answer this, I need to find the best approach or libraries in Node.js to:\n1. Download a PDF file from a GCS bucket into memory (not just to disk).\n2. Parse or extract text content from the PDF binary data in memory.\n\nThis likely involves using the official Google Cloud Storage Node.js client to download the file as a buffer, then using a PDF parsing library (like pdf-parse, pdfjs-dist, or similar) to extract text from the buffer.\n\nI should search for:\n- How to download a file from GCS bucket into memory in Node.js\n- How to extract text from a PDF buffer in Node.js\n- Examples or best practices combining these two steps\n- Possibly Langchain Node.js community solutions or workarounds for PDF loading from GCS",
+        "search_queries": [
+          "download file from Google Cloud Storage bucket into memory Node.js",
+          "extract text from PDF buffer Node.js",
+          "parse PDF from buffer Node.js",
+          "google cloud storage download pdf as buffer nodejs",
+          "pdf text extraction libraries nodejs",
+          "langchain nodejs load pdf from buffer",
+          "best way to read pdf content from memory nodejs",
+          "google cloud storage nodejs example download file in memory"
+        ]
+      },
+      {
+        "question": "Hello i am trying to run this following code but i am getting an error;\nfrom langchain.schema import BaseOuputParser\n\nError;\n\nImportError: cannot import name 'BaseOuputParser' from\n'langchain.schema'\n\nMy langchain version is ; '0.1.7'\n",
+        "dataset_ids": [
+          "langchain\/libs\/langchain\/tests\/unit_tests\/schema\/test_output_parser.py_0_396",
+          "langchain\/libs\/core\/tests\/unit_tests\/output_parsers\/test_imports.py_0_652"
+        ],
+        "nugget_data": [
+          {
+            "nugget_id": "78023380_nugget_0",
+            "text": "The ImportError is due to a typo in the import statement: 'BaseOuputParser' should be 'BaseOutputParser'.",
+            "relevant_corpus_ids": [
+              "langchain\/libs\/langchain\/tests\/unit_tests\/schema\/test_output_parser.py_0_396",
+              "langchain\/libs\/core\/tests\/unit_tests\/output_parsers\/test_imports.py_0_652"
+            ]
+          },
+          {
+            "nugget_id": "78023380_nugget_1",
+            "text": "Correcting the typo in the import statement should resolve the ImportError.",
+            "relevant_corpus_ids": [
+              "langchain\/libs\/langchain\/tests\/unit_tests\/schema\/test_output_parser.py_0_396",
+              "langchain\/libs\/core\/tests\/unit_tests\/output_parsers\/test_imports.py_0_652"
+            ]
+          }
+        ]
+      },
+      {
+        "question": "I query a collection in a zilliz milvus db like this:\ndocuments = vector_store.similarity_search_with_score(query)\n\nThe query is successful but in line 777 of milvus.py the value result.full_length is retrieved, which is not available:\nfor result in res[0]:\n            data = {x: result.entity.get(x) for x in output_fields}\n            doc = self._parse_document(data)\n            pair = (doc, result.full_length)\n            ret.append(pair)\n\nwhich then leads to this exception\nFile \"\/Users\/tilman\/LangchainCorsera\/venv\/lib\/python3.9\/site-packages\/langchain_community\/vectorstores\/milvus.py\", line 644, in similarity_search\n    res = self.similarity_search_with_score(\n  File \"\/Users\/tilman\/LangchainCorsera\/venv\/lib\/python3.9\/site-packages\/langchain_community\/vectorstores\/milvus.py\", line 717, in similarity_search_with_score\n    res = self.similarity_search_with_score_by_vector(\n  File \"\/Users\/tilman\/LangchainCorsera\/venv\/lib\/python3.9\/site-packages\/langchain_community\/vectorstores\/milvus.py\", line 777, in similarity_search_with_score_by_vector\n    pair = (doc, result.full_length)\n  File \"\/Users\/tilman\/LangchainCorsera\/venv\/lib\/python3.9\/site-packages\/pymilvus\/client\/abstract.py\", line 588, in __getattr__\n    raise MilvusException(message=f\"Field {item} is not in the hit entity\")\npymilvus.exceptions.MilvusException: <MilvusException: (code=1, message=Field full_length is not in the hit entity)>\n\nAny clues?\n",
+        "dataset_ids": [
+          "langchain\/docs\/docs\/versions\/release_policy.mdx_0_6118",
+          "langchain\/libs\/community\/langchain_community\/vectorstores\/infinispanvs.py_9486_15232"
+        ],
+        "nugget_data": [
+          {
+            "nugget_id": "78352556_nugget_0",
+            "text": "The error is due to a bug in the `langchain-community` library.",
+            "relevant_corpus_ids": [
+              "langchain\/docs\/docs\/versions\/release_policy.mdx_0_6118",
+              "langchain\/libs\/community\/langchain_community\/vectorstores\/infinispanvs.py_9486_15232"
+            ]
+          },
+          {
+            "nugget_id": "78352556_nugget_1",
+            "text": "The issue can be resolved by updating the `langchain-community` library to a version where the bug is fixed.",
+            "relevant_corpus_ids": [
+              "langchain\/docs\/docs\/versions\/release_policy.mdx_0_6118"
+            ]
+          }
+        ]
+      },
+      {
+        "question": "Am trying to create vector stores on top of my existing KG using from_existing_graph, (followed tomaz  and Saurav Joshi neo4j blog posts) - this method is allowing me to create embedding\/vector index only for single label due to which am unable to get desired results while asking NLQ (I am assuming though).\nbelow code is able to answer, the age and location of Oliver but not what he directed,\ni believe this is due to from_existing_graph has only to pass single label and its corresponding properties as option for generating embeddings and vector index\nAny ideas, how to achieve this?\nimport os\nimport re\nfrom langchain.vectorstores.neo4j_vector import Neo4jVector\n# from langchain.document_loaders import WikipediaLoader\nfrom langchain_openai import OpenAIEmbeddings\n# from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter\nfrom langchain.graphs import Neo4jGraph\nimport openai\n# from transformers import AutoModelForSeq2SeqLM, AutoTokenizer\n\nos.environ[\"OPENAI_API_KEY\"] = \"sk-xx\"\nurl = \"neo4j+s:\/\/xxxx.databases.neo4j.io\"\nusername = \"neo4j\"\npassword = \"mypassword\"\nexisting_graph = Neo4jVector.from_existing_graph(\n    embedding=OpenAIEmbeddings(),\n    url=url,\n    username=username,\n    password=password,\n    index_name=\"person\",\n    node_label=\"Person\",\n    text_node_properties=[\"name\", \"age\", \"location\"],\n    embedding_node_property=\"embedding\",\n)\n\nfrom langchain.chat_models import ChatOpenAI\nfrom langchain.chains import GraphCypherQAChain\nfrom langchain.graphs import Neo4jGraph\n\ngraph = Neo4jGraph(\n    url=url, username=username, password=password\n)\n\nchain = GraphCypherQAChain.from_llm(\n    ChatOpenAI(temperature=0), graph=graph, verbose=True\n)\n\nquery = \"Where does Oliver Stone live?\"\n#query = \"Name some films directed by Oliver Stone?\" \n\ngraph_result = chain.invoke(query)\n\nvector_results = existing_graph.similarity_search(query, k=1)\nfor i, res in enumerate(vector_results):\n    print(res.page_content)\n    if i != len(vector_results)-1:\n        print()\nvector_result = vector_results[0].page_content\n\n# Construct prompt for OpenAI\nfinal_prompt = f\"\"\"You are a helpful question-answering agent. Your task is to analyze\nand synthesize information from two sources: the top result from a similarity search\n(unstructured information) and relevant data from a graph database (structured information).\nGiven the user's query: {query}, provide a meaningful and efficient answer based\non the insights derived from the following data:\n\nUnstructured information: {vector_result}.\nStructured information: {graph_result} \"\"\"\n\n\nfrom openai import OpenAI\nclient = OpenAI(\n    # This is the default and can be omitted\n    api_key=os.environ.get(\"OPENAI_API_KEY\"),\n)\n\nchat_completion = client.chat.completions.create(messages=[{\"role\": \"user\",\"content\": final_prompt,  }],model=\"gpt-3.5-turbo\",)\n\nanswer = chat_completion.choices[0].message.content.strip()\nprint(answer)\n\nAny help would be highly appreicated?\nhere is my schema:\nNode properties are the following:\nPerson {name: STRING, embedding: LIST, age: INTEGER, location: STRING},Actor {name: STRING, embedding: LIST},Movie {title: STRING},Director {name: STRING, embedding: LIST, age: INTEGER, location: STRING}\nRelationship properties are the following:\nACTED_IN {role: STRING}\nThe relationships are the following:\n(:Person)-[:ACTED_IN]->(:Movie),(:Person)-[:DIRECTED]->(:Movie),(:Actor)-[:ACTED_IN]->(:Movie),(:Director)-[:DIRECTED]->(:Movie)\n\nCypher used to create:\nCREATE (charlie:Person:Actor {name: 'Charlie Sheen'})-[:ACTED_IN {role: 'Bud Fox'}]->(wallStreet:Movie {title: 'Wall Street'})<-[:DIRECTED]-(oliver:Person:Director {name: 'Oliver Stone'});\nMATCH (n:Person {name: 'Oliver Stone'}) SET n.age = 30, n.location = \"New York\" RETURN n\n\n",
+        "dataset_ids": [
+          "llama_index\/llama-index-integrations\/graph_stores\/llama-index-graph-stores-falkordb\/llama_index\/graph_stores\/falkordb\/falkordb_property_graph.py_10334_17883",
+          "llama_index\/llama-index-core\/llama_index\/core\/indices\/knowledge_graph\/base.py_9948_14469"
+        ],
+        "nugget_data": [
+          {
+            "nugget_id": "78173243_nugget_0",
+            "text": "Add the `:DIRECTED` relationship to the index to include movies directed by a person in the embeddings.",
+            "relevant_corpus_ids": [
+              "llama_index\/llama-index-integrations\/graph_stores\/llama-index-graph-stores-falkordb\/llama_index\/graph_stores\/falkordb\/falkordb_property_graph.py_10334_17883",
+              "llama_index\/llama-index-core\/llama_index\/core\/indices\/knowledge_graph\/base.py_9948_14469"
+            ]
+          },
+          {
+            "nugget_id": "78173243_nugget_1",
+            "text": "Use a retrieval query to match nodes with the `:DIRECTED` relationship and collect movies as metadata.",
+            "relevant_corpus_ids": [
+              "llama_index\/llama-index-integrations\/graph_stores\/llama-index-graph-stores-falkordb\/llama_index\/graph_stores\/falkordb\/falkordb_property_graph.py_10334_17883"
+            ]
+          },
+          {
+            "nugget_id": "78173243_nugget_2",
+            "text": "Update the vector result to include movie titles as metadata for comprehensive query results.",
+            "relevant_corpus_ids": [
+              "llama_index\/llama-index-integrations\/graph_stores\/llama-index-graph-stores-falkordb\/llama_index\/graph_stores\/falkordb\/falkordb_property_graph.py_10334_17883"
+            ]
+          }
+        ]
+      }
+    ],
+    "signature": {
+      "instructions": "You are an expert technical researcher tasked with resolving complex programming issues involving Langchain, Neo4j, Milvus, and Google Cloud Storage integrations. Given a detailed programming question that includes code snippets, error messages, and context about vector stores, embeddings, graph databases, or library usage, generate a diverse and comprehensive set of precise search queries. These queries should be designed to thoroughly explore the problem space, uncover relevant documentation, examples, best practices, and potential workarounds. Your goal is to enable a high-stakes debugging or enhancement scenario where the user must quickly find actionable solutions to fix errors, extend functionality, or optimize code. Ensure the queries cover multiple angles including version compatibility, API usage, multi-label graph embeddings, relationship indexing, and common pitfalls to maximize the breadth and depth of search results.",
+      "fields": [
+        {
+          "prefix": "Question:",
+          "description": "${question}"
+        },
+        {
+          "prefix": "Reasoning: Let's think step by step in order to",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Search Queries:",
+          "description": "${search_queries}"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.10",
+      "dspy": "2.6.27",
+      "cloudpickle": "3.1"
+    }
+  }
+}

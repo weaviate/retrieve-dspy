@@ -1,0 +1,1 @@
+# TODO: TA script to write a summary for each object

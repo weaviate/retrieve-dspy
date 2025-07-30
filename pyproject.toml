@@ -1,0 +1,11 @@
+[project]
+name = "retrieve-dspy"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "dspy>=2.6.27",
+    "ruff>=0.12.7",
+    "weaviate-client>=4.16.4",
+]
