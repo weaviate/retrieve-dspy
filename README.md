@@ -4,6 +4,6 @@
 
 ### Run Tests with:
 
-```python
+```bash
 uv run python scripts/run-eval.py
 ```
