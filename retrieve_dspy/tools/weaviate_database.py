@@ -3,6 +3,7 @@ from typing import Optional
 
 import weaviate
 from weaviate.classes.query import Filter, Metrics
+from weaviate.classes.init import AdditionalConfig, Timeout
 from weaviate.outputs.query import QueryReturn
 
 from retrieve_dspy.models import Source, SearchResult
@@ -19,6 +20,9 @@ def weaviate_search_tool(
     weaviate_client = weaviate.connect_to_weaviate_cloud(
         cluster_url=os.getenv("WEAVIATE_URL"),
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
+        additional_config=AdditionalConfig(
+            timeout=Timeout(init=30, query=60, insert=120)  # Values in seconds
+        )
     )
 
     collection = weaviate_client.collections.get(collection_name)
@@ -85,6 +89,9 @@ async def async_weaviate_search_tool(
     async_client = weaviate.use_async_with_weaviate_cloud(
         cluster_url=os.getenv("WEAVIATE_URL"),
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
+        additional_config=AdditionalConfig(
+            timeout=Timeout(init=30, query=60, insert=120)  # Values in seconds
+        )
     )
     
     await async_client.connect()

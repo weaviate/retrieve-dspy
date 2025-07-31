@@ -13,6 +13,16 @@
 | Godot | - | - | - | - | - |
 | YOLO | - | - | - | - | - |
 
+## CrossEncoderReranker Performance
+
+| Benchmark | M=20; k=10 | M=50; k=10 | M=50; k=20 |
+|-----------|------------|------------|------------|
+| Angular | - | - | - |
+| LangChain | 33.3-59.8 (47.9) | 39.4-70.0 (51.9) | 42.7 - 79.2 (61.7) |
+| Laravel | - | - | - |
+| Godot | - | - | - |
+| YOLO | - | - | - |
+
 ## Reranking for Relevance - ListwiseReranker
 
 | Benchmark | M=20; k=10 | M=50; k=10 | M=50; k=20 |
