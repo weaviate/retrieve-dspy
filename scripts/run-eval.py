@@ -36,7 +36,8 @@ rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     collection_name="FreshstackLangchain",
     target_property_name="docs_text",
     retrieved_k=100,
-    reranked_k=20
+    reranked_k=50,
+    verbose=True
 )
 
 #rag_pipeline.load("../notebooks/mipro_optimizer_query_writer.json")
