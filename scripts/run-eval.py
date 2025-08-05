@@ -29,9 +29,10 @@ rag_pipeline = retrieve_dspy.MultiQueryWriter(
 rag_pipeline = retrieve_dspy.VanillaRAG(
     collection_name="FreshstackLangchain",
     target_property_name="docs_text",
-    retrieved_k=10
+    retrieved_k=500
 )
 
+'''
 rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     collection_name="FreshstackLangchain",
     target_property_name="docs_text",
@@ -40,7 +41,19 @@ rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     verbose=True
 )
 
-#rag_pipeline.load("../notebooks/mipro_optimizer_query_writer.json")
+rag_pipeline = retrieve_dspy.MultiQueryWriterWithCrossEncoderReranker(
+    collection_name="FreshstackLangchain",
+    target_property_name="docs_text",
+    retrieved_k=50,
+    reranked_k=20,
+    search_with_queries_concatenated=False,
+    two_stage_reranking=True,
+    per_query_top_k=20,
+    verbose=True
+)
+'''
+
+# rag_pipeline.load("./notebooks/mipro_optimizer_query_writer.json")
 
 NUM_TRIALS = 5
 scores = []

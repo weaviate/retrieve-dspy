@@ -15,12 +15,6 @@ from retrieve_dspy.models import DSPyAgentRAGResponse
 
 
 class CrossEncoderReranker(BaseRAG):
-    """
-    A retrieval-augmented generation pipeline that uses Cohere's Cross Encoder
-    to rerank search results. Unlike listwise reranking that processes all 
-    documents at once, this uses pairwise reranking for better accuracy.
-    """
-    
     def __init__(
         self, 
         collection_name: str, 
