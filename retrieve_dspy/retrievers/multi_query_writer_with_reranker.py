@@ -16,7 +16,7 @@ from retrieve_dspy.models import DSPyAgentRAGResponse, Source
 from retrieve_dspy.signatures import WriteSearchQueries
 
 
-class MultiQueryWriterWithCrossEncoderReranker(BaseRAG):    
+class MultiQueryWriterWithReranker(BaseRAG):    
     def __init__(
         self, 
         collection_name: str, 
@@ -438,7 +438,7 @@ async def main():
     print("TESTING SINGLE-STAGE RERANKING")
     print("="*80)
     
-    single_stage_pipeline = MultiQueryWriterWithCrossEncoderReranker(
+    single_stage_pipeline = MultiQueryWriterWithReranker(
         collection_name="FreshstackLangchain",
         target_property_name="docs_text",
         retrieved_k=10,

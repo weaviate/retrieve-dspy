@@ -1,7 +1,7 @@
 from .retrievers import (
     MultiQueryWriter,
     QueryWriterWithListwiseReranker,
-    MultiQueryWriterWithCrossEncoderReranker,
+    MultiQueryWriterWithReranker,
     VanillaRAG,
     CrossEncoderReranker,
     ListwiseReranker,
@@ -17,7 +17,7 @@ __version__ = "0.1.0"
 
 __all__ = [
     "MultiQueryWriter",
-    "MultiQueryWriterWithCrossEncoderReranker",
+    "MultiQueryWriterWithReranker",
     "QueryWriterWithListwiseReranker",
     "VanillaRAG",
     "FilteredQueryWriter",
