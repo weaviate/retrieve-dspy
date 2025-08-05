@@ -6,7 +6,8 @@ from .retrievers import (
     CrossEncoderReranker,
     ListwiseReranker,
     FilteredQueryWriter,
-    SummarizedListwiseReranker
+    SummarizedListwiseReranker,
+    LoopingQueryWriter
 )
 from .utils import *
 from .metrics import *
@@ -22,5 +23,6 @@ __all__ = [
     "FilteredQueryWriter",
     "SummarizedListwiseReranker",
     "CrossEncoderReranker",
-    "ListwiseReranker"
+    "ListwiseReranker",
+    "LoopingQueryWriter"
 ]
