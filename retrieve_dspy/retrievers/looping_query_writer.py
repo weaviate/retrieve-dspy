@@ -31,6 +31,7 @@ class LoopingQueryWriter(BaseRAG):
         all_contexts = []
         all_sources = []
         all_searches = [question]
+        usage_buckets = []
         
         # Initial search
         contexts, sources = weaviate_search_tool(
@@ -54,6 +55,8 @@ class LoopingQueryWriter(BaseRAG):
                 question=question,
                 contexts=contexts_str,
             )
+
+            usage_buckets.append(follow_up_result.get_lm_usage() or {})
 
             if follow_up_result.follow_up_queries_needed and follow_up_result.follow_up_queries:
                 if self.verbose:
@@ -98,13 +101,14 @@ class LoopingQueryWriter(BaseRAG):
             sources=unique_sources,
             searches=all_searches,
             aggregations=None,
-            usage=dspy.usage.get_usage(),
+            usage=self._merge_usage(*usage_buckets),
         )
 
     async def aforward(self, question: str) -> DSPyAgentRAGResponse:
         all_contexts = []
         all_sources = []
         all_searches = [question]
+        usage_buckets = []
         
         # Initial search
         contexts, sources = await async_weaviate_search_tool(
@@ -124,10 +128,12 @@ class LoopingQueryWriter(BaseRAG):
         while loop_count < self.max_loops:
             contexts_str = "\n".join(all_contexts)
             
-            follow_up_result = self.looping_query_writer(
+            follow_up_result = await self.looping_query_writer.acall(
                 question=question,
                 contexts=contexts_str,
             )
+
+            usage_buckets.append(follow_up_result.get_lm_usage() or {})
 
             if follow_up_result.follow_up_queries_needed and follow_up_result.follow_up_queries:
                 if self.verbose:
@@ -172,7 +178,7 @@ class LoopingQueryWriter(BaseRAG):
             sources=unique_sources,
             searches=all_searches,
             aggregations=None,
-            usage=dspy.usage.get_usage(),
+            usage=self._merge_usage(*usage_buckets),
         )
 
 async def main():
