@@ -2,12 +2,7 @@ import dspy
 
 from retrieve_dspy.models import SearchResult, SearchQueryWithFilter
 
-class GenerateAnswer(dspy.Signature):
-    """Assess the context and answer the question."""
-
-    question: str = dspy.InputField()
-    contexts: str = dspy.InputField()
-    final_answer: str = dspy.OutputField()
+# Rerankers
 
 class RerankResults(dspy.Signature):
     """Rerank passages based on their relevance to the query using listwise comparison.
@@ -73,6 +68,47 @@ class DiversityRanker(dspy.Signature):
         desc="List of exactly `top_k` passage IDs representing diverse relevant topics. Must match IDs from search_results."
     )
 
+class RerankWithSummaries(dspy.Signature):
+    """Rerank passages based on their relevance summaries.
+    
+    You are provided with relevance summaries and scores for each passage.
+    Use these summaries to make a final ranking decision.
+    
+    IMPORTANT: You must return ONLY THE `top_k` MOST RELEVANT passage IDs.
+    
+    Consider:
+    - The quality and directness of information in each summary
+    - The relevance scores as initial guidance
+    - How well each passage would satisfy the user's query
+    - Prioritize passages that provide complete, actionable answers
+    
+    Remember: Return EXACTLY `top_k` passage IDs, ranked from most to least relevant.
+    """
+    
+    query: str = dspy.InputField()
+    passage_summaries: list[dict] = dspy.InputField(
+        desc="List of dicts with keys: passage_id, relevance_summary, relevance_score"
+    )
+    top_k: int = dspy.InputField(
+        desc="Number of passages to return in the reranked list"
+    )
+    reranked_ids: list[int] = dspy.OutputField(
+        desc="EXACTLY `top_k` passage IDs ordered from most to least relevant"
+    )
+
+# Query Writers
+
+class ExpandQuery(dspy.Signature):
+    """Expand a query to gather information from a search engine that will help answer the question.
+    """
+
+    question: str = dspy.InputField()
+    expanded_query: str = dspy.OutputField()
+
+class WriteSearchQueries(dspy.Signature):
+    """Write search queries to gather information from a search engine that will help answer the question.
+Consider both exploration and result diversity to capture multiple interpretations and facets of a query."""
+
     
 class WriteSearchQueries(dspy.Signature):
     """Write search queries to gather information from a search engine that will help answer the question.
@@ -87,6 +123,23 @@ class WriteSearchQueriesWithFilters(dspy.Signature):
     question: str = dspy.InputField()
     filters_available: str = dspy.InputField()
     search_queries_with_filters: list[SearchQueryWithFilter] = dspy.OutputField()
+
+class WriteFollowUpQueries(dspy.Signature):
+    """Given a user question and contexts retrieved so far from search, assess if additional search queries are needed to fully answer the question.
+    
+    You are part of a retrieval system that has already performed an initial search and retrieved some contexts. Your job is to:
+    1. Analyze whether the current contexts provide sufficient information to answer the user's question
+    2. If not, determine what specific information is still missing
+    3. Generate targeted search queries that would retrieve the missing information from a search engine
+    
+    The follow-up queries should be optimized for search engines and designed to fill gaps in the current knowledge base."""
+
+    question: str = dspy.InputField()
+    contexts: str = dspy.InputField()
+    follow_up_queries_needed: bool = dspy.OutputField()
+    follow_up_queries: list[str] = dspy.OutputField()
+
+# Summarizers
 
 class FilterIrrelevantSearchResults(dspy.Signature):
     """Filter out search results that are not relevant to answering the question."""
@@ -127,47 +180,3 @@ class SummarizeSearchRelevance(dspy.Signature):
     relevance_score: float = dspy.OutputField(
         desc="A relevance score from 0.0 to 1.0, where 1.0 is perfectly relevant"
     )
-
-
-class RerankWithSummaries(dspy.Signature):
-    """Rerank passages based on their relevance summaries.
-    
-    You are provided with relevance summaries and scores for each passage.
-    Use these summaries to make a final ranking decision.
-    
-    IMPORTANT: You must return ONLY THE `top_k` MOST RELEVANT passage IDs.
-    
-    Consider:
-    - The quality and directness of information in each summary
-    - The relevance scores as initial guidance
-    - How well each passage would satisfy the user's query
-    - Prioritize passages that provide complete, actionable answers
-    
-    Remember: Return EXACTLY `top_k` passage IDs, ranked from most to least relevant.
-    """
-    
-    query: str = dspy.InputField()
-    passage_summaries: list[dict] = dspy.InputField(
-        desc="List of dicts with keys: passage_id, relevance_summary, relevance_score"
-    )
-    top_k: int = dspy.InputField(
-        desc="Number of passages to return in the reranked list"
-    )
-    reranked_ids: list[int] = dspy.OutputField(
-        desc="EXACTLY `top_k` passage IDs ordered from most to least relevant"
-    )
-
-class WriteFollowUpQueries(dspy.Signature):
-    """Given a user question and contexts retrieved so far from search, assess if additional search queries are needed to fully answer the question.
-    
-    You are part of a retrieval system that has already performed an initial search and retrieved some contexts. Your job is to:
-    1. Analyze whether the current contexts provide sufficient information to answer the user's question
-    2. If not, determine what specific information is still missing
-    3. Generate targeted search queries that would retrieve the missing information from a search engine
-    
-    The follow-up queries should be optimized for search engines and designed to fill gaps in the current knowledge base."""
-
-    question: str = dspy.InputField()
-    contexts: str = dspy.InputField()
-    follow_up_queries_needed: bool = dspy.OutputField()
-    follow_up_queries: list[str] = dspy.OutputField()
