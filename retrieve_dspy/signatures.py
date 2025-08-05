@@ -156,3 +156,13 @@ class RerankWithSummaries(dspy.Signature):
     reranked_ids: list[int] = dspy.OutputField(
         desc="EXACTLY `top_k` passage IDs ordered from most to least relevant"
     )
+
+class WriteFollowUpQueries(dspy.Signature):
+    """Given a question and contexts retrieved so far, assess if follow up queries are needed to answer the question.
+    
+    If so, please write these queries."""
+
+    question: str = dspy.InputField()
+    contexts: str = dspy.InputField()
+    follow_up_queries_needed: bool = dspy.OutputField()
+    follow_up_queries: list[str] = dspy.OutputField()
