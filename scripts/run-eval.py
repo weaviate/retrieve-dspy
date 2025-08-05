@@ -57,7 +57,8 @@ rag_pipeline = retrieve_dspy.LoopingQueryWriter(
     collection_name="FreshstackLangchain",
     target_property_name="docs_text",
     retrieved_k=10,
-    max_loops=1
+    max_loops=1,
+    verbose=True
 )
 
 # rag_pipeline.load("./notebooks/mipro_optimizer_query_writer.json")

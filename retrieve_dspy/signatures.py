@@ -158,9 +158,14 @@ class RerankWithSummaries(dspy.Signature):
     )
 
 class WriteFollowUpQueries(dspy.Signature):
-    """Given a question and contexts retrieved so far, assess if follow up queries are needed to answer the question.
+    """Given a user question and contexts retrieved so far from search, assess if additional search queries are needed to fully answer the question.
     
-    If so, please write these queries."""
+    You are part of a retrieval system that has already performed an initial search and retrieved some contexts. Your job is to:
+    1. Analyze whether the current contexts provide sufficient information to answer the user's question
+    2. If not, determine what specific information is still missing
+    3. Generate targeted search queries that would retrieve the missing information from a search engine
+    
+    The follow-up queries should be optimized for search engines and designed to fill gaps in the current knowledge base."""
 
     question: str = dspy.InputField()
     contexts: str = dspy.InputField()
