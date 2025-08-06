@@ -4,8 +4,9 @@ import retrieve_dspy
 from retrieve_dspy.metrics import create_metric
 from retrieve_dspy.datasets.in_memory import load_queries_in_memory
 
+'''
 rag_pipeline = retrieve_dspy.ListwiseReranker(
-    collection_name="FreshstackLangchain",
+    collection_name="FreshstackAngular",
     target_property_name="docs_text",
     diverse_ranker=True,
     retrieved_k=50,
@@ -36,12 +37,11 @@ rag_pipeline = retrieve_dspy.VanillaRAG(
 rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     collection_name="FreshstackAngular",
     target_property_name="docs_text",
-    retrieved_k=20,
-    reranked_k=10,
+    retrieved_k=50,
+    reranked_k=20,
     verbose=True
 )
 
-'''
 rag_pipeline = retrieve_dspy.MultiQueryWriterWithCrossEncoderReranker(
     collection_name="FreshstackLangchain",
     target_property_name="docs_text",
@@ -60,14 +60,17 @@ rag_pipeline = retrieve_dspy.LoopingQueryWriter(
     max_loops=1,
     verbose=True
 )
+'''
 
 rag_pipeline = retrieve_dspy.QueryExpander(
-    collection_name="FreshstackLangchain",
+    collection_name="FreshstackAngular",
     target_property_name="docs_text",
-    retrieved_k=50,
-    verbose=False
+    retrieved_k=20,
+    verbose=True
 )
 
+
+'''
 rag_pipeline = retrieve_dspy.LayeredReranker(
     collection_name="FreshstackAngular",
     target_property_name="docs_text",
