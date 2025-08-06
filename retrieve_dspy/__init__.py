@@ -5,6 +5,7 @@ from .retrievers import (
     VanillaRAG,
     CrossEncoderReranker,
     ListwiseReranker,
+    LayeredReranker,
     FilteredQueryWriter,
     SummarizedListwiseReranker,
     LoopingQueryWriter,
@@ -25,6 +26,7 @@ __all__ = [
     "SummarizedListwiseReranker",
     "CrossEncoderReranker",
     "ListwiseReranker",
+    "LayeredReranker",
     "LoopingQueryWriter",
     "QueryExpander"
 ]

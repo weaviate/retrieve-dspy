@@ -8,6 +8,7 @@ from .query_writer_and_listwise_reranker import QueryWriterWithListwiseReranker
 from .multi_query_writer_with_reranker import MultiQueryWriterWithReranker
 from .filtered_query_writer import FilteredQueryWriter
 from .looping_query_writer import LoopingQueryWriter
+from .layered_reranker import LayeredReranker
 
 __all__ = [
     "VanillaRAG",
@@ -19,5 +20,6 @@ __all__ = [
     "QueryWriterWithListwiseReranker",
     "FilteredQueryWriter",
     "LoopingQueryWriter",
-    "QueryExpander"
+    "QueryExpander",
+    "LayeredReranker"
 ]
