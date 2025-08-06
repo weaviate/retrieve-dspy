@@ -4,15 +4,15 @@ import retrieve_dspy
 from retrieve_dspy.metrics import create_metric
 from retrieve_dspy.datasets.in_memory import load_queries_in_memory
 
-'''
 rag_pipeline = retrieve_dspy.ListwiseReranker(
-    collection_name="FreshstackAngular",
+    collection_name="FreshstackLangchain",
     target_property_name="docs_text",
     diverse_ranker=True,
     retrieved_k=50,
     reranked_k=20
 )
 
+'''
 rag_pipeline = retrieve_dspy.QueryWriterWithListwiseReranker(
     collection_name="FreshstackLangchain",
     target_property_name="docs_text",
@@ -60,7 +60,6 @@ rag_pipeline = retrieve_dspy.LoopingQueryWriter(
     max_loops=1,
     verbose=True
 )
-'''
 
 rag_pipeline = retrieve_dspy.QueryExpander(
     collection_name="FreshstackAngular",
@@ -69,8 +68,6 @@ rag_pipeline = retrieve_dspy.QueryExpander(
     verbose=True
 )
 
-
-'''
 rag_pipeline = retrieve_dspy.LayeredReranker(
     collection_name="FreshstackAngular",
     target_property_name="docs_text",
@@ -81,7 +78,7 @@ rag_pipeline = retrieve_dspy.LayeredReranker(
 )
 '''
 
-# rag_pipeline.load("./notebooks/mipro_optimizer_query_writer.json")
+rag_pipeline.load("./notebooks/mipro_optimized_listwise_reranker.json")
 
 NUM_TRIALS = 5
 scores = []
@@ -90,14 +87,14 @@ for trial in range(NUM_TRIALS):
     print(f"\nRunning trial {trial + 1}/{NUM_TRIALS}")
     
     trainset, testset = load_queries_in_memory(
-        dataset_name="freshstack-angular",
+        dataset_name="freshstack-langchain",
         train_samples=20,
         test_samples=20
     )
 
     metric = create_metric(
         metric_type="coverage",
-        dataset_name="freshstack-angular"
+        dataset_name="freshstack-langchain"
     )
 
     evaluator = retrieve_dspy.utils.get_evaluator(
