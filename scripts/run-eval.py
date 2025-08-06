@@ -61,6 +61,13 @@ rag_pipeline = retrieve_dspy.LoopingQueryWriter(
     verbose=True
 )
 
+rag_pipeline = retrieve_dspy.QueryExpander(
+    collection_name="FreshstackLangchain",
+    target_property_name="docs_text",
+    retrieved_k=10,
+    verbose=True
+)
+
 # rag_pipeline.load("./notebooks/mipro_optimizer_query_writer.json")
 
 NUM_TRIALS = 5

@@ -1,5 +1,6 @@
 from .vanilla_rag import VanillaRAG
 from .multi_query_writer import MultiQueryWriter
+from .query_expander import QueryExpander
 from .cross_encoder_reranker import CrossEncoderReranker
 from .listwise_reranker import ListwiseReranker
 from .summarized_listwise_reranker import SummarizedListwiseReranker
@@ -17,5 +18,6 @@ __all__ = [
     "SummarizedListwiseReranker",
     "QueryWriterWithListwiseReranker",
     "FilteredQueryWriter",
-    "LoopingQueryWriter"
+    "LoopingQueryWriter",
+    "QueryExpander"
 ]
