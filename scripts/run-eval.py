@@ -27,20 +27,21 @@ rag_pipeline = retrieve_dspy.MultiQueryWriter(
 )
 
 rag_pipeline = retrieve_dspy.VanillaRAG(
-    collection_name="FreshstackLangchain",
+    collection_name="FreshstackAngular",
     target_property_name="docs_text",
-    retrieved_k=500
+    retrieved_k=200
 )
 
-'''
+
 rag_pipeline = retrieve_dspy.CrossEncoderReranker(
-    collection_name="FreshstackLangchain",
+    collection_name="FreshstackAngular",
     target_property_name="docs_text",
     retrieved_k=100,
     reranked_k=50,
     verbose=True
 )
 
+'''
 rag_pipeline = retrieve_dspy.MultiQueryWriterWithCrossEncoderReranker(
     collection_name="FreshstackLangchain",
     target_property_name="docs_text",
@@ -51,7 +52,6 @@ rag_pipeline = retrieve_dspy.MultiQueryWriterWithCrossEncoderReranker(
     per_query_top_k=20,
     verbose=True
 )
-'''
 
 rag_pipeline = retrieve_dspy.LoopingQueryWriter(
     collection_name="FreshstackLangchain",
@@ -67,6 +67,7 @@ rag_pipeline = retrieve_dspy.QueryExpander(
     retrieved_k=50,
     verbose=False
 )
+'''
 
 # rag_pipeline.load("./notebooks/mipro_optimizer_query_writer.json")
 
@@ -77,14 +78,14 @@ for trial in range(NUM_TRIALS):
     print(f"\nRunning trial {trial + 1}/{NUM_TRIALS}")
     
     trainset, testset = load_queries_in_memory(
-        dataset_name="freshstack-langchain",
+        dataset_name="freshstack-angular",
         train_samples=20,
         test_samples=20
     )
 
     metric = create_metric(
         metric_type="coverage",
-        dataset_name="freshstack-langchain"
+        dataset_name="freshstack-angular"
     )
 
     evaluator = retrieve_dspy.utils.get_evaluator(
