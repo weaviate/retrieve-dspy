@@ -24,7 +24,7 @@ class QueryExpander(BaseRAG):
         self.expand_query = dspy.Predict(ExpandQuery)
 
     def forward(self, question: str) -> DSPyAgentRAGResponse:
-        expanded_query = self.expand_query(question=question)
+        expanded_query = self.expand_query(question=question).expanded_query
 
         if self.verbose:
             print(f"\033[95mExpanded query from:\n{question}\nto:\n{expanded_query}\033[0m")
@@ -48,7 +48,8 @@ class QueryExpander(BaseRAG):
         )
 
     async def aforward(self, question: str) -> DSPyAgentRAGResponse:
-        expanded_query = await self.expand_query.acall(question=question)
+        expanded_query_pred = await self.expand_query.acall(question=question)
+        expanded_query = expanded_query_pred.expanded_query
 
         if self.verbose:
             print(f"\033[95mExpanded query from:\n{question}\nto:\n{expanded_query}\033[0m")

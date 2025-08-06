@@ -99,8 +99,7 @@ class RerankWithSummaries(dspy.Signature):
 # Query Writers
 
 class ExpandQuery(dspy.Signature):
-    """Expand a query to gather information from a search engine that will help answer the question.
-    """
+    """Expand a query to gather information from a search engine that will help answer the question."""
 
     question: str = dspy.InputField()
     expanded_query: str = dspy.OutputField()
