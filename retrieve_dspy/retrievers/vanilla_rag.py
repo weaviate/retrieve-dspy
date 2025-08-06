@@ -9,8 +9,6 @@ from retrieve_dspy.tools.weaviate_database import (
 )
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.models import DSPyAgentRAGResponse
-from retrieve_dspy.signatures import GenerateAnswer
-
 
 class VanillaRAG(BaseRAG):
     def __init__(
@@ -22,8 +20,7 @@ class VanillaRAG(BaseRAG):
         retrieved_k: Optional[int] = 20
     ):
         super().__init__(collection_name, target_property_name, search_only=search_only, verbose=verbose, retrieved_k=retrieved_k)
-        self.generate_answer = dspy.Predict(GenerateAnswer)
-
+        
     def forward(self, question: str) -> DSPyAgentRAGResponse:
         contexts, sources = weaviate_search_tool(
             query=question,

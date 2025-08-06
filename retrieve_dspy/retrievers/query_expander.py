@@ -41,7 +41,7 @@ class QueryExpander(BaseRAG):
 
         return DSPyAgentRAGResponse(
             final_answer="",
-            sources=[],
+            sources=sources,
             searches=[expanded_query],
             aggregations=None,
             usage={},
@@ -65,7 +65,7 @@ class QueryExpander(BaseRAG):
 
         return DSPyAgentRAGResponse(
             final_answer="",
-            sources=[],
+            sources=sources,
             searches=[expanded_query],
             aggregations=None,
             usage={},
