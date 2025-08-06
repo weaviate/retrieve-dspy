@@ -13,7 +13,7 @@ from retrieve_dspy.tools.weaviate_database import (
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 
-from retrieve_dspy.models import DSPyAgentRAGResponse
+from retrieve_dspy.models import DSPyAgentRAGResponse, SearchResult
 from retrieve_dspy.signatures import RerankResults, DiversityRanker
 
 
@@ -141,27 +141,34 @@ class LayeredReranker(BaseRAG):
         
         # then apply the diversity ranker to truncate the results to M
         if len(cross_encoder_sources) > self.reranked_M:
-            # Prepare documents for diversity ranking
-            doc_texts = []
-            for source in cross_encoder_sources:
+            # Prepare SearchResult objects for diversity ranking
+            cross_encoder_search_results = []
+            for i, source in enumerate(cross_encoder_sources):
                 if hasattr(source, 'content'):
-                    doc_texts.append(source.content)
+                    content = source.content
                 elif hasattr(source, 'text'):
-                    doc_texts.append(source.text)
+                    content = source.text
                 else:
-                    doc_texts.append(str(source))
+                    content = str(source)
+                
+                search_result = SearchResult(
+                    id=i,
+                    initial_rank=i,
+                    content=content
+                )
+                cross_encoder_search_results.append(search_result)
             
             # Apply diversity ranking
             diversity_result = self.diversity_ranker(
-                question=question,
-                documents=doc_texts,
-                k=self.reranked_M
+                query=question,
+                search_results=cross_encoder_search_results,
+                top_k=self.reranked_M
             )
             
             # Extract the ranked document indices
             ranked_indices = []
-            if hasattr(diversity_result, 'ranked_indices'):
-                ranked_indices = diversity_result.ranked_indices
+            if hasattr(diversity_result, 'reranked_ids'):
+                ranked_indices = diversity_result.reranked_ids
             elif hasattr(diversity_result, 'prediction'):
                 # Parse the prediction to extract indices
                 prediction = diversity_result.prediction
@@ -170,7 +177,7 @@ class LayeredReranker(BaseRAG):
                         # Attempt to parse indices from the prediction
                         import re
                         indices = re.findall(r'\d+', prediction)
-                        ranked_indices = [int(i) - 1 for i in indices if int(i) - 1 < len(cross_encoder_sources)]
+                        ranked_indices = [int(i) for i in indices if int(i) < len(cross_encoder_sources)]
                     except:
                         # Fallback to top M sources
                         ranked_indices = list(range(min(self.reranked_M, len(cross_encoder_sources))))
@@ -233,27 +240,34 @@ class LayeredReranker(BaseRAG):
         
         # then apply the diversity ranker to truncate the results to M
         if len(cross_encoder_sources) > self.reranked_M:
-            # Prepare documents for diversity ranking
-            doc_texts = []
-            for source in cross_encoder_sources:
+            # Prepare SearchResult objects for diversity ranking
+            cross_encoder_search_results = []
+            for i, source in enumerate(cross_encoder_sources):
                 if hasattr(source, 'content'):
-                    doc_texts.append(source.content)
+                    content = source.content
                 elif hasattr(source, 'text'):
-                    doc_texts.append(source.text)
+                    content = source.text
                 else:
-                    doc_texts.append(str(source))
+                    content = str(source)
+                
+                search_result = SearchResult(
+                    id=i,
+                    initial_rank=i,
+                    content=content
+                )
+                cross_encoder_search_results.append(search_result)
             
             # Apply diversity ranking
             diversity_result = self.diversity_ranker(
-                question=question,
-                documents=doc_texts,
-                k=self.reranked_M
+                query=question,
+                search_results=cross_encoder_search_results,
+                top_k=self.reranked_M
             )
             
             # Extract the ranked document indices
             ranked_indices = []
-            if hasattr(diversity_result, 'ranked_indices'):
-                ranked_indices = diversity_result.ranked_indices
+            if hasattr(diversity_result, 'reranked_ids'):
+                ranked_indices = diversity_result.reranked_ids
             elif hasattr(diversity_result, 'prediction'):
                 # Parse the prediction to extract indices
                 prediction = diversity_result.prediction
@@ -262,7 +276,7 @@ class LayeredReranker(BaseRAG):
                         # Attempt to parse indices from the prediction
                         import re
                         indices = re.findall(r'\d+', prediction)
-                        ranked_indices = [int(i) - 1 for i in indices if int(i) - 1 < len(cross_encoder_sources)]
+                        ranked_indices = [int(i) for i in indices if int(i) < len(cross_encoder_sources)]
                     except:
                         # Fallback to top M sources
                         ranked_indices = list(range(min(self.reranked_M, len(cross_encoder_sources))))

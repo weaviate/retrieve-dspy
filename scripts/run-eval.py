@@ -29,15 +29,15 @@ rag_pipeline = retrieve_dspy.MultiQueryWriter(
 rag_pipeline = retrieve_dspy.VanillaRAG(
     collection_name="FreshstackAngular",
     target_property_name="docs_text",
-    retrieved_k=200
+    retrieved_k=100,
+    verbose=True
 )
-
 
 rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     collection_name="FreshstackAngular",
     target_property_name="docs_text",
-    retrieved_k=100,
-    reranked_k=50,
+    retrieved_k=20,
+    reranked_k=10,
     verbose=True
 )
 
@@ -66,6 +66,15 @@ rag_pipeline = retrieve_dspy.QueryExpander(
     target_property_name="docs_text",
     retrieved_k=50,
     verbose=False
+)
+
+rag_pipeline = retrieve_dspy.LayeredReranker(
+    collection_name="FreshstackAngular",
+    target_property_name="docs_text",
+    retrieved_k=100,
+    reranked_N=50,
+    reranked_M=20,
+    verbose=True
 )
 '''
 
