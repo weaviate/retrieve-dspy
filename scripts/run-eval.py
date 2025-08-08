@@ -4,15 +4,14 @@ import retrieve_dspy
 from retrieve_dspy.metrics import create_metric
 from retrieve_dspy.datasets.in_memory import load_queries_in_memory
 
-rag_pipeline = retrieve_dspy.ListwiseReranker(
-    collection_name="FreshstackLangchain",
+'''
+rag_pipeline = retrieve_dspy.VanillaRAG(
+    collection_name="FreshstackAngular",
     target_property_name="docs_text",
-    diverse_ranker=True,
-    retrieved_k=50,
-    reranked_k=20
+    retrieved_k=100,
+    verbose=True
 )
 
-'''
 rag_pipeline = retrieve_dspy.QueryWriterWithListwiseReranker(
     collection_name="FreshstackLangchain",
     target_property_name="docs_text",
@@ -27,18 +26,20 @@ rag_pipeline = retrieve_dspy.MultiQueryWriter(
     search_with_queries_concatenated=True
 )
 
-rag_pipeline = retrieve_dspy.VanillaRAG(
-    collection_name="FreshstackAngular",
-    target_property_name="docs_text",
-    retrieved_k=100,
-    verbose=True
-)
-
 rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     collection_name="FreshstackAngular",
     target_property_name="docs_text",
     retrieved_k=50,
     reranked_k=20,
+    verbose=True
+)
+
+rag_pipeline = retrieve_dspy.ListwiseReranker(
+    collection_name="FreshstackAngular",
+    target_property_name="docs_text",
+    retrieved_k=50,
+    reranked_k=10,
+    diverse_ranker=True,
     verbose=True
 )
 
@@ -64,7 +65,7 @@ rag_pipeline = retrieve_dspy.LoopingQueryWriter(
 rag_pipeline = retrieve_dspy.QueryExpander(
     collection_name="FreshstackAngular",
     target_property_name="docs_text",
-    retrieved_k=20,
+    retrieved_k=50,
     verbose=True
 )
 
@@ -78,7 +79,16 @@ rag_pipeline = retrieve_dspy.LayeredReranker(
 )
 '''
 
-rag_pipeline.load("./notebooks/mipro_optimized_listwise_reranker.json")
+rag_pipeline = retrieve_dspy.ListwiseReranker(
+    collection_name="FreshstackLaravel",
+    target_property_name="docs_text",
+    retrieved_k=50,
+    reranked_k=10,
+    diverse_ranker=True,
+    verbose=True
+)
+
+#rag_pipeline.load("./notebooks/mipro_optimized_listwise_reranker.json")
 
 NUM_TRIALS = 5
 scores = []
@@ -87,14 +97,14 @@ for trial in range(NUM_TRIALS):
     print(f"\nRunning trial {trial + 1}/{NUM_TRIALS}")
     
     trainset, testset = load_queries_in_memory(
-        dataset_name="freshstack-langchain",
+        dataset_name="freshstack-laravel",
         train_samples=20,
         test_samples=20
     )
 
     metric = create_metric(
         metric_type="coverage",
-        dataset_name="freshstack-langchain"
+        dataset_name="freshstack-laravel"
     )
 
     evaluator = retrieve_dspy.utils.get_evaluator(
@@ -103,7 +113,7 @@ for trial in range(NUM_TRIALS):
     )
 
     dspy_evaluator_kwargs = {
-        "num_threads": 4
+        "num_threads": 5
     }
 
     score = evaluator(rag_pipeline, **dspy_evaluator_kwargs)

@@ -10,7 +10,7 @@ weaviate_client = weaviate.connect_to_weaviate_cloud(
     auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
 )
 
-dataset_name = "freshstack-angular"
+dataset_name = "freshstack-laravel"
 
 documents, _ = in_memory_dataset_loader(dataset_name)
 
