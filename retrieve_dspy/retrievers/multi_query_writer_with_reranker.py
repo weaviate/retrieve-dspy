@@ -239,7 +239,7 @@ class MultiQueryWriterWithReranker(BaseRAG):
         
         # Process final reranking results
         if self.verbose:
-            print(f"\n\033[93mFinal reranking complete. Top scores:\033[0m")
+            print("\n\033[93mFinal reranking complete. Top scores:\033[0m")
         
         reranked_sources = []
         for i, result in enumerate(final_reranked):
@@ -390,7 +390,7 @@ class MultiQueryWriterWithReranker(BaseRAG):
             final_reranked = await self._async_rerank_with_cohere(question, unique_documents)
         
         if self.verbose:
-            print(f"\n\033[93mFinal reranking complete. Top scores:\033[0m")
+            print("\n\033[93mFinal reranking complete. Top scores:\033[0m")
         
         reranked_sources = []
         for i, result in enumerate(final_reranked):

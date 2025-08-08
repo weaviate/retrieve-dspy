@@ -14,7 +14,7 @@ from retrieve_dspy.tools.weaviate_database import (
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 
 from retrieve_dspy.models import DSPyAgentRAGResponse, SearchResult
-from retrieve_dspy.signatures import RerankResults, DiversityRanker
+from retrieve_dspy.signatures import DiversityRanker
 
 
 class LayeredReranker(BaseRAG):

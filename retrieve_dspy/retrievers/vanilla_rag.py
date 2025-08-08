@@ -1,7 +1,6 @@
 import asyncio
 from typing import Optional
 
-import dspy
 
 from retrieve_dspy.tools.weaviate_database import (
     weaviate_search_tool,

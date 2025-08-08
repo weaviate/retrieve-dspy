@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 
 import cohere
 from cohere import RerankResponseResultsItem
@@ -148,7 +148,7 @@ class CrossEncoderReranker(BaseRAG):
         reranked_results = self._rerank_with_cohere(question, documents)
         
         if self.verbose:
-            print(f"\n\033[93mCohere reranking complete. Top scores:\033[0m")
+            print("\n\033[93mCohere reranking complete. Top scores:\033[0m")
         
         # Reorder sources based on Cohere's reranking
         reranked_sources = []

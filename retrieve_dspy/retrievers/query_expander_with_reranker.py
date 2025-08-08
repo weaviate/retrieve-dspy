@@ -107,7 +107,7 @@ class QueryExpanderWithReranker(BaseRAG):
         reranked_results = self._rerank_with_cohere(question, documents)
 
         if self.verbose:
-            print(f"\n\033[93mCohere reranking complete. Top scores:\033[0m")
+            print("\n\033[93mCohere reranking complete. Top scores:\033[0m")
 
         reranked_sources = []
         for i, result in enumerate(reranked_results):
@@ -163,7 +163,7 @@ class QueryExpanderWithReranker(BaseRAG):
         reranked_results = await self._async_rerank_with_cohere(question, documents)
 
         if self.verbose:
-            print(f"\n\033[93mCohere reranking complete.\033[0m")
+            print("\n\033[93mCohere reranking complete.\033[0m")
 
         reranked_sources = []
         for result in reranked_results:
