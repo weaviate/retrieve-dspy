@@ -79,32 +79,33 @@ rag_pipeline = retrieve_dspy.LayeredReranker(
 )
 '''
 
-rag_pipeline = retrieve_dspy.ListwiseReranker(
-    collection_name="FreshstackLaravel",
+rag_pipeline = retrieve_dspy.QueryExpander(
+    collection_name="FreshstackLangchain",
     target_property_name="docs_text",
-    retrieved_k=50,
-    reranked_k=10,
-    diverse_ranker=True,
+    retrieved_k=100,
     verbose=True
 )
 
-#rag_pipeline.load("./notebooks/mipro_optimized_listwise_reranker.json")
+rag_pipeline.load("./notebooks/mipro_optimized_query_expander.json")
+used_qs = retrieve_dspy.utils.load_training_questions("./notebooks/query_expander_training_samples.jsonl")
 
 NUM_TRIALS = 5
 scores = []
 
 for trial in range(NUM_TRIALS):
     print(f"\nRunning trial {trial + 1}/{NUM_TRIALS}")
-    
+
     trainset, testset = load_queries_in_memory(
-        dataset_name="freshstack-laravel",
+        dataset_name="freshstack-langchain",
         train_samples=20,
-        test_samples=20
+        test_samples=20,
+        training_samples=used_qs,
+        seed=trial,
     )
 
     metric = create_metric(
         metric_type="coverage",
-        dataset_name="freshstack-laravel"
+        dataset_name="freshstack-langchain"
     )
 
     evaluator = retrieve_dspy.utils.get_evaluator(
