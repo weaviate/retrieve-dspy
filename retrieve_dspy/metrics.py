@@ -158,7 +158,7 @@ def create_recall_metric(weaviate_client, dataset_name: str) -> Callable:
             
     return recall_metric
 
-def create_coverage_metric(weaviate_client, dataset_name: str, k: int = 100) -> Callable:
+def create_coverage_metric(weaviate_client, dataset_name: str, k: int = 10000) -> Callable:
     """
     Create a coverage metric function that wraps the existing calculate_coverage function.
     

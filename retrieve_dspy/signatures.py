@@ -116,6 +116,31 @@ Consider both exploration and result diversity to capture multiple interpretatio
     question: str = dspy.InputField()
     search_queries: list[str] = dspy.OutputField()
 
+class DecomposeQueryIntoSubQueries(dspy.Signature):
+    """Your task is to decompose a complex technical problem into atomic sub-queries that collectively cover all essential aspects needed to answer the question.
+    
+    You are given the initial search results from the user's original query. Analyze what information is missing or insufficiently covered, then generate sub-queries that will:
+    
+    1. Break down the main problem into its constituent parts (error messages, specific functions, configuration issues)
+    2. Target different aspects of the solution (root causes, prerequisites, implementation steps, troubleshooting)
+    3. Use varied terminology and perspectives to maximize document diversity
+    4. Include both specific technical terms AND broader conceptual queries
+    5. Cover edge cases, common pitfalls, and alternative approaches
+    
+    Each sub-query should be:
+    - Concise (1-6 words when possible, per FreshStack's findings)
+    - Unique and non-redundant with other sub-queries
+    - Targeted at retrieving documents that would contain different "nuggets" of information
+    
+    Example decomposition pattern:
+    - Original: "Chromadb from_documents function giving error"
+    - Sub-queries: ["Chromadb from_documents signature", "EmbeddingFunction interface changes", "HuggingFaceEmbeddings alternative", "sentence-transformers compatibility", "Chroma migration 0.4.16"]
+    """
+
+    user_question: str = dspy.InputField(desc="The original technical question or problem statement")
+    initial_search_results: str = dspy.InputField(desc="Initial retrieval results to identify coverage gaps")
+    sub_queries: list[str] = dspy.OutputField(desc="List of 3-8 atomic sub-queries that maximize nugget coverage")
+
 class WriteSearchQueriesWithFilters(dspy.Signature):
     """Write search queries with optional filters to gather information from a search engine that will help answer the question."""
 

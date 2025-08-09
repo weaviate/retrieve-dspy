@@ -9,7 +9,8 @@ from .retrievers import (
     FilteredQueryWriter,
     SummarizedListwiseReranker,
     LoopingQueryWriter,
-    QueryExpander
+    QueryExpander,
+    DecomposeAndExpand
 )
 from .utils import *
 from .metrics import *
@@ -28,5 +29,6 @@ __all__ = [
     "ListwiseReranker",
     "LayeredReranker",
     "LoopingQueryWriter",
-    "QueryExpander"
+    "QueryExpander",
+    "DecomposeAndExpand"
 ]

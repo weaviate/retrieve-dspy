@@ -9,6 +9,7 @@ from .multi_query_writer_with_reranker import MultiQueryWriterWithReranker
 from .filtered_query_writer import FilteredQueryWriter
 from .looping_query_writer import LoopingQueryWriter
 from .layered_reranker import LayeredReranker
+from .decompose_and_expand import DecomposeAndExpand
 
 __all__ = [
     "VanillaRAG",
@@ -21,5 +22,6 @@ __all__ = [
     "FilteredQueryWriter",
     "LoopingQueryWriter",
     "QueryExpander",
-    "LayeredReranker"
+    "LayeredReranker",
+    "DecomposeAndExpand"
 ]
