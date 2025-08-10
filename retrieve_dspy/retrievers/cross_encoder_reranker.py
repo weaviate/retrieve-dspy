@@ -4,6 +4,7 @@ from typing import Optional, List
 
 import cohere
 from cohere import RerankResponseResultsItem
+import dspy
 
 from retrieve_dspy.tools.weaviate_database import (
     weaviate_search_tool,
@@ -12,7 +13,7 @@ from retrieve_dspy.tools.weaviate_database import (
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.models import DSPyAgentRAGResponse
-
+from retrieve_dspy.signatures import QuerySummarizer
 
 class CrossEncoderReranker(BaseRAG):
     def __init__(
@@ -24,7 +25,8 @@ class CrossEncoderReranker(BaseRAG):
         retrieved_k: Optional[int] = 50,
         reranked_k: Optional[int] = 20,
         cohere_model: Optional[str] = "rerank-v3.5",
-        cohere_api_key: Optional[str] = None
+        cohere_api_key: Optional[str] = None,
+        summarize_query: Optional[bool] = False
     ):
         """
         Initialize the Cross Encoder Reranker.
@@ -48,6 +50,8 @@ class CrossEncoderReranker(BaseRAG):
         )
         self.reranked_k = reranked_k
         self.cohere_model = cohere_model
+        self.summarize_query = summarize_query
+        self.query_summarizer = dspy.Predict(QuerySummarizer)
         
         # Initialize Cohere client
         api_key = cohere_api_key or os.getenv("COHERE_API_KEY")
@@ -117,7 +121,7 @@ class CrossEncoderReranker(BaseRAG):
             
         Returns:
             DSPyAgentRAGResponse with reranked sources
-        """
+        """            
         # Get initial search results
         search_results, sources = weaviate_search_tool(
             query=question,
@@ -144,6 +148,12 @@ class CrossEncoderReranker(BaseRAG):
                 preview = doc[:100] + "..." if len(doc) > 100 else doc
                 print(f"  Doc {i+1} preview: {preview}")
         
+        if self.summarize_query:
+            question_pred = self.query_summarizer(question=question)
+            question = question_pred.summary
+            if self.verbose:
+                print(f"\033[96mSummarized query: {question}\033[0m")
+            
         # Rerank with Cohere
         reranked_results = self._rerank_with_cohere(question, documents)
         
@@ -192,7 +202,7 @@ class CrossEncoderReranker(BaseRAG):
             
         Returns:
             DSPyAgentRAGResponse with reranked sources
-        """
+        """            
         # Get initial search results
         search_results, sources = await async_weaviate_search_tool(
             query=question,
@@ -212,6 +222,12 @@ class CrossEncoderReranker(BaseRAG):
             doc_text = result.content if hasattr(result, 'content') else str(result)
             documents.append(doc_text)
         
+        if self.summarize_query:
+            question_pred = self.query_summarizer(question=question)
+            question = question_pred.summary
+            if self.verbose:
+                print(f"\033[96mSummarized query: {question}\033[0m")
+
         # Rerank with Cohere (async)
         reranked_results = await self._async_rerank_with_cohere(question, documents)
         

@@ -31,8 +31,8 @@ class MultiQueryWriter(BaseRAG):
             retrieved_k=retrieved_k
         )
         self.search_with_queries_concatenated = search_with_queries_concatenated
-        self.query_writer = dspy.ChainOfThought(WriteSearchQueries)
-        #self.query_writer = dspy.Predict(WriteSearchQueries)
+        #self.query_writer = dspy.ChainOfThought(WriteSearchQueries)
+        self.query_writer = dspy.Predict(WriteSearchQueries)
 
     def forward(self, question: str) -> DSPyAgentRAGResponse:
         qw_pred = self.query_writer(question=question)

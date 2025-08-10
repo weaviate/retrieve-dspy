@@ -204,3 +204,9 @@ class SummarizeSearchRelevance(dspy.Signature):
     relevance_score: float = dspy.OutputField(
         desc="A relevance score from 0.0 to 1.0, where 1.0 is perfectly relevant"
     )
+
+class QuerySummarizer(dspy.Signature):
+    """Summarize a technical question into one or two sentences."""
+
+    question: str = dspy.InputField()
+    summary: str = dspy.OutputField()

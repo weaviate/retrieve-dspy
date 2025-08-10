@@ -86,10 +86,12 @@ rag_pipeline = retrieve_dspy.DecomposeAndExpand(
 )
 '''
 
-rag_pipeline = retrieve_dspy.VanillaRAG(
-    collection_name="FreshstackLaravel",
+rag_pipeline = retrieve_dspy.CrossEncoderReranker(
+    collection_name="FreshstackLangchain",
     target_property_name="docs_text",
-    retrieved_k=200,
+    retrieved_k=100,
+    reranked_k=50,
+    summarize_query=False,
     verbose=True
 )
 
@@ -97,14 +99,14 @@ rag_pipeline = retrieve_dspy.VanillaRAG(
 #used_qs = retrieve_dspy.utils.load_training_questions("./notebooks/query_expander_training_samples.jsonl")
 used_qs = None
 
-NUM_TRIALS = 1
+NUM_TRIALS = 5
 scores = []
 
 for trial in range(NUM_TRIALS):
     print(f"\nRunning trial {trial + 1}/{NUM_TRIALS}")
 
     trainset, testset = load_queries_in_memory(
-        dataset_name="freshstack-laravel",
+        dataset_name="freshstack-langchain",
         train_samples=20,
         test_samples=20,
         training_samples=used_qs,
@@ -113,7 +115,7 @@ for trial in range(NUM_TRIALS):
 
     metric = create_metric(
         metric_type="coverage",
-        dataset_name="freshstack-laravel"
+        dataset_name="freshstack-langchain"
     )
 
     evaluator = retrieve_dspy.utils.get_evaluator(
