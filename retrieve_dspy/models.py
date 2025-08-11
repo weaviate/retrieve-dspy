@@ -5,6 +5,11 @@ import dspy
 class Source(BaseModel):
     object_id: str
 
+class SourceWithContentAndVector(Source):
+    content: str
+    vector: list[float]
+
+
 class SearchResult(BaseModel):
     id: int
     initial_rank: int

@@ -12,7 +12,7 @@ from retrieve_dspy.tools.weaviate_database import (
 )
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
-from retrieve_dspy.models import DSPyAgentRAGResponse, Source
+from retrieve_dspy.models import DSPyAgentRAGResponse, Source, SourceWithContentAndVector
 from retrieve_dspy.signatures import WriteSearchQueries
 
 
@@ -66,7 +66,7 @@ class MultiQueryWriterWithReranker(BaseRAG):
         
         self.co = cohere.ClientV2(api_key)
     
-    def _deduplicate_sources(self, sources: List[Source]) -> tuple[List[Source], List[str]]:
+    def _deduplicate_sources(self, sources: List[Source]) -> list[Source]:
         """
         Remove duplicate sources based on object_id and return unique content.
         
@@ -75,14 +75,13 @@ class MultiQueryWriterWithReranker(BaseRAG):
         """
         seen_ids: Set[str] = set()
         unique_sources: List[Source] = []
-        unique_docs: List[str] = []
         
         for source in sources:
             if source.object_id not in seen_ids:
                 seen_ids.add(source.object_id)
                 unique_sources.append(source)
         
-        return unique_sources, unique_docs
+        return unique_sources
     
     def _rerank_with_cohere(
         self, 
@@ -219,7 +218,7 @@ class MultiQueryWriterWithReranker(BaseRAG):
                       f"({len(set(s.object_id for s in all_sources))} unique)\033[0m")
             
             # Deduplicate
-            unique_sources, _ = self._deduplicate_sources(all_sources)
+            unique_sources = self._deduplicate_sources(all_sources)
             
             # Extract content
             seen_ids = set()
@@ -457,7 +456,7 @@ async def main():
     print("TESTING TWO-STAGE RERANKING")
     print("="*80)
 
-    two_stage_pipeline = MultiQueryWriterWithCrossEncoderReranker(
+    two_stage_pipeline = MultiQueryWriterWithReranker(
         collection_name="FreshstackLangchain",
         target_property_name="docs_text",
         retrieved_k=10,
