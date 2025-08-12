@@ -12,9 +12,9 @@ from retrieve_dspy.tools.weaviate_database import (
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 
 from retrieve_dspy.models import DSPyAgentRAGResponse, Source
-from retrieve_dspy.signatures import WriteSearchQueries
+from retrieve_dspy.signatures import DecomposeQueryWithHint
 
-class MultiQueryWriter(BaseRAG):
+class MultiQueryWriterWithHint(BaseRAG):
     def __init__(
         self, 
         collection_name: str, 
@@ -33,11 +33,17 @@ class MultiQueryWriter(BaseRAG):
         )
         self.search_with_queries_concatenated = search_with_queries_concatenated
         #self.query_writer = dspy.ChainOfThought(WriteSearchQueries)
-        self.query_writer = dspy.Predict(WriteSearchQueries)
+        self.query_writer = dspy.Predict(DecomposeQueryWithHint)
 
     def forward(self, question: str) -> DSPyAgentRAGResponse:
-        qw_pred = self.query_writer(question=question)
-        queries: list[str] = qw_pred.search_queries
+        initial_search_results, _ = weaviate_search_tool(
+            query=question,
+            collection_name=self.collection_name,
+            target_property_name=self.target_property_name,
+            retrieved_k=5
+        )
+        qw_pred = self.query_writer(user_question=question, initial_search_results=initial_search_results)
+        queries: list[str] = qw_pred.sub_queries
         #reasoning = qw_pred.reasoning
         #print(f"\033[97mReasoning:\n{reasoning}\033[0m")
         #queries.append(reasoning)
@@ -87,8 +93,14 @@ class MultiQueryWriter(BaseRAG):
     
     async def aforward(self, question: str) -> DSPyAgentRAGResponse:
         # Generate queries asynchronously
-        qw_pred = await self.query_writer.acall(question=question)
-        queries: list[str] = qw_pred.search_queries
+        initial_search_results, _ = await async_weaviate_search_tool(
+            query=question,
+            collection_name=self.collection_name,
+            target_property_name=self.target_property_name,
+            retrieved_k=5
+        )
+        qw_pred = await self.query_writer.acall(user_question=question, initial_search_results=initial_search_results)
+        queries: list[str] = qw_pred.sub_queries
         #reasoning = qw_pred.reasoning
         #print(f"\033[95mReasoning:\n{reasoning}\033[0m")
         #queries.append(reasoning)

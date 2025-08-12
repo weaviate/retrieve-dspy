@@ -1,5 +1,6 @@
 from .retrievers import (
     MultiQueryWriter,
+    MultiQueryWriterWithHint,
     QueryWriterWithListwiseReranker,
     MultiQueryWriterWithReranker,
     VanillaRAG,
@@ -10,7 +11,10 @@ from .retrievers import (
     SummarizedListwiseReranker,
     LoopingQueryWriter,
     QueryExpander,
-    DecomposeAndExpand
+    DecomposeAndExpand,
+    QueryExpanderWithHint,
+    DecomposeAndExpandWithHints,
+    QueryExpanderWithReranker
 )
 from .utils import *
 from .metrics import *
@@ -20,6 +24,7 @@ __version__ = "0.1.0"
 
 __all__ = [
     "MultiQueryWriter",
+    "MultiQueryWriterWithHint",
     "MultiQueryWriterWithReranker",
     "QueryWriterWithListwiseReranker",
     "VanillaRAG",
@@ -30,5 +35,8 @@ __all__ = [
     "LayeredReranker",
     "LoopingQueryWriter",
     "QueryExpander",
-    "DecomposeAndExpand"
+    "DecomposeAndExpand",
+    "QueryExpanderWithHint",
+    "DecomposeAndExpandWithHints",
+    "QueryExpanderWithReranker"
 ]

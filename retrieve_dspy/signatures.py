@@ -104,19 +104,35 @@ class ExpandQuery(dspy.Signature):
     question: str = dspy.InputField()
     expanded_query: str = dspy.OutputField()
 
-class WriteSearchQueries(dspy.Signature):
-    """Write search queries to gather information from a search engine that will help answer the question.
-Consider both exploration and result diversity to capture multiple interpretations and facets of a query."""
-
+class ExpandQueryWithHint(dspy.Signature):
+    """Expand a query to gather information from a search engine that will help answer the question.
     
+    Use the initial search results as hints to guide your query expansion. Analyze what information 
+    was retrieved and identify gaps or areas that need deeper exploration. Expand the original 
+    question to capture missing aspects, alternative terminology, or related concepts that would 
+    help retrieve more comprehensive and relevant information.
+    
+    Consider:
+    - What key information might be missing from the initial results
+    - Alternative ways to phrase the query that could retrieve different perspectives
+    - Related technical terms or concepts that weren't captured initially
+    - More specific or broader formulations that could improve retrieval quality
+    """
+
+    question: str = dspy.InputField()
+    initial_search_results: str = dspy.InputField()
+    expanded_query: str = dspy.OutputField()
+
 class WriteSearchQueries(dspy.Signature):
     """Write search queries to gather information from a search engine that will help answer the question.
-Consider both exploration and result diversity to capture multiple interpretations and facets of a query."""
+Consider both exploration and result diversity to capture multiple interpretations and facets of a query.
+
+IMPORTANT!! MAKE SURE EACH QUERY IS VERY DETAILED! LONGER, MORE DETAILED QUERIES TEND TO RETURN BETTER SEARCH RESULTS!"""
 
     question: str = dspy.InputField()
     search_queries: list[str] = dspy.OutputField()
 
-class DecomposeQueryIntoSubQueries(dspy.Signature):
+class DecomposeQueryWithHint(dspy.Signature):
     """Your task is to decompose a complex technical problem into atomic sub-queries that collectively cover all essential aspects needed to answer the question.
     
     You are given the initial search results from the user's original query. Analyze what information is missing or insufficiently covered, then generate sub-queries that will:

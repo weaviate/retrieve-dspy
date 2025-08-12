@@ -7,6 +7,8 @@ requires-python = ">=3.11"
 dependencies = [
     "cohere>=5.16.1",
     "dspy>=2.6.27",
+    "hdbscan>=0.8.40",
+    "matplotlib>=3.10.5",
     "ruff>=0.12.7",
     "weaviate-client>=4.16.4",
 ]

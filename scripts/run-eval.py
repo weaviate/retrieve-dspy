@@ -84,7 +84,6 @@ rag_pipeline = retrieve_dspy.DecomposeAndExpand(
     retrieved_k=20,
     verbose=True
 )
-'''
 
 rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     collection_name="FreshstackLangchain",
@@ -94,6 +93,34 @@ rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     summarize_query=False,
     verbose=True
 )
+
+rag_pipeline = retrieve_dspy.VanillaRAG(
+    collection_name="FreshstackLangchain",
+    target_property_name="docs_text",
+    retrieved_k=20,
+    verbose=True
+)
+'''
+'''
+rag_pipeline = retrieve_dspy.QueryExpanderWithHint(
+    collection_name="FreshstackLangchain",
+    target_property_name="docs_text",
+    retrieved_k=10,
+    verbose=True
+)
+'''
+
+rag_pipeline = retrieve_dspy.MultiQueryWriterWithReranker(
+    collection_name="FreshstackLangchain",
+    target_property_name="docs_text",
+    retrieved_k=20,
+    reranked_k=20,
+    search_with_queries_concatenated=False,
+    verbose=True,
+    two_stage_reranking=False
+)
+
+print(rag_pipeline.__class__.__name__)
 
 #rag_pipeline.load("./notebooks/mipro_optimized_query_expander.json")
 #used_qs = retrieve_dspy.utils.load_training_questions("./notebooks/query_expander_training_samples.jsonl")
@@ -124,7 +151,7 @@ for trial in range(NUM_TRIALS):
     )
 
     dspy_evaluator_kwargs = {
-        "num_threads": 5
+        "num_threads": 1
     }
 
     score = evaluator(rag_pipeline, **dspy_evaluator_kwargs)
@@ -132,6 +159,7 @@ for trial in range(NUM_TRIALS):
 
 scores = np.array(scores)
 print("\nResults across trials:")
+print(f"Individual scores: {[f'{score:.3f}' for score in scores]}")
 print(f"Min score: {scores.min():.3f}")
 print(f"Max score: {scores.max():.3f}") 
 print(f"Mean score: {scores.mean():.3f}")
