@@ -110,20 +110,20 @@ rag_pipeline = retrieve_dspy.QueryExpanderWithHint(
 )
 '''
 
-rag_pipeline = retrieve_dspy.QueryExpander(
-    collection_name="FreshstackLangchain",
-    target_property_name="docs_text",
+rag_pipeline = retrieve_dspy.VanillaRAG(
+    collection_name="EnronEmails",
+    target_property_name="email_body",
     retrieved_k=20,
     verbose=True
 )
 
-print(rag_pipeline.__class__.__name__)
+#print(rag_pipeline.__class__.__name__)
 
-rag_pipeline.load("./optimization_runs/2_gepa_optimized_query_expander.json")
-used_qs = retrieve_dspy.utils.load_training_questions("./optimization_runs/2_gepa_query_expander_training_samples.jsonl")
-#used_qs = None
+#rag_pipeline.load("./optimization_runs/2_gepa_optimized_query_expander.json")
+#used_qs = retrieve_dspy.utils.load_training_questions("./optimization_runs/2_gepa_query_expander_training_samples.jsonl")
+used_qs = None
 
-print(f"\033[92m{rag_pipeline.expand_query.signature}\033[0m")
+#print(f"\033[92m{rag_pipeline.expand_query.signature}\033[0m")
 
 NUM_TRIALS = 5
 scores = []
@@ -132,7 +132,7 @@ for trial in range(NUM_TRIALS):
     print(f"\nRunning trial {trial + 1}/{NUM_TRIALS}")
 
     trainset, testset = load_queries_in_memory(
-        dataset_name="freshstack-langchain",
+        dataset_name="enron",
         train_samples=20,
         test_samples=20,
         training_samples=used_qs,
@@ -140,8 +140,8 @@ for trial in range(NUM_TRIALS):
     )
 
     metric = create_metric(
-        metric_type="coverage",
-        dataset_name="freshstack-langchain"
+        metric_type="recall",
+        dataset_name="enron"
     )
 
     evaluator = retrieve_dspy.utils.get_evaluator(
