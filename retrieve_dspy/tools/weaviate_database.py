@@ -37,9 +37,10 @@ def weaviate_search_tool(
     
     return_properties = [target_property_name]
 
+    '''
     if tag_filter_value:
         filter = Filter.by_property("tags").contains_any([tag_filter_value])
-
+    '''
     kwargs = dict(
         query=query,
         limit=retrieved_k,
@@ -119,9 +120,10 @@ async def async_weaviate_search_tool(
         
         return_properties = [target_property_name]
 
+        '''
         if tag_filter_value:
             filter = Filter.by_property("tags").contains_any([tag_filter_value])
-
+        '''
         kwargs = dict(
             query=query,
             limit=retrieved_k,

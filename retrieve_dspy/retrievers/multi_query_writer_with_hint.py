@@ -165,7 +165,7 @@ async def main():
     dspy.configure(lm=lm, track_usage=True)
     print(f"DSPy configured with: {lm}")
 
-    test_pipeline = MultiQueryWriter(
+    test_pipeline = MultiQueryWriterWithHint(
         collection_name="FreshstackLangchain",
         target_property_name="docs_text",
         retrieved_k=5,

@@ -1,8 +1,5 @@
 import numpy as np
 
-import dspy
-print(dspy.__version__)
-
 import retrieve_dspy
 from retrieve_dspy.metrics import create_metric
 from retrieve_dspy.datasets.in_memory import load_queries_in_memory

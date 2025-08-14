@@ -3,8 +3,9 @@ import os
 from typing import Optional
 
 import cohere
-import dspy
 from cohere import RerankResponseResultsItem
+import dspy
+import re
 
 from retrieve_dspy.tools.weaviate_database import (
     weaviate_search_tool,
@@ -173,14 +174,9 @@ class LayeredReranker(BaseRAG):
                 # Parse the prediction to extract indices
                 prediction = diversity_result.prediction
                 if isinstance(prediction, str):
-                    try:
-                        # Attempt to parse indices from the prediction
-                        import re
-                        indices = re.findall(r'\d+', prediction)
-                        ranked_indices = [int(i) for i in indices if int(i) < len(cross_encoder_sources)]
-                    except:
-                        # Fallback to top M sources
-                        ranked_indices = list(range(min(self.reranked_M, len(cross_encoder_sources))))
+                    indices = re.findall(r'\d+', prediction)
+                    ranked_indices = [int(i) for i in indices if int(i) < len(cross_encoder_sources)]
+
             
             # Reorder sources based on diversity ranking
             final_sources = []
@@ -272,14 +268,8 @@ class LayeredReranker(BaseRAG):
                 # Parse the prediction to extract indices
                 prediction = diversity_result.prediction
                 if isinstance(prediction, str):
-                    try:
-                        # Attempt to parse indices from the prediction
-                        import re
-                        indices = re.findall(r'\d+', prediction)
-                        ranked_indices = [int(i) for i in indices if int(i) < len(cross_encoder_sources)]
-                    except:
-                        # Fallback to top M sources
-                        ranked_indices = list(range(min(self.reranked_M, len(cross_encoder_sources))))
+                    indices = re.findall(r'\d+', prediction)
+                    ranked_indices = [int(i) for i in indices if int(i) < len(cross_encoder_sources)]
             
             # Reorder sources based on diversity ranking
             final_sources = []

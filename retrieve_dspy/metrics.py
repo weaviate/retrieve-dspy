@@ -2,7 +2,6 @@ import asyncio
 import os
 from typing import Callable
 
-import dspy
 from dspy import Example, Prediction
 import weaviate
 from weaviate.collections.classes.filters import Filter

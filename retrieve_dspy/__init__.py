@@ -16,9 +16,6 @@ from .retrievers import (
     DecomposeAndExpandWithHints,
     QueryExpanderWithReranker
 )
-from .utils import *
-from .metrics import *
-from .datasets import *
 
 __version__ = "0.1.0"
 

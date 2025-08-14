@@ -29,25 +29,6 @@ def _iter_example_questions(examples: Iterable[Example]) -> Iterable[str]:
         if q is not None:
             yield q
 
-def load_training_questions(path: str) -> Set[str]:
-    if not os.path.exists(path):
-        return set()
-    out: Set[str] = set()
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                obj = json.loads(line)
-                q = obj.get("question")
-                if isinstance(q, str):
-                    out.add(q)
-            except json.JSONDecodeError:
-                # tolerate legacy plain-text lines
-                out.add(line)
-    return out
-
 def save_training_questions(train_examples: List[Example], path: str) -> dict:
     already = load_training_questions(path)
     batch_unique = set(_iter_example_questions(train_examples))

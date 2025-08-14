@@ -1,10 +1,6 @@
 import asyncio
-import os
-from typing import Optional
 
-import cohere
 import dspy
-from cohere import RerankResponseResultsItem
 
 from retrieve_dspy.tools.weaviate_database import (
     weaviate_search_tool,
@@ -13,7 +9,7 @@ from retrieve_dspy.tools.weaviate_database import (
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 
-from retrieve_dspy.models import DSPyAgentRAGResponse, SearchResult
+from retrieve_dspy.models import DSPyAgentRAGResponse
 from retrieve_dspy.signatures import DecomposeQueryWithHint, ExpandQuery
 
 class DecomposeAndExpand(BaseRAG):

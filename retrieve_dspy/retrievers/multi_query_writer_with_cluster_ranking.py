@@ -3,7 +3,6 @@
 ################################################################################
 
 import asyncio
-import os
 from typing import Optional, List, Tuple
 
 import dspy
@@ -55,7 +54,7 @@ class MultiQueryWriterWithClusterRanking(BaseRAG):
         Generates and saves a 2D scatter plot of document clusters.
         """
         unique_labels = set(labels)
-        cluster_labels = [l for l in unique_labels if l != -1]
+        cluster_labels = [label for label in unique_labels if label != -1]
         
         # Guard against case with no actual clusters
         if not cluster_labels:
