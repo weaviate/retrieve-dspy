@@ -5,6 +5,10 @@ import dspy
 class Source(BaseModel):
     object_id: str
 
+class SourceWithContentAndVector(Source):
+    content: str
+    vector: list[float]
+
 class SearchResult(BaseModel):
     id: int
     initial_rank: int
@@ -13,6 +17,11 @@ class SearchResult(BaseModel):
 class SearchQueryWithFilter(BaseModel):
     search_query: str
     filter: Optional[str]
+
+class Cluster(BaseModel):
+    cluster_name: str
+    doc_ids: list[str]
+    vectors: list[list[float]]
 
 class AgentRAGResponse(BaseModel):
     final_answer: str

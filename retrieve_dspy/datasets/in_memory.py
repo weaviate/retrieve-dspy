@@ -1,6 +1,6 @@
 import json
 import random
-from typing import List, Dict
+from typing import List, Dict, Optional, Set, Tuple
 
 from datasets import load_dataset
 from dspy import Example
@@ -8,44 +8,56 @@ from dspy import Example
 def create_dspy_examples_from_dataset(
     queries: List[Dict],
     max_train: int,
-    max_test: int
-):
+    max_test: int,
+    *,
+    training_samples: Optional[Set[str]] = None,  # exact strings to EXCLUDE from test
+    seed: Optional[int] = None,
+) -> Tuple[List[Example], List[Example]]:
     """
-    Convert dataset queries to DSPy Examples.
-    
-    Args:
-        queries: List of query dictionaries from dataset loader
-        max_train: Maximum number of training examples to use
-        max_test: Maximum number of test examples to use
-        
-    Returns:
-        Tuple of (train_examples, test_examples)
-    """
-    examples = []
-    
-    for query in queries:
-        example = Example()
-        example = example.with_inputs("question")
-        
-        example["question"] = query["question"]
-        
-        # Add dataset_ids for recall evaluation
-        if "dataset_ids" in query:
-            example.dataset_ids = query["dataset_ids"]
-        
-        # Add nugget data if available (for FreshStack datasets)
-        if "nugget_data" in query:
-            example.nugget_data = query["nugget_data"]
-    
-        examples.append(example)
+    Convert dataset queries to DSPy Examples, sample train/test.
+    Test set will EXCLUDE any question present in `training_samples`.
 
-    # Randomly sample train examples
+    Args:
+        queries: List of query dicts with at least "question"
+        max_train: Max number of train examples (0/None means all)
+        max_test: Max number of test examples (0/None means all)
+        training_samples: Set of question strings previously used for training
+                          (these will be EXCLUDED from test sampling)
+        seed: Optional RNG seed for reproducibility
+
+    Returns:
+        (train_examples, test_examples)
+    """
+    if seed is not None:
+        random.seed(seed)
+
+    examples = []
+    for query in queries:
+        q = query["question"]
+        ex = Example().with_inputs("question")
+        ex["question"] = q
+
+        if "dataset_ids" in query:
+            ex.dataset_ids = query["dataset_ids"]
+
+        if "nugget_data" in query:
+            ex.nugget_data = query["nugget_data"]
+
+        examples.append(ex)
+
+    # Train sample (no special filtering beyond size)
     train_examples = random.sample(examples, min(max_train, len(examples))) if max_train else examples.copy()
-    
-    # Sample test examples from remaining examples
+
+    # Candidates for test = everything not selected for train in THIS run
     remaining_examples = [ex for ex in examples if ex not in train_examples]
+
+    # Further exclude anything in the external `training_samples` ledger from the TEST pool
+    if training_samples:
+        remaining_examples = [ex for ex in remaining_examples if ex["question"] not in training_samples]
+
+    # Test sample from filtered remaining
     test_examples = random.sample(remaining_examples, min(max_test, len(remaining_examples))) if max_test else remaining_examples
-    
+
     return train_examples, test_examples
 
 def in_memory_dataset_loader(dataset_name: str):
@@ -154,14 +166,19 @@ def split_dataset(dataset, train_ratio=0.8, shuffle=True):
 def load_queries_in_memory(
     dataset_name: str,
     train_samples: int,
-    test_samples: int
+    test_samples: int,
+    *,
+    training_samples: Optional[Set[str]] = None,  # pass your exact-question set here
+    seed: Optional[int] = None,
 ):
     _, queries = in_memory_dataset_loader(dataset_name)
 
     trainset, testset = create_dspy_examples_from_dataset(
         queries=queries,
         max_train=train_samples,
-        max_test=test_samples
+        max_test=test_samples,
+        training_samples=training_samples,
+        seed=seed,
     )
 
     return trainset, testset
