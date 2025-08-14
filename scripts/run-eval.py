@@ -110,7 +110,7 @@ rag_pipeline = retrieve_dspy.QueryExpanderWithHint(
 )
 '''
 
-rag_pipeline = retrieve_dspy.MultiQueryWriter(
+rag_pipeline = retrieve_dspy.QueryExpander(
     collection_name="FreshstackLangchain",
     target_property_name="docs_text",
     retrieved_k=20,
@@ -119,11 +119,11 @@ rag_pipeline = retrieve_dspy.MultiQueryWriter(
 
 print(rag_pipeline.__class__.__name__)
 
-rag_pipeline.load("./optimization runs/gepa_optimized_multi_query_writer.json")
-used_qs = retrieve_dspy.utils.load_training_questions("./optimization runs/gepa_multi_query_writer_training_samples.jsonl")
+rag_pipeline.load("./optimization_runs/2_gepa_optimized_query_expander.json")
+used_qs = retrieve_dspy.utils.load_training_questions("./optimization_runs/2_gepa_query_expander_training_samples.jsonl")
 #used_qs = None
 
-print(f"\033[92m{rag_pipeline.query_writer.signature}\033[0m")
+print(f"\033[92m{rag_pipeline.expand_query.signature}\033[0m")
 
 NUM_TRIALS = 5
 scores = []
@@ -150,7 +150,7 @@ for trial in range(NUM_TRIALS):
     )
 
     dspy_evaluator_kwargs = {
-        "num_threads": 1
+        "num_threads": 4
     }
 
     score = evaluator(rag_pipeline, **dspy_evaluator_kwargs).score

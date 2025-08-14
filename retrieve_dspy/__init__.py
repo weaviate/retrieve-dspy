@@ -17,6 +17,10 @@ from .retrievers import (
     QueryExpanderWithReranker
 )
 
+from .utils import *
+from .metrics import *
+from .datasets import *
+
 __version__ = "0.1.0"
 
 __all__ = [
