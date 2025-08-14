@@ -1,5 +1,8 @@
 import numpy as np
 
+import dspy
+print(dspy.__version__)
+
 import retrieve_dspy
 from retrieve_dspy.metrics import create_metric
 from retrieve_dspy.datasets.in_memory import load_queries_in_memory
@@ -110,21 +113,20 @@ rag_pipeline = retrieve_dspy.QueryExpanderWithHint(
 )
 '''
 
-rag_pipeline = retrieve_dspy.MultiQueryWriterWithReranker(
+rag_pipeline = retrieve_dspy.MultiQueryWriter(
     collection_name="FreshstackLangchain",
     target_property_name="docs_text",
     retrieved_k=20,
-    reranked_k=20,
-    search_with_queries_concatenated=False,
-    verbose=True,
-    two_stage_reranking=False
+    verbose=True
 )
 
 print(rag_pipeline.__class__.__name__)
 
-#rag_pipeline.load("./notebooks/mipro_optimized_query_expander.json")
-#used_qs = retrieve_dspy.utils.load_training_questions("./notebooks/query_expander_training_samples.jsonl")
-used_qs = None
+rag_pipeline.load("./optimization runs/gepa_optimized_multi_query_writer.json")
+used_qs = retrieve_dspy.utils.load_training_questions("./optimization runs/gepa_multi_query_writer_training_samples.jsonl")
+#used_qs = None
+
+print(f"\033[92m{rag_pipeline.query_writer.signature}\033[0m")
 
 NUM_TRIALS = 5
 scores = []
@@ -154,10 +156,14 @@ for trial in range(NUM_TRIALS):
         "num_threads": 1
     }
 
-    score = evaluator(rag_pipeline, **dspy_evaluator_kwargs)
+    score = evaluator(rag_pipeline, **dspy_evaluator_kwargs).score
     scores.append(score)
 
 scores = np.array(scores)
+print(scores)
+
+print("\n\nDEBUGGING\n\n")
+
 print("\nResults across trials:")
 print(f"Individual scores: {[f'{score:.3f}' for score in scores]}")
 print(f"Min score: {scores.min():.3f}")

@@ -16,7 +16,7 @@ class QueryExpander(BaseRAG):
         self,
         collection_name: str,
         target_property_name: Optional[str] = "content",
-        verbose: Optional[bool] = False,
+        verbose: Optional[bool] = True,
         search_only: Optional[bool] = True,
         retrieved_k: Optional[int] = 20
     ):
