@@ -71,6 +71,3 @@ class DSPyAgentRAGResponse(dspy.Prediction):
             aggregations=response.aggregations,
             usage=response.usage
         )
-    
-class Source(BaseModel):
-    object_id: str

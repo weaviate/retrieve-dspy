@@ -113,7 +113,7 @@ rag_pipeline = retrieve_dspy.QueryExpanderWithHint(
 rag_pipeline = retrieve_dspy.VanillaRAG(
     collection_name="EnronEmails",
     target_property_name="email_body",
-    retrieved_k=20,
+    retrieved_k=1,
     verbose=True
 )
 
@@ -133,15 +133,16 @@ for trial in range(NUM_TRIALS):
 
     trainset, testset = load_queries_in_memory(
         dataset_name="enron",
-        train_samples=20,
-        test_samples=20,
+        train_samples=40,
+        test_samples=50,
         training_samples=used_qs,
-        seed=trial,
+        seed=trial
     )
 
     metric = create_metric(
         metric_type="recall",
-        dataset_name="enron"
+        dataset_name="enron",
+        k=1
     )
 
     evaluator = retrieve_dspy.utils.get_evaluator(
@@ -150,7 +151,7 @@ for trial in range(NUM_TRIALS):
     )
 
     dspy_evaluator_kwargs = {
-        "num_threads": 4
+        "num_threads": 1
     }
 
     score = evaluator(rag_pipeline, **dspy_evaluator_kwargs).score

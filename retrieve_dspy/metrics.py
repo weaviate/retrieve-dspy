@@ -6,29 +6,11 @@ from dspy import Example, Prediction
 import weaviate
 from weaviate.collections.classes.filters import Filter
 
-
-def qa_source_parser(
-    query_agent_sources_response,
-    collection
-):
+def qa_source_parser(query_agent_sources_response, collection):
     if not query_agent_sources_response:
         return []
-    
-    sources = query_agent_sources_response
-    source_uuids = [source.object_id for source in sources]
-    
-    matching_objects = collection.query.fetch_objects(
-        filters=Filter.by_id().contains_any(source_uuids),
-        limit=len(source_uuids),
-    )
-    
-    dataset_ids = []
-    for o in matching_objects.objects:
-        dataset_id = o.properties.get('dataset_id')
-        if dataset_id is not None:
-            dataset_ids.append(str(dataset_id))
-    
-    return dataset_ids
+    # Just extract the dataset_ids directly (they're already dataset_ids now)
+    return [source.object_id for source in query_agent_sources_response]
 
 def get_collection(weaviate_client, dataset_name: str):
     """Get the appropriate Weaviate collection for a dataset."""
@@ -42,32 +24,40 @@ def get_collection(weaviate_client, dataset_name: str):
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
 
-def calculate_recall(target_ids: list[str], retrieved_ids: list[str]):
-    """Calculate traditional recall for retrieved documents.
+def calculate_recall_at_k(target_ids: list[str], retrieved_ids: list[str], k: int):
+    """Calculate traditional recall@k for retrieved documents.
     
     Args:
-        target_ids: List of target document IDs (ground truth)
-        retrieved_ids: List of retrieved document IDs
+        target_ids: List of target document IDs (ground truth).
+        retrieved_ids: List of retrieved document IDs.
+        k: The number of top results to consider for recall calculation.
         
     Returns:
-        float: Recall score (0.0 to 1.0) - proportion of relevant docs retrieved
+        float: Recall@k score (0.0 to 1.0) - proportion of relevant docs
+               found in the top k retrieved results.
     """
     if not isinstance(target_ids, list):
         target_ids = [target_ids]
     
-    target_ids = [str(id) for id in target_ids]
+    # Use sets for efficient lookup
+    target_id_set = {str(id) for id in target_ids}
     retrieved_ids = [str(id) for id in retrieved_ids] if retrieved_ids else []
     
-    print(f"\033[96mTarget IDs: {target_ids}\033[0m")
-    found_count = sum(1 for target_id in target_ids if target_id in retrieved_ids)
+    # Consider only the top k retrieved IDs
+    retrieved_ids_at_k = retrieved_ids[:k]
+    
+    print(f"\033[96mTarget IDs: {target_id_set}\033[0m")
+    
+    # Find the number of relevant documents found in the top k
+    found_count = sum(1 for retrieved_id in retrieved_ids_at_k if retrieved_id in target_id_set)
     
     if found_count > 0:
-        print(f"\033[92mRetrieved IDs: {retrieved_ids}\033[0m")
+        print(f"\033[92mRetrieved IDs @{k}: {retrieved_ids_at_k}\033[0m")
     else:
-        print(f"\033[91mRetrieved IDs: {retrieved_ids}\033[0m")
+        print(f"\033[91mRetrieved IDs @{k}: {retrieved_ids_at_k}\033[0m")
     
-    recall = found_count / len(target_ids) if target_ids else 0
-    print(f"\033[96mRecall: {found_count}/{len(target_ids)} = {recall:.2f}\033[0m")
+    recall = found_count / len(target_id_set) if target_id_set else 0
+    print(f"\033[96mRecall@{k}: {found_count}/{len(target_id_set)} = {recall:.2f}\033[0m")
     
     return recall
 
@@ -120,7 +110,7 @@ def calculate_coverage(retrieved_ids: list[str], nugget_data: list[dict], k: int
     
     return coverage_score
 
-def create_recall_metric(weaviate_client, dataset_name: str) -> Callable:
+def create_recall_metric(weaviate_client, dataset_name: str, k: int) -> Callable:
     """
     Create a recall metric function that wraps the existing calculate_recall function.
     
@@ -146,9 +136,10 @@ def create_recall_metric(weaviate_client, dataset_name: str) -> Callable:
             target_ids = example.dataset_ids
             
             # Use the existing calculate_recall function
-            recall_score = calculate_recall(
+            recall_score = calculate_recall_at_k(
                 target_ids=target_ids,
-                retrieved_ids=retrieved_ids
+                retrieved_ids=retrieved_ids,
+                k=k
             )
             
             return recall_score

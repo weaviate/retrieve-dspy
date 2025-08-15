@@ -23,14 +23,10 @@ def weaviate_search_tool(
 ):
     weaviate_client = weaviate.connect_to_weaviate_cloud(
         cluster_url=os.getenv("WEAVIATE_URL"),
-        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
-        additional_config=AdditionalConfig(
-            timeout=Timeout(init=30, query=60, insert=120)  # Values in seconds
-        )
+        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY"))
     )
 
     collection = weaviate_client.collections.get(collection_name)
-
     return_metadata = None
     if return_score:
         return_metadata = MetadataQuery(score=return_score)
@@ -41,15 +37,21 @@ def weaviate_search_tool(
     if tag_filter_value:
         filter = Filter.by_property("tags").contains_any([tag_filter_value])
     '''
-    kwargs = dict(
+
+    '''
+    search_results = collection.query.hybrid(
         query=query,
         limit=retrieved_k,
         return_metadata=return_metadata,
         return_properties=return_properties,
         include_vector=return_vector
     )
-
-    search_results = collection.query.hybrid(**kwargs)
+    '''
+    print(f"SEARCHING WITH K = {retrieved_k}")
+    search_results = collection.query.hybrid(
+        query=query,
+        limit=retrieved_k
+    )
 
     weaviate_client.close()
 
@@ -57,7 +59,10 @@ def weaviate_search_tool(
     object_ids: list[Source] = []
     if search_results.objects:
         for obj in search_results.objects:
-            object_ids.append(Source(object_id=str(obj.uuid)))
+            # Instead of UUID, use dataset_id directly
+            dataset_id = obj.properties.get('dataset_id')
+            if dataset_id:
+                object_ids.append(Source(object_id=str(dataset_id)))
 
     if return_format == "vectors":
         sources_with_content_and_vector: list[SourceWithContentAndVector] = []
