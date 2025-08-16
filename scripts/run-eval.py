@@ -125,7 +125,7 @@ used_qs = None
 
 #print(f"\033[92m{rag_pipeline.expand_query.signature}\033[0m")
 
-NUM_TRIALS = 5
+NUM_TRIALS = 1
 scores = []
 
 for trial in range(NUM_TRIALS):
@@ -133,8 +133,8 @@ for trial in range(NUM_TRIALS):
 
     trainset, testset = load_queries_in_memory(
         dataset_name="enron",
-        train_samples=40,
-        test_samples=50,
+        train_samples=20,
+        test_samples=20,
         training_samples=used_qs,
         seed=trial
     )
@@ -154,7 +154,11 @@ for trial in range(NUM_TRIALS):
         "num_threads": 1
     }
 
-    score = evaluator(rag_pipeline, **dspy_evaluator_kwargs).score
+    evaluator_result = evaluator(rag_pipeline, **dspy_evaluator_kwargs)
+    score = evaluator_result.score
+    all_results = evaluator_result.results
+    print(all_results)
+    break
     scores.append(score)
 
 scores = np.array(scores)
