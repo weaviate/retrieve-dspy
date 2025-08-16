@@ -4,116 +4,10 @@ import retrieve_dspy
 from retrieve_dspy.metrics import create_metric
 from retrieve_dspy.datasets.in_memory import load_queries_in_memory
 
-'''
-rag_pipeline = retrieve_dspy.VanillaRAG(
-    collection_name="FreshstackAngular",
-    target_property_name="docs_text",
-    retrieved_k=100,
-    verbose=True
-)
-
-rag_pipeline = retrieve_dspy.QueryWriterWithListwiseReranker(
-    collection_name="FreshstackLangchain",
-    target_property_name="docs_text",
-    retrieved_k=10,
-    reranked_k=20
-)
-
-rag_pipeline = retrieve_dspy.MultiQueryWriter(
-    collection_name="FreshstackLangchain",
-    target_property_name="docs_text",
-    retrieved_k=100,
-    search_with_queries_concatenated=True
-)
-
-rag_pipeline = retrieve_dspy.CrossEncoderReranker(
-    collection_name="FreshstackAngular",
-    target_property_name="docs_text",
-    retrieved_k=50,
-    reranked_k=20,
-    verbose=True
-)
-
-rag_pipeline = retrieve_dspy.ListwiseReranker(
-    collection_name="FreshstackAngular",
-    target_property_name="docs_text",
-    retrieved_k=50,
-    reranked_k=10,
-    diverse_ranker=True,
-    verbose=True
-)
-
-rag_pipeline = retrieve_dspy.MultiQueryWriterWithCrossEncoderReranker(
-    collection_name="FreshstackLangchain",
-    target_property_name="docs_text",
-    retrieved_k=50,
-    reranked_k=20,
-    search_with_queries_concatenated=False,
-    two_stage_reranking=True,
-    per_query_top_k=20,
-    verbose=True
-)
-
-rag_pipeline = retrieve_dspy.LoopingQueryWriter(
-    collection_name="FreshstackLangchain",
-    target_property_name="docs_text",
-    retrieved_k=10,
-    max_loops=1,
-    verbose=True
-)
-
-rag_pipeline = retrieve_dspy.QueryExpander(
-    collection_name="FreshstackAngular",
-    target_property_name="docs_text",
-    retrieved_k=50,
-    verbose=True
-)
-
-rag_pipeline = retrieve_dspy.LayeredReranker(
-    collection_name="FreshstackAngular",
-    target_property_name="docs_text",
-    retrieved_k=100,
-    reranked_N=50,
-    reranked_M=20,
-    verbose=True
-)
-
-rag_pipeline = retrieve_dspy.DecomposeAndExpand(
-    collection_name="FreshstackLangchain",
-    target_property_name="docs_text",
-    retrieved_k=20,
-    verbose=True
-)
-
-rag_pipeline = retrieve_dspy.CrossEncoderReranker(
-    collection_name="FreshstackLangchain",
-    target_property_name="docs_text",
-    retrieved_k=100,
-    reranked_k=50,
-    summarize_query=False,
-    verbose=True
-)
-
-rag_pipeline = retrieve_dspy.VanillaRAG(
-    collection_name="FreshstackLangchain",
-    target_property_name="docs_text",
-    retrieved_k=20,
-    verbose=True
-)
-'''
-'''
-rag_pipeline = retrieve_dspy.QueryExpanderWithHint(
-    collection_name="FreshstackLangchain",
-    target_property_name="docs_text",
-    retrieved_k=10,
-    verbose=True
-)
-'''
-
 rag_pipeline = retrieve_dspy.VanillaRAG(
     collection_name="EnronEmails",
     target_property_name="email_body",
-    retrieved_k=1,
+    retrieved_k=20,
     verbose=True
 )
 
@@ -128,6 +22,30 @@ used_qs = None
 NUM_TRIALS = 1
 scores = []
 
+metric = create_metric(
+    metric_type="recall",
+    dataset_name="enron",
+    k=1
+)
+
+recall_metrics = {
+    'recall@1': create_metric(
+        metric_type="recall",
+        dataset_name="enron",
+        k=1
+    ),
+    'recall@5': create_metric(
+        metric_type="recall",
+        dataset_name="enron",
+        k=5
+    ),
+    'recall@20': create_metric(
+        metric_type="recall",
+        dataset_name="enron",
+        k=20
+    )
+}
+
 for trial in range(NUM_TRIALS):
     print(f"\nRunning trial {trial + 1}/{NUM_TRIALS}")
 
@@ -137,12 +55,6 @@ for trial in range(NUM_TRIALS):
         test_samples=20,
         training_samples=used_qs,
         seed=trial
-    )
-
-    metric = create_metric(
-        metric_type="recall",
-        dataset_name="enron",
-        k=1
     )
 
     evaluator = retrieve_dspy.utils.get_evaluator(
@@ -156,10 +68,14 @@ for trial in range(NUM_TRIALS):
 
     evaluator_result = evaluator(rag_pipeline, **dspy_evaluator_kwargs)
     score = evaluator_result.score
-    all_results = evaluator_result.results
-    print(all_results)
-    break
     scores.append(score)
+    all_results = evaluator_result.results
+    print("Running eval for all metrics...")
+    offline_scores = retrieve_dspy.utils.offline_recall_evaluator(
+        results=all_results,
+        metrics=recall_metrics
+    )
+    print(offline_scores)
 
 scores = np.array(scores)
 print(scores)

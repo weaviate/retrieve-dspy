@@ -6,6 +6,7 @@ from dspy import Example, Prediction
 import weaviate
 from weaviate.collections.classes.filters import Filter
 
+# TODO: Need to see if FreshStack eval is still working, because this was modified for EnronQA
 def qa_source_parser(query_agent_sources_response, collection):
     if not query_agent_sources_response:
         return []
