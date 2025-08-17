@@ -17,10 +17,16 @@ def database_loader(
                     name="email_body_vector",
                     model="Snowflake/snowflake-arctic-embed-l-v2.0",
                     source_properties=["email_body"],
-                )
+                ),
+                wvcc.Configure.NamedVectors.text2vec_weaviate(
+                    name="email_summary_vector",
+                    model="Snowflake/snowflake-arctic-embed-l-v2.0",
+                    source_properties=["email_summary"],
+                ),
             ],
             properties=[
                 wvcc.Property(name="email_body", data_type=wvcc.DataType.TEXT),
+                wvcc.Property(name="email_summary", data_type=wvcc.DataType.TEXT),
                 wvcc.Property(name="dataset_id", data_type=wvcc.DataType.TEXT),
             ],
         )
