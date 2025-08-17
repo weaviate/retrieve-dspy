@@ -25,7 +25,12 @@ def get_collection(weaviate_client, dataset_name: str):
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
 
-def calculate_recall_at_k(target_ids: list[str], retrieved_ids: list[str], k: int):
+def calculate_recall_at_k(
+    target_ids: list[str],
+    retrieved_ids: list[str],
+    k: int,
+    verbose: bool = True
+):
     """Calculate traditional recall@k for retrieved documents.
     
     Args:
@@ -47,18 +52,22 @@ def calculate_recall_at_k(target_ids: list[str], retrieved_ids: list[str], k: in
     # Consider only the top k retrieved IDs
     retrieved_ids_at_k = retrieved_ids[:k]
     
-    print(f"\033[96mTarget IDs: {target_id_set}\033[0m")
+    if verbose:
+        print(f"\033[96mTarget IDs: {target_id_set}\033[0m")
     
     # Find the number of relevant documents found in the top k
     found_count = sum(1 for retrieved_id in retrieved_ids_at_k if retrieved_id in target_id_set)
     
     if found_count > 0:
-        print(f"\033[92mRetrieved IDs @{k}: {retrieved_ids_at_k}\033[0m")
+        if verbose:
+            print(f"\033[92mRetrieved IDs @{k}: {retrieved_ids_at_k}\033[0m")
     else:
-        print(f"\033[91mRetrieved IDs @{k}: {retrieved_ids_at_k}\033[0m")
+        if verbose:
+            print(f"\033[91mRetrieved IDs @{k}: {retrieved_ids_at_k}\033[0m")
     
     recall = found_count / len(target_id_set) if target_id_set else 0
-    print(f"\033[96mRecall@{k}: {found_count}/{len(target_id_set)} = {recall:.2f}\033[0m")
+    if verbose:
+        print(f"\033[96mRecall@{k}: {found_count}/{len(target_id_set)} = {recall:.2f}\033[0m")
     
     return recall
 
@@ -111,7 +120,7 @@ def calculate_coverage(retrieved_ids: list[str], nugget_data: list[dict], k: int
     
     return coverage_score
 
-def create_recall_metric(weaviate_client, dataset_name: str, k: int) -> Callable:
+def create_recall_metric(weaviate_client, dataset_name: str, k: int, verbose: bool = True) -> Callable:
     """
     Create a recall metric function that wraps the existing calculate_recall function.
     
@@ -140,7 +149,8 @@ def create_recall_metric(weaviate_client, dataset_name: str, k: int) -> Callable
             recall_score = calculate_recall_at_k(
                 target_ids=target_ids,
                 retrieved_ids=retrieved_ids,
-                k=k
+                k=k,
+                verbose=verbose
             )
             
             return recall_score

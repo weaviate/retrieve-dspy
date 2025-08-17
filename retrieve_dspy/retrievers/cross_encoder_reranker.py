@@ -1,9 +1,11 @@
 import asyncio
 import os
-from typing import Optional, List
+from typing import Optional, List, Literal, Union
 
 import cohere
 from cohere import RerankResponseResultsItem
+import voyageai
+from voyageai import RerankingResult
 import dspy
 
 from retrieve_dspy.tools.weaviate_database import (
@@ -24,8 +26,11 @@ class CrossEncoderReranker(BaseRAG):
         search_only: Optional[bool] = True,
         retrieved_k: Optional[int] = 50,
         reranked_k: Optional[int] = 20,
+        reranker_provider: Literal["cohere", "voyage"] = "cohere",
         cohere_model: Optional[str] = "rerank-v3.5",
+        voyage_model: Optional[str] = "rerank-2.5",
         cohere_api_key: Optional[str] = None,
+        voyage_api_key: Optional[str] = None,
         summarize_query: Optional[bool] = False
     ):
         """
@@ -38,8 +43,12 @@ class CrossEncoderReranker(BaseRAG):
             search_only: Whether to only search without generating answers
             retrieved_k: Number of documents to retrieve initially
             reranked_k: Number of documents to keep after reranking
+            reranker_provider: Which reranker to use ("cohere" or "voyage")
             cohere_model: Cohere reranking model to use
+            voyage_model: Voyage reranking model to use
             cohere_api_key: Cohere API key (defaults to COHERE_API_KEY env var)
+            voyage_api_key: Voyage API key (defaults to VOYAGE_API_KEY env var)
+            summarize_query: Whether to summarize the query before reranking
         """
         super().__init__(
             collection_name=collection_name, 
@@ -49,16 +58,26 @@ class CrossEncoderReranker(BaseRAG):
             retrieved_k=retrieved_k,
         )
         self.reranked_k = reranked_k
+        self.reranker_provider = reranker_provider
         self.cohere_model = cohere_model
+        self.voyage_model = voyage_model
         self.summarize_query = summarize_query
         self.query_summarizer = dspy.Predict(QuerySummarizer)
         
-        # Initialize Cohere client
-        api_key = cohere_api_key or os.getenv("COHERE_API_KEY")
-        if not api_key:
-            raise ValueError("COHERE_API_KEY must be provided or set as environment variable")
-        
-        self.co = cohere.ClientV2(api_key)
+        # Initialize the appropriate client based on provider
+        if reranker_provider == "cohere":
+            api_key = cohere_api_key or os.getenv("COHERE_API_KEY")
+            if not api_key:
+                raise ValueError("COHERE_API_KEY must be provided or set as environment variable")
+            self.co = cohere.ClientV2(api_key)
+            
+        elif reranker_provider == "voyage":
+            api_key = voyage_api_key or os.getenv("VOYAGE_API_KEY")
+            if not api_key:
+                raise ValueError("VOYAGE_API_KEY must be provided or set as environment variable")
+            self.vo = voyageai.Client(api_key=api_key)
+        else:
+            raise ValueError(f"Unsupported reranker provider: {reranker_provider}")
     
     def _rerank_with_cohere(
         self, 
@@ -87,27 +106,77 @@ class CrossEncoderReranker(BaseRAG):
             if self.verbose:
                 print(f"\033[91mError during Cohere reranking: {e}\033[0m")
             raise
-
-    async def _async_rerank_with_cohere(
+    
+    def _rerank_with_voyage(
         self, 
         query: str, 
         documents: List[str]
-    ) -> List[RerankResponseResultsItem]:
+    ) -> List[RerankingResult]:
         """
-        Asynchronously rerank documents using Cohere's Cross Encoder.
+        Rerank documents using Voyage's Cross Encoder.
         
         Args:
             query: User query
             documents: List of document texts to rerank
             
         Returns:
-            Reranked results from Cohere
+            Reranked results from Voyage
         """
-        # Cohere SDK doesn't have native async support, so we run in executor
+        try:
+            response = self.vo.rerank(
+                query=query,
+                documents=documents,
+                model=self.voyage_model,
+                top_k=min(self.reranked_k, len(documents))
+            )
+            return response.results
+        except Exception as e:
+            if self.verbose:
+                print(f"\033[91mError during Voyage reranking: {e}\033[0m")
+            raise
+    
+    def _rerank_documents(
+        self, 
+        query: str, 
+        documents: List[str]
+    ) -> Union[List[RerankResponseResultsItem], List[RerankingResult]]:
+        """
+        Rerank documents using the configured provider.
+        
+        Args:
+            query: User query
+            documents: List of document texts to rerank
+            
+        Returns:
+            Reranked results from the provider
+        """
+        if self.reranker_provider == "cohere":
+            return self._rerank_with_cohere(query, documents)
+        elif self.reranker_provider == "voyage":
+            return self._rerank_with_voyage(query, documents)
+        else:
+            raise ValueError(f"Unsupported reranker provider: {self.reranker_provider}")
+
+    async def _async_rerank_documents(
+        self, 
+        query: str, 
+        documents: List[str]
+    ) -> Union[List[RerankResponseResultsItem], List[RerankingResult]]:
+        """
+        Asynchronously rerank documents using the configured provider.
+        
+        Args:
+            query: User query
+            documents: List of document texts to rerank
+            
+        Returns:
+            Reranked results from the provider
+        """
+        # Neither Cohere nor Voyage SDK has native async support, so we run in executor
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
             None, 
-            self._rerank_with_cohere, 
+            self._rerank_documents, 
             query, 
             documents
         )
@@ -134,6 +203,7 @@ class CrossEncoderReranker(BaseRAG):
         if self.verbose:
             print(f"\033[96mInitial retrieval: {len(search_results)} documents\033[0m")
             print(f"Query: '{question}'")
+            print(f"Using {self.reranker_provider} for reranking")
         
         # Extract document content directly from search results
         documents = []
@@ -154,16 +224,17 @@ class CrossEncoderReranker(BaseRAG):
             if self.verbose:
                 print(f"\033[96mSummarized query: {question}\033[0m")
             
-        # Rerank with Cohere
-        reranked_results = self._rerank_with_cohere(question, documents)
+        # Rerank with configured provider
+        reranked_results = self._rerank_documents(question, documents)
         
         if self.verbose:
-            print("\n\033[93mCohere reranking complete. Top scores:\033[0m")
+            provider_name = self.reranker_provider.capitalize()
+            print(f"\n\033[93m{provider_name} reranking complete. Top scores:\033[0m")
         
-        # Reorder sources based on Cohere's reranking
+        # Reorder sources based on reranking results
         reranked_sources = []
         for i, result in enumerate(reranked_results):
-            # Cohere returns 0-based indices
+            # Both Cohere and Voyage return 0-based indices
             if 0 <= result.index < len(sources):
                 reranked_sources.append(sources[result.index])
                 
@@ -184,13 +255,13 @@ class CrossEncoderReranker(BaseRAG):
                 print("- The collection might not have documents about this topic")
         
         # Return response
-        # Note: We don't have token usage info from Cohere's rerank API
+        # Note: Neither Cohere nor Voyage rerank APIs provide token usage info
         return DSPyAgentRAGResponse(
             final_answer="",
             sources=reranked_sources,
             searches=[question],
             aggregations=None,
-            usage={},  # Cohere rerank doesn't provide token usage
+            usage={},
         )
     
     async def aforward(self, question: str) -> DSPyAgentRAGResponse:
@@ -214,6 +285,7 @@ class CrossEncoderReranker(BaseRAG):
         
         if self.verbose:
             print(f"\033[96mInitial retrieval: {len(sources)} documents\033[0m")
+            print(f"Using {self.reranker_provider} for reranking")
         
         # Extract document content directly from search results
         documents = []
@@ -228,13 +300,13 @@ class CrossEncoderReranker(BaseRAG):
             if self.verbose:
                 print(f"\033[96mSummarized query: {question}\033[0m")
 
-        # Rerank with Cohere (async)
-        reranked_results = await self._async_rerank_with_cohere(question, documents)
+        # Rerank with configured provider (async)
+        reranked_results = await self._async_rerank_documents(question, documents)
         
-        # Reorder sources based on Cohere's reranking
+        # Reorder sources based on reranking results
         reranked_sources = []
         for result in reranked_results:
-            # Cohere returns 0-based indices
+            # Both Cohere and Voyage return 0-based indices
             if 0 <= result.index < len(sources):
                 reranked_sources.append(sources[result.index])
                 
@@ -252,39 +324,62 @@ class CrossEncoderReranker(BaseRAG):
             sources=reranked_sources,
             searches=[question],
             aggregations=None,
-            usage={},  # Cohere rerank doesn't provide token usage
+            usage={},
         )
 
 
 async def main():
-    """Test the Cross Encoder Reranker"""
+    """Test the Cross Encoder Reranker with both providers"""
     import os
     
-    # Ensure API keys are set
-    if not os.getenv("COHERE_API_KEY"):
-        raise ValueError("COHERE_API_KEY environment variable is required")
+    # Test with Cohere
+    if os.getenv("COHERE_API_KEY"):
+        print("\n=== Testing with Cohere Reranker ===")
+        cohere_reranker = CrossEncoderReranker(
+            collection_name="FreshstackLangchain",
+            target_property_name="docs_text",
+            retrieved_k=20,
+            reranked_k=10,
+            reranker_provider="cohere",
+            verbose=True
+        )
+        
+        test_query = "How do I integrate Weaviate and Langchain?"
+        
+        # Test synchronous execution
+        print("\n--- Synchronous Reranking (Cohere) ---")
+        response = cohere_reranker.forward(test_query)
+        print(f"Returned {len(response.sources)} reranked documents")
+        
+        # Test asynchronous execution
+        print("\n--- Asynchronous Reranking (Cohere) ---")
+        async_response = await cohere_reranker.aforward(test_query)
+        print(f"Returned {len(async_response.sources)} reranked documents")
     
-    # Initialize the reranker
-    reranker = CrossEncoderReranker(
-        collection_name="FreshstackLangchain",
-        target_property_name="docs_text",
-        retrieved_k=20,
-        reranked_k=10,
-        verbose=True
-    )
-    
-    # Test query
-    test_query = "How do I integrate Weaviate and Langchain?"
-    
-    # Test synchronous execution
-    print("\n--- Synchronous Reranking ---")
-    response = reranker.forward(test_query)
-    print(f"Returned {len(response.sources)} reranked documents")
-    
-    # Test asynchronous execution
-    print("\n--- Asynchronous Reranking ---")
-    async_response = await reranker.aforward(test_query)
-    print(f"Returned {len(async_response.sources)} reranked documents")
+    # Test with Voyage
+    if os.getenv("VOYAGE_API_KEY"):
+        print("\n=== Testing with Voyage Reranker ===")
+        voyage_reranker = CrossEncoderReranker(
+            collection_name="FreshstackLangchain",
+            target_property_name="docs_text",
+            retrieved_k=20,
+            reranked_k=10,
+            reranker_provider="voyage",
+            voyage_model="rerank-2.5",
+            verbose=True
+        )
+        
+        test_query = "How do I integrate Weaviate and Langchain?"
+        
+        # Test synchronous execution
+        print("\n--- Synchronous Reranking (Voyage) ---")
+        response = voyage_reranker.forward(test_query)
+        print(f"Returned {len(response.sources)} reranked documents")
+        
+        # Test asynchronous execution
+        print("\n--- Asynchronous Reranking (Voyage) ---")
+        async_response = await voyage_reranker.aforward(test_query)
+        print(f"Returned {len(async_response.sources)} reranked documents")
 
 
 if __name__ == "__main__":
