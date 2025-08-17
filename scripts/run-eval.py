@@ -68,7 +68,7 @@ for trial in range(NUM_TRIALS):
         train_samples=20,
         test_samples=20,
         training_samples=used_qs,
-        seed=trial
+        seed=42
     )
 
     evaluator = retrieve_dspy.utils.get_evaluator(
