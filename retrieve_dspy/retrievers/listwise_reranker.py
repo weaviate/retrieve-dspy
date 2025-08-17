@@ -11,16 +11,17 @@ from retrieve_dspy.tools.weaviate_database import (
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 
 from retrieve_dspy.models import DSPyAgentRAGResponse
-from retrieve_dspy.signatures import RerankResults, DiversityRanker
+from retrieve_dspy.signatures import RelevanceRanker, DiversityRanker
 
 class ListwiseReranker(BaseRAG):
     def __init__(
         self, 
         collection_name: str, 
         target_property_name: str,
+        return_property_name: Optional[str] = None,
         verbose: Optional[bool] = False,
         search_only: Optional[bool] = True, 
-        diverse_ranker: Optional[bool] = True,
+        diverse_ranker: Optional[bool] = False,
         retrieved_k: Optional[int] = 50,
         reranked_k: Optional[int] = 20
     ):
@@ -31,12 +32,13 @@ class ListwiseReranker(BaseRAG):
             search_only=search_only,
             retrieved_k=retrieved_k,
         )
+        self.return_property_name = return_property_name
         self.reranked_k = reranked_k
         self.diverse_ranker = diverse_ranker
         if self.diverse_ranker:
             self.reranker = dspy.Predict(DiversityRanker)
         else:
-            self.reranker = dspy.Predict(RerankResults)
+            self.reranker = dspy.Predict(RelevanceRanker)
 
     def forward(self, question: str) -> DSPyAgentRAGResponse:
         # Get search results with scores for reranking
@@ -45,6 +47,7 @@ class ListwiseReranker(BaseRAG):
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
             retrieved_k=self.retrieved_k,
+            return_property_name=self.return_property_name,
             return_format="rerank"
         )
         
@@ -90,6 +93,7 @@ class ListwiseReranker(BaseRAG):
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
             retrieved_k=self.retrieved_k,
+            return_property_name=self.return_property_name,
             return_format="rerank"
         )
         
@@ -142,12 +146,14 @@ async def main():
     print(f"DSPy configured with: {lm}")
 
     test_pipeline = ListwiseReranker(
-        collection_name="FreshstackLangchain",
-        target_property_name="docs_text",
+        collection_name="EnronEmails",
+        target_property_name="email_body_vector",
+        return_property_name="email_summary", # 1841 tokens (email_summary) vs. 12962 tokens (email_body)
         retrieved_k=20,
-        reranked_k=10
+        reranked_k=20,
+        verbose=True
     )
-    test_q = "How do I integrate Weaviate and Langchain?"
+    test_q = "What are the implications of SBX18?"
     response = test_pipeline.forward(test_q)
     print(response)
     async_response = await test_pipeline.aforward(test_q)

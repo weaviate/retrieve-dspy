@@ -15,8 +15,8 @@ collection = client.collections.get("EnronEmails")
 add_summary = Operations.update_property(
     property_name="email_summary",
     view_properties=["email_body"],
-    instruction="""Your task is to summarize the information contained in this email.
-    Please be careful not to miss any important information. It is very important that your summary is accurate and factual.
+    instruction="""Given a messy email, your task is to summarize the information contained in the email.
+Your summary should be at least 8 sentences!! Please be careful not to miss any important information! It is very important that your summary is accurate and factual.
     """
 )
 

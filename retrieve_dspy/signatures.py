@@ -4,7 +4,7 @@ from retrieve_dspy.models import SearchResult, SearchQueryWithFilter
 
 # Rerankers
 
-class RerankResults(dspy.Signature):
+class RelevanceRanker(dspy.Signature):
     """Rerank passages based on their relevance to the query using listwise comparison.
     
     Your task is to analyze ALL passages simultaneously and produce a single ranked list 

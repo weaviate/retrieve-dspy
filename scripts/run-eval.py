@@ -4,19 +4,30 @@ import retrieve_dspy
 from retrieve_dspy.metrics import create_metric
 from retrieve_dspy.datasets.in_memory import load_queries_in_memory
 
-rag_pipeline = retrieve_dspy.VanillaRAG(
-    collection_name="EnronEmails",
-    target_property_name="email_body",
-    retrieved_k=20,
-    verbose=True
-)
-
+'''
 rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     collection_name="EnronEmails",
     target_property_name="email_body",
     retrieved_k=50,
     reranked_k=20,
     reranker_provider="voyage",
+    verbose=True
+)
+
+rag_pipeline = retrieve_dspy.VanillaRAG(
+    collection_name="EnronEmails",
+    target_property_name="email_body_vector",
+    retrieved_k=20,
+    verbose=True
+)
+'''
+
+rag_pipeline = retrieve_dspy.ListwiseReranker(
+    collection_name="EnronEmails",
+    target_property_name="email_body_vector",
+    return_property_name="email_summary",
+    retrieved_k=20,
+    reranked_k=20,
     verbose=True
 )
 
@@ -68,7 +79,7 @@ for trial in range(NUM_TRIALS):
         train_samples=20,
         test_samples=20,
         training_samples=used_qs,
-        seed=42
+        seed=trial+42
     )
 
     evaluator = retrieve_dspy.utils.get_evaluator(

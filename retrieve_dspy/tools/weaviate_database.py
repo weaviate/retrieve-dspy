@@ -11,10 +11,12 @@ from retrieve_dspy.models import Source, SourceWithContentAndVector, SearchResul
 
 RETURN_FORMATS = ["string", "dict", "rerank", "vectors"]
 
+# Extend to add `return_properties`
 def weaviate_search_tool(
         query: str,
         collection_name: str,
         target_property_name: str,
+        return_property_name: Optional[str] = None,
         retrieved_k: Optional[int] = 5,
         return_score: bool = False,
         return_vector: bool = False,
@@ -31,7 +33,8 @@ def weaviate_search_tool(
     if return_score:
         return_metadata = MetadataQuery(score=return_score)
     
-    return_properties = [target_property_name]
+    if return_property_name is None:
+        return_property_name = target_property_name
 
     '''
     if tag_filter_value:
@@ -50,7 +53,8 @@ def weaviate_search_tool(
     print(f"SEARCHING WITH K = {retrieved_k}")
     search_results = collection.query.hybrid(
         query=query,
-        limit=retrieved_k
+        limit=retrieved_k,
+        target_vector=target_property_name
     )
 
     weaviate_client.close()
@@ -78,8 +82,8 @@ def weaviate_search_tool(
         search_results_for_rerank: list[SearchResult] = []
         for i, obj in enumerate(search_results.objects):
             content = ""
-            if obj.properties and target_property_name in obj.properties:
-                content = obj.properties[target_property_name]
+            if obj.properties and return_property_name in obj.properties:
+                content = obj.properties[return_property_name]
             
             search_results_for_rerank.append(SearchResult(
                 id=i + 1,
@@ -91,14 +95,15 @@ def weaviate_search_tool(
         return search_results_for_rerank, object_ids
     
     elif return_format == "dict":
-        return _dictify_search_results(search_results, view_properties=[target_property_name]), object_ids
+        return _dictify_search_results(search_results, view_properties=[return_property_name]), object_ids
     else:
-        return _stringify_search_results(search_results, view_properties=[target_property_name]), object_ids
+        return _stringify_search_results(search_results, view_properties=[return_property_name]), object_ids
 
 async def async_weaviate_search_tool(
     query: str,
     collection_name: str,
     target_property_name: str,
+    return_property_name: Optional[str] = None,
     retrieved_k: Optional[int] = 10,
     return_score: bool = False,
     return_vector: bool = False,
@@ -123,7 +128,9 @@ async def async_weaviate_search_tool(
         if return_score:
             return_metadata = MetadataQuery(score=return_score)
         
-        return_properties = [target_property_name]
+        if return_property_name is None:
+            return_property_name = target_property_name
+        return_properties = [return_property_name]
 
         '''
         if tag_filter_value:
@@ -134,7 +141,8 @@ async def async_weaviate_search_tool(
             limit=retrieved_k,
             return_metadata=return_metadata,
             return_properties=return_properties,
-            include_vector=return_vector
+            include_vector=return_vector,
+            target_vector=target_property_name
         )
         
         search_results = await collection.query.hybrid(**kwargs)
@@ -160,8 +168,8 @@ async def async_weaviate_search_tool(
             search_results_for_rerank = []
             for i, obj in enumerate(search_results.objects):
                 content = ""
-                if obj.properties and target_property_name in obj.properties:
-                    content = obj.properties[target_property_name]
+                if obj.properties and return_property_name in obj.properties:
+                    content = obj.properties[return_property_name]
                 
                 # score = obj.metadata.score
                 
@@ -175,9 +183,9 @@ async def async_weaviate_search_tool(
             return search_results_for_rerank, object_ids
         
         elif return_format == "dict":
-            return _dictify_search_results(search_results, view_properties=[target_property_name]), object_ids
+            return _dictify_search_results(search_results, view_properties=[return_property_name]), object_ids
         else:
-            return _stringify_search_results(search_results, view_properties=[target_property_name]), object_ids
+            return _stringify_search_results(search_results, view_properties=[return_property_name]), object_ids
     
     finally:
         await async_client.close()
