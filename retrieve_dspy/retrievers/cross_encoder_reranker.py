@@ -1,11 +1,9 @@
 import asyncio
 import os
-from typing import Optional, List, Literal, Union
+from typing import Optional, List, Literal, Union, Any
 
 import cohere
-from cohere import RerankResponseResultsItem
 import voyageai
-from voyageai import RerankingResult
 import dspy
 
 from retrieve_dspy.tools.weaviate_database import (
@@ -83,7 +81,7 @@ class CrossEncoderReranker(BaseRAG):
         self, 
         query: str, 
         documents: List[str]
-    ) -> List[RerankResponseResultsItem]:
+    ) -> List[Any]:
         """
         Rerank documents using Cohere's Cross Encoder.
         
@@ -111,7 +109,7 @@ class CrossEncoderReranker(BaseRAG):
         self, 
         query: str, 
         documents: List[str]
-    ) -> List[RerankingResult]:
+    ) -> List[Any]:
         """
         Rerank documents using Voyage's Cross Encoder.
         
@@ -139,7 +137,7 @@ class CrossEncoderReranker(BaseRAG):
         self, 
         query: str, 
         documents: List[str]
-    ) -> Union[List[RerankResponseResultsItem], List[RerankingResult]]:
+    ) -> Union[List[Any], List[Any]]:
         """
         Rerank documents using the configured provider.
         
@@ -161,7 +159,7 @@ class CrossEncoderReranker(BaseRAG):
         self, 
         query: str, 
         documents: List[str]
-    ) -> Union[List[RerankResponseResultsItem], List[RerankingResult]]:
+    ) -> Union[List[Any], List[Any]]:
         """
         Asynchronously rerank documents using the configured provider.
         
