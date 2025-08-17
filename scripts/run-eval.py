@@ -16,6 +16,7 @@ rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     target_property_name="email_body",
     retrieved_k=50,
     reranked_k=20,
+    reranker_provider="voyage",
     verbose=True
 )
 
