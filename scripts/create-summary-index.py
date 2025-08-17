@@ -11,7 +11,7 @@ client = weaviate.connect_to_weaviate_cloud(
     auth_credentials=Auth.api_key(os.environ.get("WEAVIATE_API_KEY")),
 )
 
-collection = client.collections.get("FreshstackLangchain")
+collection = client.collections.get("EnronEmails")
 collection.config.add_property(
     Property(name="summary", data_type=DataType.TEXT)
 )

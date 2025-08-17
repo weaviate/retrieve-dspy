@@ -12,7 +12,13 @@ def database_loader(
         
         weaviate_client.collections.create(
             name="EnronEmails",
-            vectorizer_config=wvcc.Configure.Vectorizer.text2vec_weaviate(),
+            vectorizer_config=[
+                wvcc.Configure.NamedVectors.text2vec_weaviate(
+                    name="email_body_vector",
+                    model="Snowflake/snowflake-arctic-embed-l-v2.0",
+                    source_properties=["email_body"],
+                )
+            ],
             properties=[
                 wvcc.Property(name="email_body", data_type=wvcc.DataType.TEXT),
                 wvcc.Property(name="dataset_id", data_type=wvcc.DataType.TEXT),
