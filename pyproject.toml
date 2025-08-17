@@ -13,5 +13,5 @@ dependencies = [
     "matplotlib>=3.10.5",
     "ruff>=0.12.7",
     "voyageai>=0.3.4",
-    "weaviate-client>=4.16.4",
+    "weaviate-client[agents]>=4.16.4",
 ]
