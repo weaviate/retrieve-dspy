@@ -12,15 +12,6 @@ client = weaviate.connect_to_weaviate_cloud(
 )
 
 collection = client.collections.get("EnronEmails")
-collection.config.add_property(
-    Property(name="summary", data_type=DataType.TEXT)
-)
-collection.config.add_vector(
-    vector_config=Configure.Vectors.text2vec_cohere(
-        name="summary_vector",
-        source_properties=["summary"]
-    )
-)
 
 add_summary = Operations.update_property(
     property_name="summary",
