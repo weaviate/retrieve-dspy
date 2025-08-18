@@ -9,22 +9,46 @@ from retrieve_dspy.tools.weaviate_database import (
 )
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
-from retrieve_dspy.models import DSPyAgentRAGResponse
-from retrieve_dspy.signatures import SummarizeSearchRelevance, RerankWithSummaries
+from retrieve_dspy.models import DSPyAgentRAGResponse, SearchResult
+from retrieve_dspy.signatures import SummarizeSearchRelevance, RelevanceRanker
+
+def aggregate_usage(total_usage: dict, new_usage: dict) -> dict:
+    """Helper function to safely aggregate usage dictionaries with nested structures."""
+    for key, value in new_usage.items():
+        if key not in total_usage:
+            total_usage[key] = value
+        elif isinstance(value, dict) and isinstance(total_usage[key], dict):
+            # Recursively aggregate nested dictionaries
+            total_usage[key] = aggregate_usage(total_usage[key], value)
+        elif isinstance(value, (int, float)) and isinstance(total_usage[key], (int, float)):
+            # Add numeric values
+            total_usage[key] = total_usage[key] + value
+        else:
+            # For other types, just overwrite (or keep the existing value)
+            total_usage[key] = value
+    return total_usage
 
 class SummarizedListwiseReranker(BaseRAG):
     def __init__(
         self, 
         collection_name: str, 
         target_property_name: Optional[str] = "content",
+        return_property_name: Optional[str] = None,
         verbose: Optional[bool] = False,
         search_only: Optional[bool] = True,
         retrieved_k: Optional[int] = 100,
         reranked_k: Optional[int] = 20 
     ):
-        super().__init__(collection_name, target_property_name, retrieved_k=retrieved_k)
+        super().__init__(
+            collection_name=collection_name, 
+            target_property_name=target_property_name, 
+            retrieved_k=retrieved_k, 
+            verbose=verbose,
+            search_only=search_only
+        )
+        self.return_property_name = return_property_name
         self.summarizer = dspy.Predict(SummarizeSearchRelevance)
-        self.reranker = dspy.Predict(RerankWithSummaries)
+        self.reranker = dspy.Predict(RelevanceRanker)
         self.retrieved_k = retrieved_k
         self.reranked_k = reranked_k
 
@@ -34,6 +58,7 @@ class SummarizedListwiseReranker(BaseRAG):
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
+            return_property_name=self.return_property_name,
             retrieved_k=self.retrieved_k,
             return_format="rerank"
         )
@@ -49,37 +74,46 @@ class SummarizedListwiseReranker(BaseRAG):
             summary_pred = self.summarizer(
                 query=question,
                 passage=result.content,
-                passage_id=result.id
             )
             
             summaries.append({
                 "passage_id": result.id,
+                "initial_rank": i,
                 "relevance_summary": summary_pred.relevance_summary,
-                "relevance_score": summary_pred.relevance_score
             })
             
-            # Aggregate usage
-            total_usage = summary_pred.get_lm_usage() or {}
+            # Aggregate usage from each summarization call
+            summary_usage = summary_pred.get_lm_usage()
+            if summary_usage:
+                total_usage = aggregate_usage(total_usage, summary_usage)
         
         if self.verbose:
             print(f"\033[96mGenerated {len(summaries)} relevance summaries\033[0m")
         
-        # Perform reranking based on summaries
+        # Convert search results to list of SearchResult objects
+        search_results_list = [SearchResult(
+            id=result["passage_id"],
+            initial_rank=result["initial_rank"],
+            content=result["relevance_summary"]
+        ) for result in summaries]
+
         rerank_pred = self.reranker(
             query=question,
-            passage_summaries=summaries,
+            search_results=search_results_list,
             top_k=self.reranked_k
         )
         
         # Aggregate reranker usage
-        total_usage = rerank_pred.get_lm_usage() or {}
+        reranker_usage = rerank_pred.get_lm_usage()
+        if reranker_usage:
+            total_usage = aggregate_usage(total_usage, reranker_usage)
         
         # Reorder sources based on reranking
         reranked_sources = []
         for rank_id in rerank_pred.reranked_ids:
             # Find the source corresponding to this rank_id
             for i, source in enumerate(sources):
-                if search_results[i].id == rank_id:
+                if search_results_list[i].id == rank_id:
                     reranked_sources.append(source)
                     break
         
@@ -100,6 +134,7 @@ class SummarizedListwiseReranker(BaseRAG):
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
+            return_property_name=self.return_property_name,
             retrieved_k=self.retrieved_k,
             return_format="rerank"
         )
@@ -114,7 +149,7 @@ class SummarizedListwiseReranker(BaseRAG):
             task = self.summarizer.acall(
                 query=question,
                 passage=result.content,
-                passage_id=result.id
+                initial_rank=i
             )
             summary_tasks.append(task)
             passage_ids.append(result.id)  # Store the ID
@@ -129,32 +164,43 @@ class SummarizedListwiseReranker(BaseRAG):
         for i, summary_pred in enumerate(summary_preds):
             summaries.append({
                 "passage_id": passage_ids[i],  # Use stored ID
+                "initial_rank": i,
                 "relevance_summary": summary_pred.relevance_summary,
-                "relevance_score": summary_pred.relevance_score
             })
             
-            # Aggregate usage
-            total_usage = summary_pred.get_lm_usage() or {}
+            # Aggregate usage from each summarization call
+            summary_usage = summary_pred.get_lm_usage()
+            if summary_usage:
+                total_usage = aggregate_usage(total_usage, summary_usage)
         
         if self.verbose:
             print(f"\033[96mGenerated {len(summaries)} relevance summaries in parallel\033[0m")
         
         # Perform reranking based on summaries
+        # Convert search results to list of SearchResult objects
+        search_results_list = [SearchResult(
+            id=result["passage_id"],
+            initial_rank=result["initial_rank"],
+            content=result["relevance_summary"]
+        ) for result in summaries]
+
         rerank_pred = await self.reranker.acall(
             query=question,
-            passage_summaries=summaries,
+            search_results=search_results_list,
             top_k=self.reranked_k
         )
         
         # Aggregate reranker usage
-        total_usage = rerank_pred.get_lm_usage() or {}
+        reranker_usage = rerank_pred.get_lm_usage()
+        if reranker_usage:
+            total_usage = aggregate_usage(total_usage, reranker_usage)
         
         # Reorder sources based on reranking
         reranked_sources = []
         for rank_id in rerank_pred.reranked_ids:
             # Find the source corresponding to this rank_id
             for i, source in enumerate(sources):
-                if search_results[i].id == rank_id:
+                if search_results_list[i].id == rank_id:
                     reranked_sources.append(source)
                     break
         
@@ -182,12 +228,13 @@ async def main():
     print(f"DSPy configured with: {lm}")
     
     test_pipeline = SummarizedListwiseReranker(
-        collection_name="FreshstackLangchain",
-        target_property_name="docs_text",
-        retrieved_k=50,
-        reranked_k=20
+        collection_name="EnronEmails",
+        target_property_name="email_body_vector",
+        return_property_name="email_body",
+        retrieved_k=5,
+        reranked_k=5
     )
-    test_q = "How do I integrate Weaviate and Langchain?"
+    test_q = "What are the implications of SBX18?"
     response = test_pipeline.forward(test_q)
     print(response)
     async_response = await test_pipeline.aforward(test_q)

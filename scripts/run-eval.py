@@ -22,11 +22,21 @@ rag_pipeline = retrieve_dspy.ListwiseReranker(
     reranked_k=5,
     verbose=True
 )
-'''
+
 rag_pipeline = retrieve_dspy.VanillaRAG(
     collection_name="EnronEmails",
     target_property_name="email_body_vector",
     retrieved_k=5,
+    verbose=True
+)
+'''
+
+rag_pipeline = retrieve_dspy.SummarizedListwiseReranker(
+    collection_name="EnronEmails",
+    target_property_name="email_body_vector",
+    return_property_name="email_body",
+    retrieved_k=5,
+    reranked_k=5,
     verbose=True
 )
 
