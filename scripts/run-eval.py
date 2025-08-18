@@ -29,7 +29,6 @@ rag_pipeline = retrieve_dspy.VanillaRAG(
     retrieved_k=5,
     verbose=True
 )
-'''
 
 rag_pipeline = retrieve_dspy.SummarizedListwiseReranker(
     collection_name="EnronEmails",
@@ -37,6 +36,17 @@ rag_pipeline = retrieve_dspy.SummarizedListwiseReranker(
     return_property_name="email_body",
     retrieved_k=5,
     reranked_k=5,
+    verbose=True
+)
+'''
+
+rag_pipeline = retrieve_dspy.CrossEncoderReranker(
+    collection_name="EnronEmails",
+    target_property_name="email_body_vector",
+    return_property_name="email_body",
+    reranker_provider="hybrid",
+    retrieved_k=50,
+    reranked_k=20,
     verbose=True
 )
 
@@ -88,7 +98,7 @@ for trial in range(NUM_TRIALS):
         train_samples=20,
         test_samples=20,
         training_samples=used_qs,
-        seed=trial+42
+        seed=trial
     )
 
     evaluator = retrieve_dspy.utils.get_evaluator(
