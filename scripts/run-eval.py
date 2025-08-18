@@ -14,20 +14,19 @@ rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     verbose=True
 )
 
-rag_pipeline = retrieve_dspy.VanillaRAG(
-    collection_name="EnronEmails",
-    target_property_name="email_body_vector",
-    retrieved_k=20,
-    verbose=True
-)
-'''
-
 rag_pipeline = retrieve_dspy.ListwiseReranker(
     collection_name="EnronEmails",
     target_property_name="email_body_vector",
     return_property_name="email_summary",
-    retrieved_k=20,
-    reranked_k=20,
+    retrieved_k=5,
+    reranked_k=5,
+    verbose=True
+)
+'''
+rag_pipeline = retrieve_dspy.VanillaRAG(
+    collection_name="EnronEmails",
+    target_property_name="email_body_vector",
+    retrieved_k=5,
     verbose=True
 )
 
