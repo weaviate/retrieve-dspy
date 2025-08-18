@@ -48,7 +48,7 @@ class SummarizedListwiseReranker(BaseRAG):
         )
         self.return_property_name = return_property_name
         self.summarizer = dspy.Predict(SummarizeSearchRelevance)
-        self.reranker = dspy.Predict(RelevanceRanker)
+        self.reranker = dspy.ChainOfThought(RelevanceRanker)
         self.retrieved_k = retrieved_k
         self.reranked_k = reranked_k
 
@@ -64,6 +64,7 @@ class SummarizedListwiseReranker(BaseRAG):
         )
         
         if self.verbose:
+            print(f"\033[92mQuestion: {question}\033[0m")
             print(f"\033[96mInitial results: {len(sources)} Sources!\033[0m")
         
         # Summarize relevance for each result
@@ -89,6 +90,8 @@ class SummarizedListwiseReranker(BaseRAG):
         
         if self.verbose:
             print(f"\033[96mGenerated {len(summaries)} relevance summaries\033[0m")
+            for summary in summaries:
+                print(f"\033[96m{summary['relevance_summary']}\033[0m\n")
         
         # Convert search results to list of SearchResult objects
         search_results_list = [SearchResult(
@@ -119,6 +122,8 @@ class SummarizedListwiseReranker(BaseRAG):
         
         if self.verbose:
             print(f"\033[96mReranked: Returning {len(reranked_sources)} Sources!\033[0m")
+            reranker_cot = rerank_pred.reasoning
+            print(f"\033[96mReranker COT: {reranker_cot}\033[0m")
         
         return DSPyAgentRAGResponse(
             final_answer="",
