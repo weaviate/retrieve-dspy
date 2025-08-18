@@ -1,9 +1,11 @@
 import json
 import os
-from typing import Iterable, Set, List
+from typing import Iterable, Set, List, Tuple, Callable, Dict
+
+import numpy as np
 
 import dspy
-from dspy import Example
+from dspy import Example, Prediction
 
 def get_evaluator(
     testset: list[Example],
@@ -19,6 +21,23 @@ def get_evaluator(
     )
 
     return evaluator
+
+def offline_recall_evaluator(
+    results: List[Tuple[Example, Prediction, float]],
+    metrics: Dict[str, Callable],
+) -> Dict[str, float]:
+    metric_scores = {name: [] for name in metrics.keys()}
+    
+    for example, prediction, original_score in results:
+        for metric_name, metric_func in metrics.items():
+            score = metric_func(example, prediction)
+            metric_scores[metric_name].append(score)
+
+    avg_scores = {}
+    for metric_name, scores in metric_scores.items():
+        avg_scores[metric_name] = np.mean(scores) if scores else 0.0
+    
+    return avg_scores
 
 # Used for saving training samples and ensuring we are not testing with training samples
 

@@ -3,40 +3,28 @@ import weaviate
 from weaviate.classes.init import Auth
 from weaviate.agents.transformation import TransformationAgent
 from weaviate.agents.classes import Operations
-from weaviate.classes.config import Property, DataType, Configure
-
 
 client = weaviate.connect_to_weaviate_cloud(
     cluster_url=os.environ.get("WEAVIATE_URL"),
     auth_credentials=Auth.api_key(os.environ.get("WEAVIATE_API_KEY")),
 )
 
-collection = client.collections.get("FreshstackLangchain")
-collection.config.add_property(
-    Property(name="summary", data_type=DataType.TEXT)
-)
-collection.config.add_vector(
-    vector_config=Configure.Vectors.text2vec_cohere(
-        name="summary_vector",
-        source_properties=["summary"]
-    )
-)
+collection = client.collections.get("EnronEmails")
 
 add_summary = Operations.update_property(
-    property_name="summary",
-    data_type=DataType.TEXT,
-    view_properties=["docs_text"],
-    instruction="""Create a summary of the document.
-    The summary should be a single sentence.
-    The summary should be a single sentence."""
+    property_name="email_summary",
+    view_properties=["email_body"],
+    instruction="""Given a messy email, your task is to summarize the information contained in the email.
+Your summary should be at least 8 sentences!! Please be careful not to miss any important information! It is very important that your summary is accurate and factual.
+    """
 )
 
 agent = TransformationAgent(
     client=client,
-    collection="FreshstackLangchain",
+    collection="EnronEmails",
     operations=[add_summary],
 )
 
 response = agent.update_all()
 
-agent.get_status(workflow_id=response.workflow_id)
+print(agent.get_status(workflow_id=response.workflow_id))

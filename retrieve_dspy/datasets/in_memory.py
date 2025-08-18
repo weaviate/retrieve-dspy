@@ -173,6 +173,18 @@ def load_queries_in_memory(
 ):
     _, queries = in_memory_dataset_loader(dataset_name)
 
+    '''
+    # WHAT!!
+    # THE FIRST K SAMPLES ON ENRONQA SEEM TO BE EASIER THAN RANDOM SAMPLES!!
+    first_k_samples = queries[:test_samples]
+    formatted_samples = []
+    for sample in first_k_samples:
+        formatted_sample = Example().with_inputs("question")
+        formatted_sample["question"] = sample["question"]
+        formatted_sample["dataset_ids"] = sample["dataset_ids"]
+        formatted_samples.append(formatted_sample)
+    '''
+
     trainset, testset = create_dspy_examples_from_dataset(
         queries=queries,
         max_train=train_samples,
