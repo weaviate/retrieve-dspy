@@ -205,7 +205,7 @@ class CrossEncoderReranker(BaseRAG):
             Fused ranking as list of (doc_index, fused_score) tuples
         """
         if self.verbose:
-            print(f"\n\033[95mHybrid Reranking Mode - Using both Cohere and Voyage\033[0m")
+            print("\n\033[95mHybrid Reranking Mode - Using both Cohere and Voyage\033[0m")
             print(f"Weights: Cohere={self.hybrid_weights['cohere']}, "
                   f"Voyage={self.hybrid_weights['voyage']}")
         
@@ -271,12 +271,12 @@ class CrossEncoderReranker(BaseRAG):
             Fused ranking as list of (doc_index, fused_score) tuples
         """
         if self.verbose:
-            print(f"\n\033[95mAsync Hybrid Reranking - Using both Cohere and Voyage\033[0m")
+            print("\n\033[95mAsync Hybrid Reranking - Using both Cohere and Voyage\033[0m")
         
         loop = asyncio.get_event_loop()
         
         # Run both rerankers concurrently
-        tasks = []
+        # tasks = []
         rankings = {}
         
         # Cohere task

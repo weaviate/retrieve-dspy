@@ -303,7 +303,6 @@ async def main():
     ]
     
     # Fetch objects with these dataset_ids to get their UUIDs
-    from weaviate.collections.classes.filters import Filter
     real_objects = collection.query.fetch_objects(
         filters=Filter.by_property("dataset_id").contains_any(target_dataset_ids),
         limit=2

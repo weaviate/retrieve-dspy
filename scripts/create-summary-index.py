@@ -3,7 +3,6 @@ import weaviate
 from weaviate.classes.init import Auth
 from weaviate.agents.transformation import TransformationAgent
 from weaviate.agents.classes import Operations
-from weaviate.classes.config import DataType
 
 client = weaviate.connect_to_weaviate_cloud(
     cluster_url=os.environ.get("WEAVIATE_URL"),

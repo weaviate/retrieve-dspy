@@ -29,9 +29,11 @@ def weaviate_search_tool(
     )
 
     collection = weaviate_client.collections.get(collection_name)
+    '''
     return_metadata = None
     if return_score:
         return_metadata = MetadataQuery(score=return_score)
+    '''
     
     if return_property_name is None:
         return_property_name = target_property_name
