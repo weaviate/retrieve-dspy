@@ -212,13 +212,9 @@ class SummarizeSearchRelevance(dspy.Signature):
     
     query: str = dspy.InputField()
     passage: str = dspy.InputField()
-    passage_id: int = dspy.InputField(desc="The ID of this passage for reference")
     
     relevance_summary: str = dspy.OutputField(
         desc="A 2-3 sentence summary of how this passage relates to the query and its relevance"
-    )
-    relevance_score: float = dspy.OutputField(
-        desc="A relevance score from 0.0 to 1.0, where 1.0 is perfectly relevant"
     )
 
 class QuerySummarizer(dspy.Signature):
