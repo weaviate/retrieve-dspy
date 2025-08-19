@@ -55,7 +55,7 @@ rag_pipeline = retrieve_dspy.LayeredReranker(
     target_property_name="email_body_vector",
     return_property_name="email_body",
     retrieved_k=50,
-    reranked_N=20,
+    reranked_N=5,
     reranked_M=5,
     verbose=True
 )

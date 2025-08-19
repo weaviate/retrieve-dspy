@@ -165,7 +165,7 @@ class LayeredReranker(BaseRAG):
             final_sources = cross_encoder_sources
         
         if self.verbose:
-            print(f"\033[96mListwise reranking: Returning {len(final_sources)} documents\033[0m")
+            print(f"\033[92mListwise reranking: Returning {len(final_sources)} documents\033[0m")
         
         return DSPyAgentRAGResponse(
             final_answer="",
