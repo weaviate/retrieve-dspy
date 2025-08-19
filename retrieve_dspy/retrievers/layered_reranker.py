@@ -119,9 +119,7 @@ class LayeredReranker(BaseRAG):
         if self.verbose:
             print(f"\033[93mCross encoder reranking: {len(cross_encoder_sources)} documents\033[0m")
         
-        # then apply the diversity ranker to truncate the results to M
         if len(cross_encoder_sources) > self.reranked_M:
-            # Prepare SearchResult objects for diversity ranking
             cross_encoder_search_results = []
             for i, source in enumerate(cross_encoder_sources):
                 if hasattr(source, 'content'):
@@ -189,6 +187,7 @@ async def main():
         reranked_N=20,
         reranked_M=5,
         voyage_model="rerank-2.5",
+        verbose=True
     )
     print("Testing sync forward")
     test_query = "Where will Governor Gray Davis host a party for the delegates, according to the article “Davis faces dire political consequences if power woes linger?"

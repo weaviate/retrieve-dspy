@@ -38,7 +38,6 @@ rag_pipeline = retrieve_dspy.SummarizedListwiseReranker(
     reranked_k=5,
     verbose=True
 )
-'''
 
 rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     collection_name="EnronEmails",
@@ -49,6 +48,18 @@ rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     reranked_k=20,
     verbose=True
 )
+'''
+
+rag_pipeline = retrieve_dspy.LayeredReranker(
+    collection_name="EnronEmails",
+    target_property_name="email_body_vector",
+    return_property_name="email_body",
+    retrieved_k=50,
+    reranked_N=20,
+    reranked_M=5,
+    verbose=True
+)
+
 
 #print(rag_pipeline.__class__.__name__)
 
