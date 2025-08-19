@@ -35,6 +35,19 @@ class RelevanceRanker(dspy.Signature):
         desc="List of exactly `top_k` passage IDs ordered by relevance (most relevant first). Must match IDs from search_results."
     )
 
+class IdentifyMostRelevantPassage(dspy.Signature):
+    """Identify the passage that contains the answer to the query from a list of passages."""
+    
+    query: str = dspy.InputField(
+        desc="The user's question or information need"
+    )
+    search_results: list[SearchResult] = dspy.InputField(
+        desc="List of passages to analyze. Each contains: id, text, and inital_rank"
+    )
+    most_relevant_passage: int = dspy.OutputField(
+        desc="The id of the passage that contains the answer to the query"
+    )
+
 class DiversityRanker(dspy.Signature):
     """Select a diverse set of relevant passages that cover different aspects of the query.
     

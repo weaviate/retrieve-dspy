@@ -52,7 +52,6 @@ def weaviate_search_tool(
         include_vector=return_vector
     )
     '''
-    print(f"SEARCHING WITH K = {retrieved_k}")
     search_results = collection.query.hybrid(
         query=query,
         limit=retrieved_k,
