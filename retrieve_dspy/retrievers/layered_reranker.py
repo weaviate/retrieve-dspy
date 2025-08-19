@@ -12,7 +12,7 @@ from retrieve_dspy.tools.weaviate_database import (
 )
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.models import DSPyAgentRAGResponse, SearchResult
-from retrieve_dspy.signatures import RelevanceRanker
+from retrieve_dspy.signatures import RelevanceRanker, IdentifyMostRelevantPassage
 
 
 class LayeredReranker(BaseRAG):
@@ -50,7 +50,10 @@ class LayeredReranker(BaseRAG):
         self.vo = voyageai.Client(api_key)
         
         # Initialize Listwise Reranker
-        self.listwise_reranker = dspy.Predict(RelevanceRanker)
+        if self.reranked_M == 1:
+            self.listwise_reranker = dspy.Predict(IdentifyMostRelevantPassage)
+        else:
+            self.listwise_reranker = dspy.Predict(RelevanceRanker)
 
     def _rerank_with_voyage(
         self, 
@@ -142,6 +145,19 @@ class LayeredReranker(BaseRAG):
                 top_k=self.reranked_M
             )
             
+            if self.reranked_M == 1:
+                final_sources = [cross_encoder_sources[listwise_reranked_result.most_relevant_passage]]
+                if self.verbose:
+                    print(f"\033[92mListwise reranking: Returning {len(final_sources)} documents\033[0m")
+                return DSPyAgentRAGResponse(
+                    final_answer="",
+                    sources=final_sources,
+                    searches=[question],
+                    aggregations=None,
+                    usage={},
+                )
+
+
             ranked_indices = []
             if hasattr(listwise_reranked_result, 'reranked_ids'):
                 ranked_indices = listwise_reranked_result.reranked_ids
@@ -161,11 +177,13 @@ class LayeredReranker(BaseRAG):
                 for i, source in enumerate(cross_encoder_sources):
                     if i not in ranked_indices and len(final_sources) < self.reranked_M:
                         final_sources.append(source)
-        else:
-            final_sources = cross_encoder_sources
+            
+            if self.verbose:
+                print(f"\033[92mListwise reranking: Returning {len(final_sources)} documents\033[0m")
         
-        if self.verbose:
-            print(f"\033[92mListwise reranking: Returning {len(final_sources)} documents\033[0m")
+        else:
+            final_sources = cross_encoder_sources[:self.reranked_M]
+        
         
         return DSPyAgentRAGResponse(
             final_answer="",
