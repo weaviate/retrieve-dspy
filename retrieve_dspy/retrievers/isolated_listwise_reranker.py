@@ -20,20 +20,10 @@ class IsolatedListwiseReranker():
         self.reranker = dspy.Predict(RelevanceRanker)
 
     def forward(self, question: str, candidates: list[SearchResult]) -> DSPyAgentRAGResponse:
-        # Get search results with scores for reranking
-        search_results, sources = weaviate_search_tool(
-            query=question,
-            collection_name=self.collection_name,
-            target_property_name=self.target_property_name,
-            retrieved_k=self.retrieved_k,
-            return_property_name=self.return_property_name,
-            return_format="rerank"
-        )
-        
         # Perform reranking
         rerank_pred = self.reranker(
             query=question,
-            search_results=search_results,
+            search_results=candidates,
             top_k=self.reranked_k,
         )
         
@@ -44,9 +34,9 @@ class IsolatedListwiseReranker():
             # Find the source corresponding to this rank_id
             # rank_id is 1-based, sources list is 0-based
             source_index = rank_id - 1
-            if 0 <= source_index < len(sources):
-                reranked_sources.append(sources[source_index])
-                reranked_results.append(search_results[source_index])
+            if 0 <= source_index < len(candidates):
+                reranked_sources.append(candidates[source_index])
+                reranked_results.append(candidates[source_index])
         
         if self.verbose:
             print(f"\033[96mReranked: Returning {len(reranked_sources)} Sources!\033[0m")
@@ -66,51 +56,7 @@ class IsolatedListwiseReranker():
         )
     
     async def aforward(self, question: str) -> DSPyAgentRAGResponse:
-        # Get search results with scores for reranking
-        search_results, sources = await async_weaviate_search_tool(
-            query=question,
-            collection_name=self.collection_name,
-            target_property_name=self.target_property_name,
-            retrieved_k=self.retrieved_k,
-            return_property_name=self.return_property_name,
-            return_format="rerank"
-        )
-        
-        if self.verbose:
-            print(f"\033[96mInitial results: {len(sources)} Sources!\033[0m")
-        
-        rerank_pred = await self.reranker.acall(
-            query=question,
-            search_results=search_results,
-            top_k=self.reranked_k,
-        )
-        
-        # Reorder sources based on reranking
-        reranked_sources = []
-        reranked_results = []
-        for rank_id in rerank_pred.reranked_ids:
-            # Find the source corresponding to this rank_id
-            source_index = rank_id - 1
-            if 0 <= source_index < len(sources):
-                reranked_sources.append(sources[source_index])
-                reranked_results.append(search_results[source_index])
-        
-        if self.verbose:
-            print(f"\033[96mReranked: Returning {len(reranked_sources)} Sources!\033[0m")
-            print("\nTop 5 reranked results:")
-            for i, result in enumerate(reranked_results[:5], 1):
-                print(f"New Rank {i} (was {result.initial_rank}).")
-        
-        # Get usage from reranker
-        usage = rerank_pred.get_lm_usage() or {}
-        
-        return DSPyAgentRAGResponse(
-            final_answer="",
-            sources=reranked_sources,
-            searches=[question],
-            aggregations=None,
-            usage=usage,
-        )
+        pass
 
 async def main():
     import os
@@ -124,16 +70,16 @@ async def main():
     dspy.configure(lm=lm, track_usage=True)
     print(f"DSPy configured with: {lm}")
 
-    test_pipeline = ListwiseReranker(
-        collection_name="EnronEmails",
-        target_property_name="email_body_vector",
-        return_property_name="email_summary", # 1841 tokens (email_summary) vs. 12962 tokens (email_body)
-        retrieved_k=20,
-        reranked_k=20,
-        verbose=True
+    test_pipeline = IsolatedListwiseReranker(
+        reranked_k=1,
     )
-    test_q = "What are the implications of SBX18?"
-    response = test_pipeline.forward(test_q)
+    test_q = "What number did David Ortiz wear when he played for the Boston Red Sox?"
+    candidates = [
+        SearchResult(id=1, content="David Ortiz wore the number 34 when he played for the Boston Red Sox."),
+        SearchResult(id=2, content="Derek Jeter wore the number 2 for the New York Yankees throughout his career."),
+        SearchResult(id=3, content="The Boston Red Sox retired David Ortiz's number 34 in 2017, making him the 11th player to receive this honor."),
+    ]
+    response = test_pipeline.forward(test_q, candidates)
     print(response)
     async_response = await test_pipeline.aforward(test_q)
     print(async_response)
