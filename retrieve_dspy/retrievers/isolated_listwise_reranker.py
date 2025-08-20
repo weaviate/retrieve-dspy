@@ -13,9 +13,11 @@ from retrieve_dspy.signatures import RelevanceRanker
 
 class IsolatedListwiseReranker():
     def __init__(
-        self, 
+        self,
+        verbose: bool = False,
         reranked_k: int = 1,
     ):
+        self.verbose = verbose
         self.reranked_k = reranked_k
         self.reranker = dspy.Predict(RelevanceRanker)
 
@@ -42,7 +44,9 @@ class IsolatedListwiseReranker():
             print(f"\033[96mReranked: Returning {len(reranked_sources)} Sources!\033[0m")
             print("\nTop 5 reranked results:")
             for i, result in enumerate(reranked_results[:5], 1):
-                print(f"New Rank {i} (was {result.initial_rank}).")
+                # Find the original position of this result in candidates
+                original_rank = candidates.index(result) + 1  # +1 for 1-based ranking
+                print(f"New Rank {i} (was {original_rank}).")
         
         # Get usage from reranker
         usage = rerank_pred.get_lm_usage() or {}
@@ -72,6 +76,7 @@ async def main():
 
     test_pipeline = IsolatedListwiseReranker(
         reranked_k=1,
+        verbose=True,
     )
     test_q = "What number did David Ortiz wear when he played for the Boston Red Sox?"
     candidates = [
