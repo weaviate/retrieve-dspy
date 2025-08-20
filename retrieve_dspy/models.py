@@ -11,7 +11,6 @@ class SourceWithContentAndVector(Source):
 
 class SearchResult(BaseModel):
     id: int
-    initial_rank: int
     content: str
 
 class SearchQueryWithFilter(BaseModel):
