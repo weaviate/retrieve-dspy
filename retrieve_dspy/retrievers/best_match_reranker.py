@@ -1,13 +1,8 @@
 import asyncio
 import os
-from typing import Optional
 
 import dspy
 
-from retrieve_dspy.tools.weaviate_database import (
-    weaviate_search_tool,
-    async_weaviate_search_tool
-)
 
 from retrieve_dspy.models import DSPyAgentRAGResponse, SearchResult
 from retrieve_dspy.signatures import BestMatchRanker
