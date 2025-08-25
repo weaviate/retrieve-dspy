@@ -1,29 +1,6 @@
-import asyncio
-import os
 from typing import Callable
 
 from dspy import Example, Prediction
-import weaviate
-from weaviate.collections.classes.filters import Filter
-
-# TODO: Need to see if FreshStack eval is still working, because this was modified for EnronQA
-def qa_source_parser(query_agent_sources_response, collection):
-    if not query_agent_sources_response:
-        return []
-    # Just extract the dataset_ids directly (they're already dataset_ids now)
-    return [source.object_id for source in query_agent_sources_response]
-
-def get_collection(weaviate_client, dataset_name: str):
-    """Get the appropriate Weaviate collection for a dataset."""
-    if dataset_name == "enron":
-        return weaviate_client.collections.get("EnronEmails")
-    elif dataset_name == "wixqa":
-        return weaviate_client.collections.get("WixKB")
-    elif dataset_name.startswith("freshstack-"):
-        subset = dataset_name.split("-")[1].capitalize()
-        return weaviate_client.collections.get(f"Freshstack{subset}")
-    else:
-        raise ValueError(f"Unknown dataset: {dataset_name}")
 
 def calculate_recall_at_k(
     target_ids: list[str],
@@ -120,27 +97,22 @@ def calculate_coverage(retrieved_ids: list[str], nugget_data: list[dict], k: int
     
     return coverage_score
 
-def create_recall_metric(weaviate_client, dataset_name: str, k: int, verbose: bool = True) -> Callable:
+def create_recall_metric(k: int, verbose: bool = True) -> Callable:
     """
     Create a recall metric function that wraps the existing calculate_recall function.
     
     Args:
-        weaviate_client: Weaviate client instance
-        dataset_name: Name of the dataset
-        weight: Weight to apply to the recall score
+        k: Number of top documents to consider (default: 100)
+        verbose: Whether to print verbose output (default: True)
         
     Returns:
         Function that calculates recall score for a single example
     """
-    collection = get_collection(weaviate_client, dataset_name)
     
     def recall_metric(example: Example, prediction, trace=None) -> float:
         try:
             # Extract sources from prediction
-            if hasattr(prediction, 'sources') and prediction.sources:
-                retrieved_ids = qa_source_parser(prediction.sources, collection)
-            else:
-                retrieved_ids = []
+            retrieved_ids = prediction.sources
             
             # Get target IDs from example
             target_ids = example.dataset_ids
@@ -161,32 +133,23 @@ def create_recall_metric(weaviate_client, dataset_name: str, k: int, verbose: bo
             
     return recall_metric
 
-def create_coverage_metric(weaviate_client, dataset_name: str, k: int = 1000) -> Callable:
+def create_coverage_metric(k: int = 1000) -> Callable:
     """
     Create a coverage metric function that wraps the existing calculate_coverage function.
     
     Args:
-        weaviate_client: Weaviate client instance
-        dataset_name: Name of the dataset
-        k: Number of top documents to consider (default: 100)
+        k: Number of top documents to consider (default: 1000)
         
     Returns:
         Function that calculates coverage score for a single example
     """
-    collection = get_collection(weaviate_client, dataset_name)
     
     def coverage_metric(example: Example, prediction, trace=None) -> float:
         try:
-            # Extract sources from prediction
-            if hasattr(prediction, 'sources') and prediction.sources:
-                retrieved_ids = qa_source_parser(prediction.sources, collection)
-            else:
-                retrieved_ids = []
+            retrieved_ids = prediction.sources
             
-            # Get nugget data from example
             nugget_data = example.nugget_data if hasattr(example, 'nugget_data') else []
             
-            # Use the existing calculate_coverage function
             coverage_score = calculate_coverage(
                 retrieved_ids=retrieved_ids,
                 nugget_data=nugget_data,
@@ -203,7 +166,6 @@ def create_coverage_metric(weaviate_client, dataset_name: str, k: int = 1000) ->
 
 def create_metric(
     metric_type: str,
-    dataset_name: str,
     **kwargs
 ) -> Callable:
     """
@@ -211,33 +173,24 @@ def create_metric(
     
     Args:
         metric_type: Type of metric ("recall", "coverage")
-        dataset_name: Name of the dataset
         **kwargs: Additional arguments for metric configuration
         
     Returns:
         Configured metric function
     """
-    weaviate_client = weaviate.connect_to_weaviate_cloud(
-        cluster_url=os.getenv("WEAVIATE_URL"),
-        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
-    )
-
     if metric_type == "recall":
-        return create_recall_metric(weaviate_client, dataset_name, **kwargs)
+        return create_recall_metric(**kwargs)
     elif metric_type == "coverage":
-        return create_coverage_metric(weaviate_client, dataset_name, **kwargs)
+        return create_coverage_metric(**kwargs)
     else:
         raise ValueError(f"Unknown metric type: {metric_type}")
 
 def create_coverage_metric_with_feedback(
-    weaviate_client: weaviate.Client,
-    dataset_name: str, 
     k: int = 1000
 ) -> Callable:
     """
     Create a GEPA-compatible coverage metric with nuggets covered and uncovered feedback.
     """
-    collection = get_collection(weaviate_client, dataset_name)
     
     def coverage_metric_with_feedback(
         example: Example, 
@@ -247,10 +200,7 @@ def create_coverage_metric_with_feedback(
         pred_trace=None
     ) -> Prediction:
         try:
-            if hasattr(prediction, 'sources') and prediction.sources:
-                retrieved_ids = qa_source_parser(prediction.sources, collection)
-            else:
-                retrieved_ids = []
+            retrieved_ids = prediction.sources
             
             nugget_data = example.nugget_data if hasattr(example, 'nugget_data') else []
             
@@ -284,107 +234,3 @@ def create_coverage_metric_with_feedback(
             )
     
     return coverage_metric_with_feedback
-
-async def main():
-    # Connect to Weaviate to get some real UUIDs
-    weaviate_client = weaviate.connect_to_weaviate_cloud(
-        cluster_url=os.getenv("WEAVIATE_URL"),
-        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
-    )
-    
-    # Get the collection
-    collection = weaviate_client.collections.get("FreshstackLangchain")
-    
-    # Query for some real documents that match the nugget's relevant_corpus_ids
-    # We need documents with specific dataset_ids
-    target_dataset_ids = [
-        'azure-openai/Basic_Samples/Embeddings/dotnet/csharp/Embedding_long_inputs.ipynb_6097_13521',
-        'langchainjs/docs/core_docs/docs/how_to/query_high_cardinality.ipynb_7337_14397'
-    ]
-    
-    # Fetch objects with these dataset_ids to get their UUIDs
-    real_objects = collection.query.fetch_objects(
-        filters=Filter.by_property("dataset_id").contains_any(target_dataset_ids),
-        limit=2
-    )
-    
-    gepa_metric = create_coverage_metric_with_feedback(
-        dataset_name="freshstack-langchain"
-    )
-    
-    mock_example = Example({
-        'question': 'I am using the llama2 quantized model from Huggingface and loading it using ctransformers from langchain. When I run the query, I got the below warning\nNumber of tokens (512) exceeded maximum context length (512)...',
-        'dataset_ids': [
-            'azure-openai/Basic_Samples/Embeddings/dotnet/csharp/Embedding_long_inputs.ipynb_6097_13521',
-            'azure-openai/Basic_Samples/Embeddings/dotnet/csharp/Embedding_long_inputs.ipynb_0_6096',
-            'langchainjs/langchain-core/src/language_models/tests/count_tokens.test.ts_0_1089',
-            'langchainjs/docs/core_docs/docs/how_to/query_high_cardinality.ipynb_7337_14397',
-            'openai-cookbook/examples/data/oai_docs/fine-tuning.txt_10269_11860',
-            'openai-cookbook/examples/Embedding_long_inputs.ipynb_0_7701',
-            'transformers/src/transformers/generation/utils.py_66208_74709'
-        ],
-        'nugget_data': [
-            {
-                'nugget_id': '77570838_nugget_0',
-                'text': 'The warning is due to the number of tokens exceeding the maximum context length.',
-                'relevant_corpus_ids': [
-                    'azure-openai/Basic_Samples/Embeddings/dotnet/csharp/Embedding_long_inputs.ipynb_6097_13521',
-                    'azure-openai/Basic_Samples/Embeddings/dotnet/csharp/Embedding_long_inputs.ipynb_0_6096',
-                    'langchainjs/langchain-core/src/language_models/tests/count_tokens.test.ts_0_1089',
-                    'langchainjs/docs/core_docs/docs/how_to/query_high_cardinality.ipynb_7337_14397',
-                    'openai-cookbook/examples/data/oai_docs/fine-tuning.txt_10269_11860',
-                    'openai-cookbook/examples/Embedding_long_inputs.ipynb_0_7701'
-                ]
-            },
-            {
-                'nugget_id': '77570838_nugget_1',
-                'text': "Adjust the 'context_length' parameter in the model configuration to a value greater than the number of tokens (e.g., 700).",
-                'relevant_corpus_ids': [
-                    'langchainjs/docs/core_docs/docs/how_to/query_high_cardinality.ipynb_7337_14397'
-                ]
-            },
-            {
-                'nugget_id': '77570838_nugget_2',
-                'text': "Ensure 'max_new_tokens' is set to a value that does not exceed the adjusted context length (e.g., 600).",
-                'relevant_corpus_ids': [
-                    'transformers/src/transformers/generation/utils.py_66208_74709',
-                    'langchainjs/docs/core_docs/docs/how_to/query_high_cardinality.ipynb_7337_14397'
-                ]
-            }
-        ]
-    })
-    
-    # Create mock Prediction with real UUIDs from Weaviate
-    # This will give partial coverage
-    mock_sources = []
-    for obj in real_objects.objects:
-        mock_source = type('MockSource', (), {'object_id': str(obj.uuid)})()
-        mock_sources.append(mock_source)
-        print(f"Using real UUID: {obj.uuid} -> dataset_id: {obj.properties.get('dataset_id')}")
-    
-    mock_prediction = Prediction(
-        sources=mock_sources
-    )
-    
-    # Test the metric
-    print("\nTesting GEPA Coverage Metric with Real Example")
-    print("=" * 70)
-    
-    # Call the metric (simulating what GEPA would do)
-    result = gepa_metric(
-        weaviate_client=weaviate_client,
-        example=mock_example,
-        prediction=mock_prediction,
-        trace=None,
-        pred_name=None,
-        pred_trace=None
-    )
-    
-    print(f"Score: {result.score:.2%}")
-    print(f"\nFeedback:\n{result.feedback}")
-    print("=" * 70)
-    
-    weaviate_client.close()
-
-if __name__ == "__main__":
-    asyncio.run(main())

@@ -54,8 +54,7 @@ def weaviate_search_tool(
     '''
     search_results = collection.query.hybrid(
         query=query,
-        limit=retrieved_k,
-        target_vector=target_property_name
+        limit=retrieved_k
     )
 
     weaviate_client.close()
@@ -82,14 +81,11 @@ def weaviate_search_tool(
     if return_format == "rerank":
         search_results_for_rerank: list[SearchResult] = []
         for i, obj in enumerate(search_results.objects):
-            content = ""
-            if obj.properties and return_property_name in obj.properties:
-                content = obj.properties[return_property_name]
-            
+            content = obj.properties[return_property_name]
+            dataset_id = obj.properties["dataset_id"]            
             search_results_for_rerank.append(SearchResult(
                 id=i + 1,
-                initial_rank=i + 1,
-                # initial_score=float(score), # TODO: this was added to test InsertRank Seetharam et al. 2025
+                dataset_id=dataset_id,
                 content=content
             ))
         

@@ -26,8 +26,6 @@ class BaseRAG(dspy.Module):
             "openai/gpt-4.1-mini",
             cache=False, 
             api_key=os.getenv("OPENAI_API_KEY"),
-            #temperature=1.0,
-            #max_tokens=32000
         )
         dspy.configure(lm=lm, track_usage=True)
 
