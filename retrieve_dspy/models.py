@@ -12,6 +12,7 @@ class SourceWithContentAndVector(Source):
 class SearchResult(BaseModel):
     id: int
     content: str
+    dataset_id: Optional[str]
 
 class SearchQueryWithFilter(BaseModel):
     search_query: str

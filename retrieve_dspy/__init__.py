@@ -14,7 +14,9 @@ from .retrievers import (
     DecomposeAndExpand,
     QueryExpanderWithHint,
     DecomposeAndExpandWithHints,
-    QueryExpanderWithReranker
+    QueryExpanderWithReranker,
+    BestMatchReranker,
+    QueryDocumentSummarizer
 )
 
 from . import utils
@@ -40,7 +42,9 @@ __all__ = [
     "QueryExpanderWithHint",
     "DecomposeAndExpandWithHints",
     "QueryExpanderWithReranker",
+    "BestMatchReranker",
+    "QueryDocumentSummarizer",
     "utils",
     "metrics", 
-    "datasets"
+    "datasets",
 ]

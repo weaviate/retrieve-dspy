@@ -1,4 +1,5 @@
 import asyncio
+import os
 from typing import Optional
 
 import dspy
@@ -9,44 +10,42 @@ from retrieve_dspy.tools.weaviate_database import (
 )
 
 from retrieve_dspy.models import DSPyAgentRAGResponse, SearchResult
-from retrieve_dspy.signatures import RelevanceRanker
+from retrieve_dspy.signatures import BestMatchRanker
 
-class IsolatedListwiseReranker():
+class BestMatchReranker(dspy.Module):
     def __init__(
         self,
         verbose: bool = False,
-        reranked_k: int = 1,
     ):
+        # init LLM
+        self.lm = dspy.LM("openai/gpt-4.1-mini", api_key=os.getenv("OPENAI_API_KEY"))
+        dspy.configure(lm=self.lm, track_usage=True)
+
         self.verbose = verbose
-        self.reranked_k = reranked_k
-        self.reranker = dspy.Predict(RelevanceRanker)
+        self.reranker = dspy.ChainOfThought(BestMatchRanker) # update to send rationale through to metric
 
     def forward(self, question: str, candidates: list[SearchResult]) -> DSPyAgentRAGResponse:
         # Perform reranking
         rerank_pred = self.reranker(
             query=question,
             search_results=candidates,
-            top_k=self.reranked_k,
         )
         
-        # Reorder sources based on reranking
-        reranked_sources = []
-        reranked_results = []
-        for rank_id in rerank_pred.reranked_ids:
-            # Find the source corresponding to this rank_id
-            # rank_id is 1-based, sources list is 0-based
-            source_index = rank_id - 1
-            if 0 <= source_index < len(candidates):
-                reranked_sources.append(candidates[source_index])
-                reranked_results.append(candidates[source_index])
+        # Find the best match result based on the returned ID
+        best_match_result = None
+        for candidate in candidates:
+            if candidate.id == rerank_pred.best_match_id:
+                best_match_result = candidate
+                break
+        
+        reranked_sources = [best_match_result] if best_match_result else []
         
         if self.verbose:
             print(f"\033[96mReranked: Returning {len(reranked_sources)} Sources!\033[0m")
-            print("\nTop 5 reranked results:")
-            for i, result in enumerate(reranked_results[:5], 1):
+            if best_match_result:
                 # Find the original position of this result in candidates
-                original_rank = candidates.index(result) + 1  # +1 for 1-based ranking
-                print(f"New Rank {i} (was {original_rank}).")
+                original_rank = candidates.index(best_match_result) + 1  # +1 for 1-based ranking
+                print(f"Best match ID: {rerank_pred.best_match_id} (was rank {original_rank})")
         
         # Get usage from reranker
         usage = rerank_pred.get_lm_usage() or {}
@@ -74,8 +73,7 @@ async def main():
     dspy.configure(lm=lm, track_usage=True)
     print(f"DSPy configured with: {lm}")
 
-    test_pipeline = IsolatedListwiseReranker(
-        reranked_k=1,
+    test_pipeline = BestMatchReranker(
         verbose=True,
     )
     test_q = "What number did David Ortiz wear when he played for the Boston Red Sox?"
@@ -86,8 +84,6 @@ async def main():
     ]
     response = test_pipeline.forward(test_q, candidates)
     print(response)
-    async_response = await test_pipeline.aforward(test_q)
-    print(async_response)
 
 if __name__ == "__main__":
     asyncio.run(main())

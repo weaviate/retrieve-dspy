@@ -35,6 +35,34 @@ class RelevanceRanker(dspy.Signature):
         desc="List of exactly `top_k` passage IDs ordered by relevance (most relevant first). Must match IDs from search_results."
     )
 
+class BestMatchRanker(dspy.Signature):
+    """Identify the single most relevant passage to the query.
+    
+    Your task is to analyze ALL passages simultaneously and identify the one passage 
+    that is most relevant for answering the query.
+    
+    Instructions:
+    1. Read the query carefully and understand the information need
+    2. Evaluate each passage for:
+       - Direct relevance to answering the query
+       - Factual accuracy and completeness
+       - Information quality and clarity
+    3. Compare passages against each other (not just individually)
+    4. Return the ID of the single most relevant passage
+    
+    CRITICAL: You must return exactly 1 passage ID - the best match.
+    """
+    
+    query: str = dspy.InputField(
+        desc="The user's question or information need"
+    )
+    search_results: list[SearchResult] = dspy.InputField(
+        desc="List of passages to analyze. Each contains: id, text, initial_rank, and hybrid_score"
+    )
+    best_match_id: int = dspy.OutputField(
+        desc="The ID of the single most relevant passage. Must match an ID from search_results."
+    )
+
 class IdentifyMostRelevantPassage(dspy.Signature):
     """Identify the passage that contains the answer to the query from a list of passages."""
     
