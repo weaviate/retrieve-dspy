@@ -1,10 +1,6 @@
-import asyncio
-import os
 from typing import Callable
 
 from dspy import Example, Prediction
-import weaviate
-from weaviate.collections.classes.filters import Filter
 
 def calculate_recall_at_k(
     target_ids: list[str],
@@ -106,9 +102,8 @@ def create_recall_metric(k: int, verbose: bool = True) -> Callable:
     Create a recall metric function that wraps the existing calculate_recall function.
     
     Args:
-        weaviate_client: Weaviate client instance
-        dataset_name: Name of the dataset
-        weight: Weight to apply to the recall score
+        k: Number of top documents to consider (default: 100)
+        verbose: Whether to print verbose output (default: True)
         
     Returns:
         Function that calculates recall score for a single example
@@ -143,9 +138,7 @@ def create_coverage_metric(k: int = 1000) -> Callable:
     Create a coverage metric function that wraps the existing calculate_coverage function.
     
     Args:
-        weaviate_client: Weaviate client instance
-        dataset_name: Name of the dataset
-        k: Number of top documents to consider (default: 100)
+        k: Number of top documents to consider (default: 1000)
         
     Returns:
         Function that calculates coverage score for a single example
@@ -173,7 +166,6 @@ def create_coverage_metric(k: int = 1000) -> Callable:
 
 def create_metric(
     metric_type: str,
-    dataset_name: str,
     **kwargs
 ) -> Callable:
     """
@@ -181,17 +173,11 @@ def create_metric(
     
     Args:
         metric_type: Type of metric ("recall", "coverage")
-        dataset_name: Name of the dataset
         **kwargs: Additional arguments for metric configuration
         
     Returns:
         Configured metric function
     """
-    weaviate_client = weaviate.connect_to_weaviate_cloud(
-        cluster_url=os.getenv("WEAVIATE_URL"),
-        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
-    )
-
     if metric_type == "recall":
         return create_recall_metric(**kwargs)
     elif metric_type == "coverage":
