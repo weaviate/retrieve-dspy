@@ -130,10 +130,7 @@ def create_recall_metric(weaviate_client, dataset_name: str, k: int, verbose: bo
     def recall_metric(example: Example, prediction, trace=None) -> float:
         try:
             # Extract sources from prediction
-            if hasattr(prediction, 'sources') and prediction.sources:
-                retrieved_ids = qa_source_parser(prediction.sources, collection)
-            else:
-                retrieved_ids = []
+            retrieved_ids = prediction.sources
             
             # Get target IDs from example
             target_ids = example.dataset_ids
@@ -170,16 +167,10 @@ def create_coverage_metric(weaviate_client, dataset_name: str, k: int = 1000) ->
     
     def coverage_metric(example: Example, prediction, trace=None) -> float:
         try:
-            # Extract sources from prediction
-            if hasattr(prediction, 'sources') and prediction.sources:
-                retrieved_ids = qa_source_parser(prediction.sources, collection)
-            else:
-                retrieved_ids = []
+            retrieved_ids = prediction.sources
             
-            # Get nugget data from example
             nugget_data = example.nugget_data if hasattr(example, 'nugget_data') else []
             
-            # Use the existing calculate_coverage function
             coverage_score = calculate_coverage(
                 retrieved_ids=retrieved_ids,
                 nugget_data=nugget_data,
@@ -240,10 +231,7 @@ def create_coverage_metric_with_feedback(
         pred_trace=None
     ) -> Prediction:
         try:
-            if hasattr(prediction, 'sources') and prediction.sources:
-                retrieved_ids = qa_source_parser(prediction.sources, collection)
-            else:
-                retrieved_ids = []
+            retrieved_ids = prediction.sources
             
             nugget_data = example.nugget_data if hasattr(example, 'nugget_data') else []
             
