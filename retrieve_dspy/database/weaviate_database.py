@@ -9,16 +9,12 @@ from weaviate.outputs.query import QueryReturn
 
 from retrieve_dspy.models import ObjectFromDB
 
-RETURN_FORMATS = ["string", "dict", "rerank", "vectors"]
-
-# Extend to add `return_properties`
 def weaviate_search_tool(
         query: str,
         collection_name: str,
         target_property_name: str,
         return_property_name: Optional[str] = None,
         retrieved_k: Optional[int] = 5,
-        return_score: bool = False,
         return_vector: bool = False,
         tag_filter_value: Optional[str] = None,
 ) -> list[ObjectFromDB]:
@@ -26,30 +22,12 @@ def weaviate_search_tool(
         cluster_url=os.getenv("WEAVIATE_URL"),
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY"))
     )
-
     collection = weaviate_client.collections.get(collection_name)
-    '''
-    return_metadata = None
-    if return_score:
-        return_metadata = MetadataQuery(score=return_score)
-    '''
-    
-    if return_property_name is None:
-        return_property_name = target_property_name
 
     '''
+    TODO: Add Support for Tag Filtering and Target Vectors with something like `**kwargs`
     if tag_filter_value:
         filter = Filter.by_property("tags").contains_any([tag_filter_value])
-    '''
-
-    '''
-    search_results = collection.query.hybrid(
-        query=query,
-        limit=retrieved_k,
-        return_metadata=return_metadata,
-        return_properties=return_properties,
-        include_vector=return_vector
-    )
     '''
     search_results = collection.query.hybrid(
         query=query,
@@ -99,29 +77,16 @@ async def async_weaviate_search_tool(
     
     try:
         collection = async_client.collections.get(collection_name)
-
-        return_metadata = None
-        if return_score:
-            return_metadata = MetadataQuery(score=return_score)
-        
-        if return_property_name is None:
-            return_property_name = target_property_name
-        return_properties = [return_property_name]
-
         '''
+        TODO: Add Support for Tag Filtering and Target Vectors with something like `**kwargs`
         if tag_filter_value:
             filter = Filter.by_property("tags").contains_any([tag_filter_value])
         '''
-        kwargs = dict(
-            query=query,
-            limit=retrieved_k,
-            return_metadata=return_metadata,
-            return_properties=return_properties,
-            include_vector=return_vector,
-            target_vector=target_property_name
-        )
         
-        search_results = await collection.query.hybrid(**kwargs)
+        search_results = await collection.query.hybrid(
+            query=query,
+            limit=retrieved_k
+        )
         
         # Always return a list of ObjectFromDB
         objects: list[ObjectFromDB] = []
