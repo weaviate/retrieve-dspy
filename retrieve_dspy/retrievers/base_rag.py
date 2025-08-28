@@ -14,13 +14,15 @@ class BaseRAG(dspy.Module):
         verbose: Optional[bool] = True,
         search_only: Optional[bool] = True, 
         retrieved_k: Optional[int] = 5,
+        verbose_signature: Optional[bool] = True,
     ) -> None:
         self.collection_name = collection_name
         self.target_property_name = target_property_name
         self.verbose = verbose
         self.search_only = search_only
         self.retrieved_k = retrieved_k
-
+        self.verbose_signature = verbose_signature
+        
         # TODO: Interface ablating `lms` here
         lm = dspy.LM(
             "openai/gpt-4.1-mini",
