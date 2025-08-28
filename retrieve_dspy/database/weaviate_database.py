@@ -10,6 +10,7 @@ from weaviate.outputs.query import QueryReturn
 from retrieve_dspy.models import ObjectFromDB
 
 def weaviate_search_tool(
+        weaviate_client: weaviate.Client,
         query: str,
         collection_name: str,
         target_property_name: str,
@@ -18,10 +19,6 @@ def weaviate_search_tool(
         return_vector: bool = False,
         tag_filter_value: Optional[str] = None,
 ) -> list[ObjectFromDB]:
-    weaviate_client = weaviate.connect_to_weaviate_cloud(
-        cluster_url=os.getenv("WEAVIATE_URL"),
-        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY"))
-    )
     collection = weaviate_client.collections.get(collection_name)
 
     '''
@@ -55,6 +52,7 @@ def weaviate_search_tool(
     return objects
 
 async def async_weaviate_search_tool(
+    weaviate_async_client: weaviate.AsyncClient,
     query: str,
     collection_name: str,
     target_property_name: str,
@@ -64,19 +62,8 @@ async def async_weaviate_search_tool(
     return_vector: bool = False,
     tag_filter_value: Optional[str] = None,
 ):
-    """Async version of search tool with hybrid scores."""
-    async_client = weaviate.use_async_with_weaviate_cloud(
-        cluster_url=os.getenv("WEAVIATE_URL"),
-        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
-        additional_config=AdditionalConfig(
-            timeout=Timeout(init=30, query=60, insert=120)  # Values in seconds
-        )
-    )
-    
-    await async_client.connect()
-    
     try:
-        collection = async_client.collections.get(collection_name)
+        collection = weaviate_async_client.collections.get(collection_name)
         '''
         TODO: Add Support for Tag Filtering and Target Vectors with something like `**kwargs`
         if tag_filter_value:
@@ -105,7 +92,7 @@ async def async_weaviate_search_tool(
         return objects
     
     finally:
-        await async_client.close()
+        await weaviate_async_client.close()
 
 def get_tag_values(collection_name: str) -> list[str]:
     weaviate_client = weaviate.connect_to_weaviate_cloud(
