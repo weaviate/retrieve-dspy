@@ -54,13 +54,12 @@ class SummarizedListwiseReranker(BaseRAG):
 
     def forward(self, question: str) -> DSPyAgentRAGResponse:
         # Get search results
-        search_results, sources = weaviate_search_tool(
+        sources = weaviate_search_tool(
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
             return_property_name=self.return_property_name,
             retrieved_k=self.retrieved_k,
-            return_format="rerank"
         )
         
         if self.verbose:
@@ -71,14 +70,14 @@ class SummarizedListwiseReranker(BaseRAG):
         summaries = []
         total_usage = {}
         
-        for i, (result, source) in enumerate(zip(search_results, sources)):
+        for i, source in enumerate(sources):
             summary_pred = self.summarizer(
                 query=question,
-                passage=result.content,
+                passage=source.content,
             )
             
             summaries.append({
-                "passage_id": result.id,
+                "passage_id": i + 1,
                 "initial_rank": i,
                 "relevance_summary": summary_pred.relevance_summary,
             })
@@ -93,7 +92,7 @@ class SummarizedListwiseReranker(BaseRAG):
             for summary in summaries:
                 print(f"\033[96m{summary['relevance_summary']}\033[0m\n")
         
-        # Convert search results to list of SearchResult objects
+        # Convert summaries to list of SearchResult objects for reranker
         search_results_list = [SearchResult(
             id=result["passage_id"],
             initial_rank=result["initial_rank"],
@@ -135,13 +134,12 @@ class SummarizedListwiseReranker(BaseRAG):
     
     async def aforward(self, question: str) -> DSPyAgentRAGResponse:
         # Get search results
-        search_results, sources = await async_weaviate_search_tool(
+        sources = await async_weaviate_search_tool(
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
             return_property_name=self.return_property_name,
             retrieved_k=self.retrieved_k,
-            return_format="rerank"
         )
         
         if self.verbose:
@@ -150,14 +148,14 @@ class SummarizedListwiseReranker(BaseRAG):
         # Summarize relevance for each result in parallel
         summary_tasks = []
         passage_ids = []  # Track passage IDs separately
-        for i, (result, source) in enumerate(zip(search_results, sources)):
+        for i, source in enumerate(sources):
             task = self.summarizer.acall(
                 query=question,
-                passage=result.content,
+                passage=source.content,
                 initial_rank=i
             )
             summary_tasks.append(task)
-            passage_ids.append(result.id)  # Store the ID
+            passage_ids.append(i + 1)  # Store the ID
         
         # Wait for all summaries to complete
         summary_preds = await asyncio.gather(*summary_tasks)

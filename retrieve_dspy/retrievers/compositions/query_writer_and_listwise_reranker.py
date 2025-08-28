@@ -41,14 +41,15 @@ class QueryWriterWithListwiseReranker(BaseRAG):
         all_search_results = []
         all_sources: list[Source] = []
         for q in queries:
-            search_results, sources = weaviate_search_tool(
+            sources = weaviate_search_tool(
                 query=q,
                 collection_name=self.collection_name,
                 target_property_name=self.target_property_name,
                 retrieved_k=self.retrieved_k,
-                return_format="rerank"
             )
-            all_search_results.extend(search_results)
+            # Build SearchResult objects from sources
+            for i, s in enumerate(sources, 1):
+                all_search_results.append(SearchResult(id=i, initial_rank=i, content=s.content))
             all_sources.extend(sources)
 
         print(f"\033[96mCollected {len(all_sources)} candidates from {len(queries)} queries\033[0m")
@@ -99,15 +100,15 @@ class QueryWriterWithListwiseReranker(BaseRAG):
                 collection_name=self.collection_name,
                 target_property_name=self.target_property_name,
                 retrieved_k=self.retrieved_k,
-                return_format="rerank"
             )
             for q in queries
         ]
         results = await asyncio.gather(*tasks)
         all_search_results = []
         all_sources: list[Source] = []
-        for search_results, sources in results:
-            all_search_results.extend(search_results)
+        for sources in results:
+            for i, s in enumerate(sources, 1):
+                all_search_results.append(SearchResult(id=i, initial_rank=i, content=s.content))
             all_sources.extend(sources)
 
         print(f"\033[96mCollected {len(all_sources)} candidates from {len(queries)} queries\033[0m")

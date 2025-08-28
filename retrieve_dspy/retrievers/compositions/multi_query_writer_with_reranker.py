@@ -139,18 +139,17 @@ class MultiQueryWriterWithReranker(BaseRAG):
             all_documents: list[str] = []
             
             for i, query in enumerate(queries, 1):
-                search_results, sources = weaviate_search_tool(
+                sources = weaviate_search_tool(
                     query=query,
                     collection_name=self.collection_name,
                     target_property_name=self.target_property_name,
                     retrieved_k=self.retrieved_k,
-                    return_format="rerank"
                 )
                 
                 if self.verbose:
                     print(f"\n\033[96mQuery {i} retrieved {len(sources)} documents\033[0m")
                 
-                query_documents = [result.content for result in search_results]
+                query_documents = [s.content for s in sources]
                 
                 if len(query_documents) > 0:
                     reranked_for_query = self._rerank_with_cohere(query, query_documents)
@@ -192,26 +191,24 @@ class MultiQueryWriterWithReranker(BaseRAG):
             
             if self.search_with_queries_concatenated:
                 concatenated_query = " ".join(queries)
-                search_results, sources = weaviate_search_tool(
+                sources = weaviate_search_tool(
                     query=concatenated_query,
                     collection_name=self.collection_name,
                     target_property_name=self.target_property_name,
                     retrieved_k=self.retrieved_k,
-                    return_format="rerank"
                 )
                 all_sources.extend(sources)
-                all_search_results.extend(search_results)
+                all_search_results.extend([s.content for s in sources])
             else:
                 for q in queries:
-                    search_results, sources = weaviate_search_tool(
+                    sources = weaviate_search_tool(
                         query=q,
                         collection_name=self.collection_name,
                         target_property_name=self.target_property_name,
                         retrieved_k=self.retrieved_k,
-                        return_format="rerank"
                     )
                     all_sources.extend(sources)
-                    all_search_results.extend(search_results)
+                    all_search_results.extend([s.content for s in sources])
             
             if self.verbose:
                 print(f"\033[96mRetrieved {len(all_sources)} total documents "
@@ -222,13 +219,11 @@ class MultiQueryWriterWithReranker(BaseRAG):
             
             # Extract content
             seen_ids = set()
-            unique_search_results = []
-            for result, source in zip(all_search_results, all_sources):
+            unique_documents = []
+            for source in all_sources:
                 if source.object_id not in seen_ids:
                     seen_ids.add(source.object_id)
-                    unique_search_results.append(result)
-            
-            unique_documents = [result.content for result in unique_search_results]
+                    unique_documents.append(source.content)
             
             if self.verbose:
                 print(f"\n\033[93mReranking {len(unique_documents)} unique documents...\033[0m")
@@ -288,18 +283,17 @@ class MultiQueryWriterWithReranker(BaseRAG):
                     collection_name=self.collection_name,
                     target_property_name=self.target_property_name,
                     retrieved_k=self.retrieved_k,
-                    return_format="rerank"
                 )
                 for q in queries
             ]
             
             search_results_list = await asyncio.gather(*search_tasks)
             
-            for i, (query, (search_results, sources)) in enumerate(zip(queries, search_results_list), 1):
+            for i, (query, sources) in enumerate(zip(queries, search_results_list), 1):
                 if self.verbose:
                     print(f"\n\033[96mQuery {i} retrieved {len(sources)} documents\033[0m")
                 
-                query_documents = [result.content for result in search_results]
+                query_documents = [s.content for s in sources]
                 
                 if len(query_documents) > 0:
                     reranked_for_query = await self._async_rerank_with_cohere(query, query_documents)
@@ -341,15 +335,14 @@ class MultiQueryWriterWithReranker(BaseRAG):
             
             if self.search_with_queries_concatenated:
                 concatenated_query = " ".join(queries)
-                search_results, sources = await async_weaviate_search_tool(
+                sources = await async_weaviate_search_tool(
                     query=concatenated_query,
                     collection_name=self.collection_name,
                     target_property_name=self.target_property_name,
                     retrieved_k=self.retrieved_k,
-                    return_format="rerank"
                 )
                 all_sources.extend(sources)
-                all_search_results.extend(search_results)
+                all_search_results.extend([s.content for s in sources])
             else:
                 search_tasks = [
                     async_weaviate_search_tool(
@@ -357,31 +350,28 @@ class MultiQueryWriterWithReranker(BaseRAG):
                         collection_name=self.collection_name,
                         target_property_name=self.target_property_name,
                         retrieved_k=self.retrieved_k,
-                        return_format="rerank"
                     )
                     for q in queries
                 ]
                 
                 results = await asyncio.gather(*search_tasks)
                 
-                for search_results, sources in results:
+                for sources in results:
                     all_sources.extend(sources)
-                    all_search_results.extend(search_results)
+                    all_search_results.extend([s.content for s in sources])
             
             if self.verbose:
                 print(f"\033[96mRetrieved {len(all_sources)} total documents "
                       f"({len(set(s.object_id for s in all_sources))} unique)\033[0m")
             
-            unique_sources, _ = self._deduplicate_sources(all_sources)
+            unique_sources = self._deduplicate_sources(all_sources)
             
             seen_ids = set()
-            unique_search_results = []
-            for result, source in zip(all_search_results, all_sources):
+            unique_documents = []
+            for source in all_sources:
                 if source.object_id not in seen_ids:
                     seen_ids.add(source.object_id)
-                    unique_search_results.append(result)
-            
-            unique_documents = [result.content for result in unique_search_results]
+                    unique_documents.append(source.content)
             
             if self.verbose:
                 print(f"\n\033[93mReranking {len(unique_documents)} unique documents...\033[0m")

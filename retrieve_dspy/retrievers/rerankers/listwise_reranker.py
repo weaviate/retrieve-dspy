@@ -41,17 +41,21 @@ class ListwiseReranker(BaseRAG):
             self.reranker = dspy.Predict(RelevanceRanker)
 
     def forward(self, question: str) -> DSPyAgentRAGResponse:
-        # Get search results with scores for reranking
-        search_results, sources = weaviate_search_tool(
+        # Get search results
+        sources = weaviate_search_tool(
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
             retrieved_k=self.retrieved_k,
             return_property_name=self.return_property_name,
-            return_format="rerank"
         )
         
         # Perform reranking
+        # Build SearchResult-like structures for the reranker
+        search_results = []
+        for i, s in enumerate(sources, 1):
+            search_results.append(SearchResult(id=i, initial_rank=i, content=s.content))
+
         rerank_pred = self.reranker(
             query=question,
             search_results=search_results,
@@ -62,8 +66,6 @@ class ListwiseReranker(BaseRAG):
         reranked_sources = []
         reranked_results = []
         for rank_id in rerank_pred.reranked_ids:
-            # Find the source corresponding to this rank_id
-            # rank_id is 1-based, sources list is 0-based
             source_index = rank_id - 1
             if 0 <= source_index < len(sources):
                 reranked_sources.append(sources[source_index])
@@ -87,19 +89,22 @@ class ListwiseReranker(BaseRAG):
         )
     
     async def aforward(self, question: str) -> DSPyAgentRAGResponse:
-        # Get search results with scores for reranking
-        search_results, sources = await async_weaviate_search_tool(
+        # Get search results
+        sources = await async_weaviate_search_tool(
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
             retrieved_k=self.retrieved_k,
             return_property_name=self.return_property_name,
-            return_format="rerank"
         )
         
         if self.verbose:
             print(f"\033[96mInitial results: {len(sources)} Sources!\033[0m")
         
+        search_results = []
+        for i, s in enumerate(sources, 1):
+            search_results.append(SearchResult(id=i, initial_rank=i, content=s.content))
+
         rerank_pred = await self.reranker.acall(
             query=question,
             search_results=search_results,

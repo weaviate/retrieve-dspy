@@ -29,7 +29,7 @@ class QueryExpander(BaseRAG):
         if self.verbose:
             print(f"\033[95mExpanded query from:\n{question}\nto:\n{expanded_query}\033[0m")
 
-        contexts, sources = weaviate_search_tool(
+        sources = weaviate_search_tool(
             query=expanded_query,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
@@ -54,7 +54,7 @@ class QueryExpander(BaseRAG):
         if self.verbose:
             print(f"\033[95mExpanded query from:\n{question}\nto:\n{expanded_query}\033[0m")
 
-        contexts, sources = await async_weaviate_search_tool(
+        sources = await async_weaviate_search_tool(
             query=expanded_query,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,

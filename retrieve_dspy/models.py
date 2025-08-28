@@ -2,17 +2,11 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import dspy
 
-class Source(BaseModel):
+class ObjectFromDB(BaseModel):
     object_id: str
-
-class SourceWithContentAndVector(Source):
     content: str
-    vector: list[float]
-
-class SearchResult(BaseModel):
-    id: int
-    content: str
-    dataset_id: Optional[str]
+    relevance_rank: Optional[int]
+    vector: Optional[list[float]]
 
 class SearchQueryWithFilter(BaseModel):
     search_query: str
@@ -24,7 +18,7 @@ class Cluster(BaseModel):
     vectors: list[list[float]]
 
 class DSPyAgentRAGResponse(dspy.Prediction):
-    def __init__(self, final_answer: str = "", sources: List[Source] = None, 
+    def __init__(self, final_answer: str = "", sources: List[ObjectFromDB] = None, 
                  searches: Optional[List[str]] = None, aggregations: Optional[List] = None,
                  usage: Optional[Dict[str, Any]] = None, **kwargs):
         super().__init__(**kwargs)

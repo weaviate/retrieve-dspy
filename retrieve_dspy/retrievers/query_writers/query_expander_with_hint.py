@@ -24,7 +24,7 @@ class QueryExpanderWithHint(BaseRAG):
         self.expand_query = dspy.Predict(ExpandQueryWithHint)
 
     def forward(self, question: str) -> DSPyAgentRAGResponse:
-        initial_search_results, _ = weaviate_search_tool(
+        initial_search_results = weaviate_search_tool(
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
@@ -35,7 +35,7 @@ class QueryExpanderWithHint(BaseRAG):
         if self.verbose:
             print(f"\033[95mExpanded query from:\n{question}\nto:\n{expanded_query}\033[0m")
 
-        contexts, sources = weaviate_search_tool(
+        sources = weaviate_search_tool(
             query=expanded_query,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
@@ -54,7 +54,7 @@ class QueryExpanderWithHint(BaseRAG):
         )
 
     async def aforward(self, question: str) -> DSPyAgentRAGResponse:
-        initial_search_results, _ = await async_weaviate_search_tool(
+        initial_search_results = await async_weaviate_search_tool(
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
@@ -66,7 +66,7 @@ class QueryExpanderWithHint(BaseRAG):
         if self.verbose:
             print(f"\033[95mExpanded query from:\n{question}\nto:\n{expanded_query}\033[0m")
 
-        contexts, sources = await async_weaviate_search_tool(
+        sources = await async_weaviate_search_tool(
             query=expanded_query,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,

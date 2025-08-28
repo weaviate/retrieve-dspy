@@ -183,13 +183,12 @@ class MultiQueryWriterWithClusterRanking(BaseRAG):
         else:
             deduplicated_sources: dict[str, SourceWithContentAndVector] = {}
             for q in queries:
-                retrieved_docs, _ = weaviate_search_tool(
+                retrieved_docs = weaviate_search_tool(
                     query=q,
                     collection_name=self.collection_name,
                     target_property_name=self.target_property_name,
                     retrieved_k=self.retrieved_k,
                     return_vector=True,
-                    return_format="vectors"
                 )
                 for doc in retrieved_docs:
                     deduplicated_sources[doc.object_id] = doc
@@ -237,14 +236,13 @@ class MultiQueryWriterWithClusterRanking(BaseRAG):
                     target_property_name=self.target_property_name,
                     retrieved_k=self.retrieved_k,
                     return_vector=True,
-                    return_format="vectors"
                 )
                 for q in queries
             ]
             search_results_tuples = await asyncio.gather(*search_tasks)
 
             deduplicated_sources: dict[str, SourceWithContentAndVector] = {}
-            for retrieved_docs, _ in search_results_tuples:
+            for retrieved_docs in search_results_tuples:
                 for doc in retrieved_docs:
                     deduplicated_sources[doc.object_id] = doc
             sources_with_vectors = list(deduplicated_sources.values())

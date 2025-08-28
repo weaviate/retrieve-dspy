@@ -7,7 +7,7 @@ from weaviate.classes.query import Filter, Metrics, MetadataQuery
 from weaviate.classes.init import AdditionalConfig, Timeout
 from weaviate.outputs.query import QueryReturn
 
-from retrieve_dspy.models import Source, SourceWithContentAndVector, SearchResult
+from retrieve_dspy.models import ObjectFromDB
 
 RETURN_FORMATS = ["string", "dict", "rerank", "vectors"]
 
@@ -21,8 +21,7 @@ def weaviate_search_tool(
         return_score: bool = False,
         return_vector: bool = False,
         tag_filter_value: Optional[str] = None,
-        return_format: Literal["string", "dict", "rerank", "vectors"] = "string"
-):
+) -> list[ObjectFromDB]:
     weaviate_client = weaviate.connect_to_weaviate_cloud(
         cluster_url=os.getenv("WEAVIATE_URL"),
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY"))
@@ -59,42 +58,23 @@ def weaviate_search_tool(
 
     weaviate_client.close()
 
-    # Build `Source` list of object IDs
-    object_ids: list[Source] = []
+    # Always return a list of ObjectFromDB (no separate Source list)
+
+    # Always return a list of ObjectFromDB
+    objects: list[ObjectFromDB] = []
     if search_results.objects:
-        for obj in search_results.objects:
-            # Instead of UUID, use dataset_id directly
-            dataset_id = obj.properties.get('dataset_id')
-            if dataset_id:
-                object_ids.append(Source(object_id=str(dataset_id)))
-
-    if return_format == "vectors":
-        sources_with_content_and_vector: list[SourceWithContentAndVector] = []
-        for obj in search_results.objects:
-            sources_with_content_and_vector.append(SourceWithContentAndVector(
-                object_id=str(obj.uuid),
-                content=obj.properties[target_property_name],
-                vector=obj.vector["default"] # update with named vectors
+        for rank, obj in enumerate(search_results.objects, start=1):
+            object_id = str(obj.properties.get('dataset_id') or obj.uuid)
+            content_value = None
+            if obj.properties and target_property_name in obj.properties:
+                content_value = obj.properties[target_property_name]
+            objects.append(ObjectFromDB(
+                object_id=object_id,
+                content=str(content_value) if content_value is not None else "",
+                relevance_rank=rank,
+                vector=(obj.vector.get("default") if return_vector and getattr(obj, 'vector', None) else None)
             ))
-        return sources_with_content_and_vector, object_ids
-
-    if return_format == "rerank":
-        search_results_for_rerank: list[SearchResult] = []
-        for i, obj in enumerate(search_results.objects):
-            content = obj.properties[return_property_name]
-            dataset_id = obj.properties["dataset_id"]            
-            search_results_for_rerank.append(SearchResult(
-                id=i + 1,
-                dataset_id=dataset_id,
-                content=content
-            ))
-        
-        return search_results_for_rerank, object_ids
-    
-    elif return_format == "dict":
-        return _dictify_search_results(search_results, view_properties=[return_property_name]), object_ids
-    else:
-        return _stringify_search_results(search_results, view_properties=[return_property_name]), object_ids
+    return objects
 
 async def async_weaviate_search_tool(
     query: str,
@@ -105,7 +85,6 @@ async def async_weaviate_search_tool(
     return_score: bool = False,
     return_vector: bool = False,
     tag_filter_value: Optional[str] = None,
-    return_format: Literal["string", "dict", "rerank", "vectors"] = "string"
 ):
     """Async version of search tool with hybrid scores."""
     async_client = weaviate.use_async_with_weaviate_cloud(
@@ -144,134 +123,24 @@ async def async_weaviate_search_tool(
         
         search_results = await collection.query.hybrid(**kwargs)
         
-        object_ids = []
+        # Always return a list of ObjectFromDB
+        objects: list[ObjectFromDB] = []
         if search_results.objects:
-            for obj in search_results.objects:
-                object_ids.append(Source(
-                    object_id=str(obj.uuid)
+            for rank, obj in enumerate(search_results.objects, start=1):
+                object_id = str(obj.properties.get('dataset_id') or obj.uuid)
+                content_value = None
+                if obj.properties and target_property_name in obj.properties:
+                    content_value = obj.properties[target_property_name]
+                objects.append(ObjectFromDB(
+                    object_id=object_id,
+                    content=str(content_value) if content_value is not None else "",
+                    relevance_rank=rank,
+                    vector=(obj.vector.get("default") if return_vector and getattr(obj, 'vector', None) else None)
                 ))
-        
-        if return_format == "vectors":
-            sources_with_content_and_vector: list[SourceWithContentAndVector] = []
-            for obj in search_results.objects:
-                sources_with_content_and_vector.append(SourceWithContentAndVector(
-                    object_id=str(obj.uuid),
-                    content=obj.properties[target_property_name],
-                    vector=obj.vector["default"] # update with named vectors
-                ))
-            return sources_with_content_and_vector, object_ids
-        
-        if return_format == "rerank":
-            search_results_for_rerank = []
-            for i, obj in enumerate(search_results.objects):
-                content = ""
-                if obj.properties and return_property_name in obj.properties:
-                    content = obj.properties[return_property_name]
-                
-                # score = obj.metadata.score
-                
-                search_results_for_rerank.append(SearchResult(
-                    id=i + 1,
-                    initial_rank=i + 1,
-                    # initial_score=float(score),
-                    content=content
-                ))
-            
-            return search_results_for_rerank, object_ids
-        
-        elif return_format == "dict":
-            return _dictify_search_results(search_results, view_properties=[return_property_name]), object_ids
-        else:
-            return _stringify_search_results(search_results, view_properties=[return_property_name]), object_ids
+        return objects
     
     finally:
         await async_client.close()
-
-def _stringify_search_results(search_results: QueryReturn, view_properties=None) -> str:
-    """
-    Convert Weaviate search results to a readable string format.
-    
-    Args:
-        search_results: The QueryReturn object from Weaviate
-        view_properties: List of property names to include (None means include nothing)
-                         Can include metadata fields prefixed with underscore
-    
-    Returns:
-        A formatted string representation of the search results
-    """
-    result_str = f"Found {len(search_results.objects)} results:\n\n"
-    
-    for i, obj in enumerate(search_results.objects):
-        result_str += f"Result {i+1}:\n"
-        
-        if view_properties:
-            if obj.properties:
-                properties_to_show = {k: v for k, v in obj.properties.items() if k in view_properties}
-                
-                if properties_to_show:
-                    result_str += "Properties:\n"
-                    for key, value in properties_to_show.items():
-                        result_str += f"  {key}: {value}\n"
-            
-            if obj.metadata:
-                metadata_fields = []
-                for attr in dir(obj.metadata):
-                    if attr in view_properties:
-                        value = getattr(obj.metadata, attr)
-                        if value is not None:
-                            metadata_fields.append((attr, value))
-                
-                if metadata_fields:
-                    result_str += "Metadata:\n"
-                    for attr, value in metadata_fields:
-                        result_str += f"  {attr}: {value}\n"
-        
-        result_str += "\n"
-    
-    return result_str
-
-def _dictify_search_results(search_results: QueryReturn, view_properties=None) -> dict[int, str]:
-    """
-    Convert Weaviate search results to a dictionary with integer keys (1-based).
-    
-    Args:
-        search_results: The QueryReturn object from Weaviate
-        view_properties: List of property names to include
-    
-    Returns:
-        A dictionary mapping numeric IDs to formatted search result strings
-    """
-    result_dict = {}
-    
-    for i, obj in enumerate(search_results.objects):
-        result_id = i + 1  # 1-based indexing
-        result_str = f"Result {result_id}:\n"
-        
-        if view_properties:
-            if obj.properties:
-                properties_to_show = {k: v for k, v in obj.properties.items() if k in view_properties}
-                
-                if properties_to_show:
-                    result_str += "Properties:\n"
-                    for key, value in properties_to_show.items():
-                        result_str += f"  {key}: {value}\n"
-            
-            if obj.metadata:
-                metadata_fields = []
-                for attr in dir(obj.metadata):
-                    if attr in view_properties:
-                        value = getattr(obj.metadata, attr)
-                        if value is not None:
-                            metadata_fields.append((attr, value))
-                
-                if metadata_fields:
-                    result_str += "Metadata:\n"
-                    for attr, value in metadata_fields:
-                        result_str += f"  {attr}: {value}\n"
-        
-        result_dict[result_id] = result_str
-    
-    return result_dict
 
 def get_tag_values(collection_name: str) -> list[str]:
     weaviate_client = weaviate.connect_to_weaviate_cloud(
@@ -317,7 +186,6 @@ async def main():
         retrieved_k=10,
         return_score=True,
         return_vector=True,
-        return_format="vectors"
     )
     print(sync_results)
     print("Testing async search tool...")
@@ -328,7 +196,6 @@ async def main():
         retrieved_k=10,
         return_score=True,
         return_vector=True,
-        return_format="vectors"
     )
     print(async_results)
 

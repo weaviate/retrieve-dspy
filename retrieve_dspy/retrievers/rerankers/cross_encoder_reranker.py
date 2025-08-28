@@ -386,26 +386,21 @@ class CrossEncoderReranker(BaseRAG):
             DSPyAgentRAGResponse with reranked sources as SearchResult objects
         """            
         # Get initial search results
-        search_results, sources = weaviate_search_tool(
+        sources = weaviate_search_tool(
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
             return_property_name=self.return_property_name,
             retrieved_k=self.retrieved_k,
-            return_format="rerank"
         )
         
         if self.verbose:
-            print(f"\033[96mInitial retrieval: {len(search_results)} documents\033[0m")
+            print(f"\033[96mInitial retrieval: {len(sources)} documents\033[0m")
             print(f"Query: '{question}'")
             print(f"Using {self.reranker_provider} for reranking")
         
-        # Extract document content directly from search results
-        documents = []
-        for result in search_results:
-            # SearchResult objects have a 'content' attribute
-            doc_text = result.content if hasattr(result, 'content') else str(result)
-            documents.append(doc_text)
+        # Extract document content directly from sources
+        documents = [s.content for s in sources]
             
         if self.verbose:
             print(f"\n\033[93mPreparing {len(documents)} documents for reranking...\033[0m")
@@ -426,21 +421,15 @@ class CrossEncoderReranker(BaseRAG):
             provider_name = self.reranker_provider.capitalize()
             print(f"\n\033[93m{provider_name} reranking complete.\033[0m")
         
-        # Reorder SearchResult objects based on reranking results
-        reranked_search_results = []
+        # Reorder sources based on reranking results
+        reranked_sources = []
         
         # Handle different result formats
         if self.reranker_provider == "hybrid":
             # Hybrid mode returns list of (doc_index, fused_score) tuples
             for i, (doc_idx, score) in enumerate(reranked_results):
-                if 0 <= doc_idx < len(search_results):
-                    # Keep the original SearchResult but update ranking info
-                    original_result = search_results[doc_idx]
-                    reranked_search_results.append(SearchResult(
-                        id=original_result.id,
-                        dataset_id=original_result.dataset_id,
-                        content=original_result.content
-                    ))
+                if 0 <= doc_idx < len(sources):
+                    reranked_sources.append(sources[doc_idx])
                     
                     if self.verbose and i < 5:
                         print(f"Rank {i + 1}: "
@@ -449,14 +438,8 @@ class CrossEncoderReranker(BaseRAG):
         else:
             # Single reranker mode
             for i, result in enumerate(reranked_results):
-                if 0 <= result.index < len(search_results):
-                    # Keep the original SearchResult but update ranking info
-                    original_result = search_results[result.index]
-                    reranked_search_results.append(SearchResult(
-                        id=original_result.id,
-                        dataset_id=original_result.dataset_id,
-                        content=original_result.content
-                    ))
+                if 0 <= result.index < len(sources):
+                    reranked_sources.append(sources[result.index])
                     
                     if self.verbose and i < 5:
                         print(f"Rank {i + 1}: "
@@ -464,7 +447,7 @@ class CrossEncoderReranker(BaseRAG):
                               f"(relevance: {result.relevance_score:.4f})")
         
         if self.verbose:
-            print(f"\n\033[96mReranked: Returning {len(reranked_search_results)} documents\033[0m")
+            print(f"\n\033[96mReranked: Returning {len(reranked_sources)} documents\033[0m")
             
             # Additional diagnostics for low scores (single reranker mode)
             if (self.reranker_provider != "hybrid" and 
@@ -476,10 +459,10 @@ class CrossEncoderReranker(BaseRAG):
                 print("- Documents don't contain relevant content for the query")
                 print("- The collection might not have documents about this topic")
         
-        # Return response with SearchResult objects as sources
+        # Return response with ObjectFromDB sources
         return DSPyAgentRAGResponse(
             final_answer="",
-            sources=reranked_search_results,
+            sources=reranked_sources,
             searches=[question],
             aggregations=None,
             usage={},

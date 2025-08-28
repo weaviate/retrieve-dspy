@@ -91,23 +91,19 @@ class LayeredReranker(BaseRAG):
 
     def forward(self, question: str) -> DSPyAgentRAGResponse:
         # first search with the original query
-        search_results, sources = weaviate_search_tool(
+        sources = weaviate_search_tool(
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
             return_property_name=self.return_property_name,
             retrieved_k=self.retrieved_k,
-            return_format="rerank"
         )
         
         if self.verbose:
-            print(f"\033[96mInitial retrieval: {len(search_results)} documents\033[0m")
+            print(f"\033[96mInitial retrieval: {len(sources)} documents\033[0m")
         
         # Extract document content for reranking
-        documents = []
-        for result in search_results:
-            doc_text = result.content if hasattr(result, 'content') else str(result)
-            documents.append(doc_text)
+        documents = [s.content for s in sources]
         
         # then apply the cross encoder reranker to truncate the results to N
         reranked_results = self._rerank_with_voyage(question, documents)

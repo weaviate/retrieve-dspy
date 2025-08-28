@@ -34,14 +34,14 @@ class LoopingQueryWriter(BaseRAG):
         usage_buckets = []
         
         # Initial search
-        contexts, sources = weaviate_search_tool(
+        sources = weaviate_search_tool(
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
             retrieved_k=self.retrieved_k,
         )
         
-        all_contexts.extend(contexts)
+        all_contexts.extend([s.content for s in sources])
         all_sources.extend(sources)
 
         if self.verbose:
@@ -63,14 +63,14 @@ class LoopingQueryWriter(BaseRAG):
                     print(f"\033[94m Loop {loop_count + 1}: Generated {len(follow_up_result.follow_up_queries)} follow-up queries\033[0m")
                 
                 for follow_up_query in follow_up_result.follow_up_queries:
-                    new_contexts, new_sources = weaviate_search_tool(
+                    new_sources = weaviate_search_tool(
                         query=follow_up_query,
                         collection_name=self.collection_name,
                         target_property_name=self.target_property_name,
                         retrieved_k=self.retrieved_k,
                     )
                     
-                    all_contexts.extend(new_contexts)
+                    all_contexts.extend([s.content for s in new_sources])
                     all_sources.extend(new_sources)
                     all_searches.append(follow_up_query)
                     
@@ -111,14 +111,14 @@ class LoopingQueryWriter(BaseRAG):
         usage_buckets = []
         
         # Initial search
-        contexts, sources = await async_weaviate_search_tool(
+        sources = await async_weaviate_search_tool(
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
             retrieved_k=self.retrieved_k,
         )
         
-        all_contexts.extend(contexts)
+        all_contexts.extend([s.content for s in sources])
         all_sources.extend(sources)
 
         if self.verbose:
@@ -140,14 +140,14 @@ class LoopingQueryWriter(BaseRAG):
                     print(f"\033[94m Loop {loop_count + 1}: Generated {len(follow_up_result.follow_up_queries)} follow-up queries\033[0m")
                 
                 for follow_up_query in follow_up_result.follow_up_queries:
-                    new_contexts, new_sources = await async_weaviate_search_tool(
+                    new_sources = await async_weaviate_search_tool(
                         query=follow_up_query,
                         collection_name=self.collection_name,
                         target_property_name=self.target_property_name,
                         retrieved_k=self.retrieved_k,
                     )
                     
-                    all_contexts.extend(new_contexts)
+                    all_contexts.extend([s.content for s in new_sources])
                     all_sources.extend(new_sources)
                     all_searches.append(follow_up_query)
                     

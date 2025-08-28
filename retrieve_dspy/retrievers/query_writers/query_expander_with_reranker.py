@@ -82,21 +82,17 @@ class QueryExpanderWithReranker(BaseRAG):
         if self.verbose:
             print(f"\033[95mExpanded query from:\n'{question}'\nto:\n'{expanded_query}'\033[0m")
 
-        search_results, sources = weaviate_search_tool(
+        sources = weaviate_search_tool(
             query=expanded_query,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
             retrieved_k=self.retrieved_k,
-            return_format="rerank"
         )
 
         if self.verbose:
-            print(f"\033[96mInitial retrieval: {len(search_results)} documents\033[0m")
+            print(f"\033[96mInitial retrieval: {len(sources)} documents\033[0m")
 
-        documents = []
-        for result in search_results:
-            doc_text = result.content if hasattr(result, 'content') else str(result)
-            documents.append(doc_text)
+        documents = [s.content for s in sources]
 
         if self.verbose:
             print(f"\n\033[93mPreparing {len(documents)} documents for reranking...\033[0m")
@@ -144,21 +140,17 @@ class QueryExpanderWithReranker(BaseRAG):
         if self.verbose:
             print(f"\033[95mExpanded query from:\n'{question}'\nto:\n'{expanded_query}'\033[0m")
 
-        search_results, sources = await async_weaviate_search_tool(
+        sources = await async_weaviate_search_tool(
             query=expanded_query,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
             retrieved_k=self.retrieved_k,
-            return_format="rerank"
         )
 
         if self.verbose:
             print(f"\033[96mInitial retrieval: {len(sources)} documents\033[0m")
 
-        documents = []
-        for result in search_results:
-            doc_text = result.content if hasattr(result, 'content') else str(result)
-            documents.append(doc_text)
+        documents = [s.content for s in sources]
 
         reranked_results = await self._async_rerank_with_cohere(question, documents)
 
