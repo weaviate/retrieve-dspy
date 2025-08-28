@@ -26,5 +26,4 @@ class DSPyAgentRAGResponse(dspy.Prediction):
         self.final_answer = final_answer
         self.sources = sources or []
         self.searches = searches
-        self.aggregations = aggregations
         self.usage = usage or {}

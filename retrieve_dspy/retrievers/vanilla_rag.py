@@ -42,7 +42,6 @@ class VanillaRAG(BaseRAG):
             final_answer="",
             sources=sources,
             searches=[question],
-            aggregations=None,
             usage={},
         )
     
@@ -65,7 +64,6 @@ class VanillaRAG(BaseRAG):
             final_answer="",
             sources=sources,
             searches=[question],
-            aggregations=None,
             usage={},
         )
 
