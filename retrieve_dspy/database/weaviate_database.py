@@ -33,9 +33,6 @@ def weaviate_search_tool(
 
     weaviate_client.close()
 
-    # Always return a list of ObjectFromDB (no separate Source list)
-
-    # Always return a list of ObjectFromDB
     objects: list[ObjectFromDB] = []
     if search_results.objects:
         for rank, obj in enumerate(search_results.objects, start=1):
@@ -75,7 +72,6 @@ async def async_weaviate_search_tool(
             limit=retrieved_k
         )
         
-        # Always return a list of ObjectFromDB
         objects: list[ObjectFromDB] = []
         if search_results.objects:
             for rank, obj in enumerate(search_results.objects, start=1):
@@ -131,22 +127,30 @@ def get_tag_values(collection_name: str) -> list[str]:
 
 async def main():
     print("Testing sync search tool...")
+    weaviate_client = weaviate.connect_to_weaviate_cloud(
+        cluster_url=os.getenv("WEAVIATE_URL"),
+        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY"))
+    )
     sync_results = weaviate_search_tool(
+        weaviate_client=weaviate_client,
         query="How do I use Weaviate with Langchain?",
         collection_name="FreshstackLangchain",
         target_property_name="docs_text",
         retrieved_k=10,
-        return_score=True,
         return_vector=True,
     )
     print(sync_results)
     print("Testing async search tool...")
+    async_client = weaviate.use_async_with_weaviate_cloud(
+        cluster_url=os.getenv("WEAVIATE_URL"),
+        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
+    )
     async_results = await async_weaviate_search_tool(
+        weaviate_async_client=async_client,
         query="How do I use Weaviate with Langchain?",
         collection_name="FreshstackLangchain",
         target_property_name="docs_text",
         retrieved_k=10,
-        return_score=True,
         return_vector=True,
     )
     print(async_results)
