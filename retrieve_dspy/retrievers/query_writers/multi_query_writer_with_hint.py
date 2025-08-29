@@ -11,7 +11,7 @@ from retrieve_dspy.database.weaviate_database import (
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 
-from retrieve_dspy.models import DSPyAgentRAGResponse, Source
+from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB
 from retrieve_dspy.signatures import DecomposeQueryWithHint
 
 class MultiQueryWriterWithHint(BaseRAG):
@@ -55,7 +55,7 @@ class MultiQueryWriterWithHint(BaseRAG):
 
         usage_buckets = [qw_pred.get_lm_usage() or {}]
 
-        sources: list[Source] = []
+        sources: list[ObjectFromDB] = []
 
         if self.search_with_queries_concatenated:
             concatenated_query = " ".join(queries)
@@ -111,7 +111,7 @@ class MultiQueryWriterWithHint(BaseRAG):
 
         usage_buckets = [qw_pred.get_lm_usage() or {}]
 
-        sources: list[Source] = []
+        sources: list[ObjectFromDB] = []
 
         if self.search_with_queries_concatenated:
             concatenated_query = " ".join(queries)
