@@ -12,7 +12,7 @@ from retrieve_dspy.database.weaviate_database import (
 )
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
-from retrieve_dspy.models import DSPyAgentRAGResponse, Source
+from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB
 from retrieve_dspy.signatures import WriteSearchQueries
 
 
@@ -66,7 +66,7 @@ class MultiQueryWriterWithReranker(BaseRAG):
         
         self.co = cohere.ClientV2(api_key)
     
-    def _deduplicate_sources(self, sources: List[Source]) -> list[Source]:
+    def _deduplicate_sources(self, sources: List[ObjectFromDB]) -> list[ObjectFromDB]:
         """
         Remove duplicate sources based on object_id and return unique content.
         
@@ -74,7 +74,7 @@ class MultiQueryWriterWithReranker(BaseRAG):
             Tuple of (unique sources, corresponding document texts)
         """
         seen_ids: Set[str] = set()
-        unique_sources: List[Source] = []
+        unique_sources: List[ObjectFromDB] = []
         
         for source in sources:
             if source.object_id not in seen_ids:
@@ -135,7 +135,7 @@ class MultiQueryWriterWithReranker(BaseRAG):
         usage_buckets = [qw_pred.get_lm_usage() or {}]
         
         if self.two_stage_reranking and not self.search_with_queries_concatenated:
-            all_sources: list[Source] = []
+            all_sources: list[ObjectFromDB] = []
             all_documents: list[str] = []
             
             for i, query in enumerate(queries, 1):
@@ -186,7 +186,7 @@ class MultiQueryWriterWithReranker(BaseRAG):
             
         else:
             # Original single-stage approach
-            all_sources: list[Source] = []
+            all_sources: list[ObjectFromDB] = []
             all_search_results = []
             
             if self.search_with_queries_concatenated:
@@ -273,7 +273,7 @@ class MultiQueryWriterWithReranker(BaseRAG):
         usage_buckets = [qw_pred.get_lm_usage() or {}]
         
         if self.two_stage_reranking and not self.search_with_queries_concatenated:
-            all_sources: list[Source] = []
+            all_sources: list[ObjectFromDB] = []
             all_documents: list[str] = []
             
             # Execute all searches concurrently
@@ -330,7 +330,7 @@ class MultiQueryWriterWithReranker(BaseRAG):
             
         else:
             # Original single-stage approach
-            all_sources: list[Source] = []
+            all_sources: list[ObjectFromDB] = []
             all_search_results = []
             
             if self.search_with_queries_concatenated:
