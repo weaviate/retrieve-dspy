@@ -11,7 +11,7 @@ from retrieve_dspy.database.weaviate_database import (
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 
-from retrieve_dspy.models import DSPyAgentRAGResponse, Source
+from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB
 from retrieve_dspy.signatures import SearchQueryWithFilter, WriteSearchQueriesWithFilters
 
 class FilteredQueryWriter(BaseRAG):
@@ -37,7 +37,7 @@ class FilteredQueryWriter(BaseRAG):
 
         usage_buckets = [fqw_pred.get_lm_usage() or {}]
 
-        sources: list[Source] = []
+        sources: list[ObjectFromDB] = []
         for q in queries:
             _, src = weaviate_search_tool(
                 query=q.search_query,
@@ -88,7 +88,7 @@ class FilteredQueryWriter(BaseRAG):
         
         search_results = await asyncio.gather(*search_tasks)
         
-        sources: list[Source] = []
+        sources: list[ObjectFromDB] = []
         for _, src in search_results:
             sources.extend(src)
 
