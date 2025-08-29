@@ -10,7 +10,7 @@ from retrieve_dspy.database.weaviate_database import (
     weaviate_search_tool
 )
 from retrieve_dspy.retrievers.base_rag import BaseRAG
-from retrieve_dspy.models import DSPyAgentRAGResponse, SearchResult
+from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB
 from retrieve_dspy.signatures import RelevanceRanker, IdentifyMostRelevantPassage
 
 
@@ -127,7 +127,7 @@ class LayeredReranker(BaseRAG):
                 else:
                     content = str(source)
                 
-                search_result = SearchResult(
+                search_result = ObjectFromDB(
                     id=i,
                     initial_rank=i,
                     content=content
