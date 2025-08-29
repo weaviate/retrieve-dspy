@@ -67,15 +67,25 @@ class VanillaRAG(BaseRAG):
         )
 
 async def main():
+    import os
     test_pipeline = VanillaRAG(
-        collection_name="FreshstackLangchain",
-        target_property_name="docs_text",
+        collection_name="EnronEmails",
+        target_property_name="email_body",
         retrieved_k=5
     )
-    test_q = "How do I integrate Weaviate and Langchain?"
-    response = test_pipeline.forward(test_q)
+    test_q = "What are the implications of SBX12?"
+    weaviate_client = weaviate.connect_to_weaviate_cloud(
+        cluster_url=os.getenv("WEAVIATE_URL"),
+        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
+    )
+    response = test_pipeline.forward(weaviate_client, test_q)
     print(response)
-    async_response = await test_pipeline.aforward(test_q)
+    weaviate_async_client = weaviate.use_async_with_weaviate_cloud(
+        cluster_url=os.getenv("WEAVIATE_URL"),
+        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
+    )
+    await weaviate_async_client.connect()
+    async_response = await test_pipeline.aforward(weaviate_async_client, test_q)
     print(async_response)
 
 if __name__ == "__main__":
