@@ -1,6 +1,6 @@
 import dspy
 
-from retrieve_dspy.models import SearchResult, SearchQueryWithFilter
+from retrieve_dspy.models import ObjectFromDB, SearchQueryWithFilter
 
 # Rerankers
 
@@ -25,7 +25,7 @@ class VerboseRelevanceRanker(dspy.Signature):
     query: str = dspy.InputField(
         desc="The user's question or information need"
     )
-    search_results: list[SearchResult] = dspy.InputField(
+    search_results: list[ObjectFromDB] = dspy.InputField(
         desc="List of passages to rerank. Each contains: id, text, initial_rank, and hybrid_score"
     )
     top_k: int = dspy.InputField(
@@ -39,7 +39,7 @@ class RelevanceRanker(dspy.Signature):
     """Rerank passages based on their relevance to the query."""
     
     query: str = dspy.InputField(desc="The user's question or information need")
-    search_results: list[SearchResult] = dspy.InputField(desc="List of passages to rerank.")
+    search_results: list[ObjectFromDB] = dspy.InputField(desc="List of passages to rerank.")
     top_k: int = dspy.InputField(desc="Exact number of passage IDs to return.")
     reranked_ids: list[int] = dspy.OutputField(desc="List of top_k passage IDs ordered by relevance.")
 
@@ -65,7 +65,7 @@ class VerboseBestMatchRanker(dspy.Signature):
     query: str = dspy.InputField(
         desc="The user's question or information need"
     )
-    search_results: list[SearchResult] = dspy.InputField(
+    search_results: list[ObjectFromDB] = dspy.InputField(
         desc="List of passages to analyze. Each contains: id, text, initial_rank, and hybrid_score"
     )
     best_match_id: int = dspy.OutputField(
@@ -76,7 +76,7 @@ class BestMatchRanker(dspy.Signature):
     """Identify the single most relevant passage to the query."""
 
     query: str = dspy.InputField(desc="The user's question or information need")
-    search_results: list[SearchResult] = dspy.InputField(desc="List of passages to analyze.")
+    search_results: list[ObjectFromDB] = dspy.InputField(desc="List of passages to analyze.")
     best_match_id: int = dspy.OutputField(desc="The ID of the single most relevant passage.")
 
 class IdentifyMostRelevantPassage(dspy.Signature):
@@ -85,7 +85,7 @@ class IdentifyMostRelevantPassage(dspy.Signature):
     query: str = dspy.InputField(
         desc="The user's question or information need"
     )
-    search_results: list[SearchResult] = dspy.InputField(
+    search_results: list[ObjectFromDB] = dspy.InputField(
         desc="List of passages to analyze. Each contains: id, text, and inital_rank"
     )
     most_relevant_passage: int = dspy.OutputField(
@@ -115,7 +115,7 @@ class VerboseDiversityRanker(dspy.Signature):
     query: str = dspy.InputField(
         desc="The user's question or information need"
     )
-    search_results: list[SearchResult] = dspy.InputField(
+    search_results: list[ObjectFromDB] = dspy.InputField(
         desc="List of passages to analyze. Each contains: id, text, initial_rank, and hybrid_score"
     )
     top_k: int = dspy.InputField(
@@ -129,7 +129,7 @@ class DiversityRanker(dspy.Signature):
     """Select a diverse set of relevant passages that cover different aspects of the query."""
     
     query: str = dspy.InputField(desc="The user's question or information need")
-    search_results: list[SearchResult] = dspy.InputField(desc="List of passages to analyze.")
+    search_results: list[ObjectFromDB] = dspy.InputField(desc="List of passages to analyze.")
     top_k: int = dspy.InputField(desc="Exact number of passage IDs to return.")
     reranked_ids: list[int] = dspy.OutputField(desc="List of top_k passage IDs representing diverse relevant topics.")
 
