@@ -4,7 +4,7 @@ from .query_writers.query_expander import QueryExpander
 from .query_writers.query_expander_with_hint import QueryExpanderWithHint
 from .query_writers.query_expander_with_reranker import QueryExpanderWithReranker
 from .rerankers.cross_encoder_reranker import CrossEncoderReranker
-from .isolated.best_match_reranker import BestMatchReranker
+from .atomics.best_match_reranker import BestMatchReranker
 from .rerankers.listwise_reranker import ListwiseReranker
 from .rerankers.summarized_listwise_reranker import SummarizedListwiseReranker
 from .compositions.query_writer_and_listwise_reranker import QueryWriterWithListwiseReranker
@@ -15,7 +15,7 @@ from .multi_hop.looping_query_writer import LoopingQueryWriter
 from .rerankers.layered_reranker import LayeredReranker
 from .query_writers.decompose_and_expand import DecomposeAndExpand
 from .query_writers.decompose_and_expand_with_hints import DecomposeAndExpandWithHints
-from .isolated.query_document_summarizer import QueryDocumentSummarizer
+from .atomics.query_document_summarizer import QueryDocumentSummarizer
 
 __all__ = [
     "VanillaRAG",
