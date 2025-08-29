@@ -6,7 +6,7 @@ from typing import Optional, Any
 import dspy
 import voyageai
 
-from retrieve_dspy.tools.weaviate_database import (
+from retrieve_dspy.database.weaviate_database import (
     weaviate_search_tool
 )
 from retrieve_dspy.retrievers.base_rag import BaseRAG
