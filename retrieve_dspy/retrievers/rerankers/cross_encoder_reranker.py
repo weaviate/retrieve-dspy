@@ -12,7 +12,7 @@ from retrieve_dspy.database.weaviate_database import (
 )
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
-from retrieve_dspy.models import DSPyAgentRAGResponse, SearchResult
+from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB
 from retrieve_dspy.signatures import QuerySummarizer
 
 class CrossEncoderReranker(BaseRAG):
@@ -383,7 +383,7 @@ class CrossEncoderReranker(BaseRAG):
             question: User query
             
         Returns:
-            DSPyAgentRAGResponse with reranked sources as SearchResult objects
+            DSPyAgentRAGResponse with reranked sources as ObjectFromDB objects
         """            
         # Get initial search results
         sources = weaviate_search_tool(

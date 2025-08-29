@@ -9,7 +9,7 @@ from retrieve_dspy.database.weaviate_database import (
 )
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
-from retrieve_dspy.models import DSPyAgentRAGResponse, SearchResult
+from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB
 from retrieve_dspy.signatures import SummarizeSearchRelevance, RelevanceRanker
 
 def aggregate_usage(total_usage: dict, new_usage: dict) -> dict:
@@ -93,7 +93,7 @@ class SummarizedListwiseReranker(BaseRAG):
                 print(f"\033[96m{summary['relevance_summary']}\033[0m\n")
         
         # Convert summaries to list of SearchResult objects for reranker
-        search_results_list = [SearchResult(
+        search_results_list = [ObjectFromDB(
             id=result["passage_id"],
             initial_rank=result["initial_rank"],
             content=result["relevance_summary"]
@@ -181,7 +181,7 @@ class SummarizedListwiseReranker(BaseRAG):
         
         # Perform reranking based on summaries
         # Convert search results to list of SearchResult objects
-        search_results_list = [SearchResult(
+        search_results_list = [ObjectFromDB(
             id=result["passage_id"],
             initial_rank=result["initial_rank"],
             content=result["relevance_summary"]
