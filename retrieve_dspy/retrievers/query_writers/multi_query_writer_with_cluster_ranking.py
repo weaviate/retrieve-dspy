@@ -11,7 +11,7 @@ import hdbscan
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 
-from retrieve_dspy.tools.weaviate_database import (
+from retrieve_dspy.database.weaviate_database import (
     weaviate_search_tool,
     async_weaviate_search_tool
 )

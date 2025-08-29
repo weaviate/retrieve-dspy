@@ -6,11 +6,11 @@ import dspy
 import cohere
 from cohere import RerankResponseResultsItem
 
-from retrieve_dspy.tools.weaviate_database import (
+from retrieve_dspy.database.weaviate_database import (
     weaviate_search_tool,
     async_weaviate_search_tool
 )
-from retrieve_dspy.retrievers.base_rag import BaseRAG
+from retrieve_dspy.retrievers.base_rag import BaseRAG   
 from retrieve_dspy.models import DSPyAgentRAGResponse
 from retrieve_dspy.signatures import ExpandQuery
 

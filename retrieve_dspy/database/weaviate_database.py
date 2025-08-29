@@ -10,7 +10,7 @@ from weaviate.outputs.query import QueryReturn
 from retrieve_dspy.models import ObjectFromDB
 
 def weaviate_search_tool(
-        weaviate_client: weaviate.Client,
+        weaviate_client: weaviate.WeaviateClient,
         query: str,
         collection_name: str,
         target_property_name: str,
@@ -49,7 +49,7 @@ def weaviate_search_tool(
     return objects
 
 async def async_weaviate_search_tool(
-    weaviate_async_client: weaviate.AsyncClient,
+    weaviate_async_client: weaviate.WeaviateAsyncClient,
     query: str,
     collection_name: str,
     target_property_name: str,
