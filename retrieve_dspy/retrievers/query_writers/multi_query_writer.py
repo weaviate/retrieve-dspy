@@ -11,7 +11,7 @@ from retrieve_dspy.database.weaviate_database import (
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 
-from retrieve_dspy.models import DSPyAgentRAGResponse, Source
+from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB
 from retrieve_dspy.signatures import WriteSearchQueries
 
 class MultiQueryWriter(BaseRAG):
@@ -49,11 +49,11 @@ class MultiQueryWriter(BaseRAG):
 
         usage_buckets = [qw_pred.get_lm_usage() or {}]
 
-        sources: list[Source] = []
+        sources: list[ObjectFromDB] = []
 
         if self.search_with_queries_concatenated:
             concatenated_query = " ".join(queries)
-            _, src = weaviate_search_tool(
+            src = weaviate_search_tool(
                 query=concatenated_query,
                 collection_name=self.collection_name,
                 target_property_name=self.target_property_name,
@@ -63,7 +63,7 @@ class MultiQueryWriter(BaseRAG):
         
         else:
             for q in queries:
-                _, src = weaviate_search_tool(
+                src = weaviate_search_tool(
                     query=q,
                     collection_name=self.collection_name,
                     target_property_name=self.target_property_name,
@@ -99,11 +99,11 @@ class MultiQueryWriter(BaseRAG):
 
         usage_buckets = [qw_pred.get_lm_usage() or {}]
 
-        sources: list[Source] = []
+        sources: list[ObjectFromDB] = []
 
         if self.search_with_queries_concatenated:
             concatenated_query = " ".join(queries)
-            _, src = await async_weaviate_search_tool(
+            src = await async_weaviate_search_tool(
                 query=concatenated_query,
                 collection_name=self.collection_name,
                 target_property_name=self.target_property_name,
@@ -125,7 +125,7 @@ class MultiQueryWriter(BaseRAG):
             
             search_results = await asyncio.gather(*search_tasks)
         
-            for _, src in search_results:
+            for src in search_results:
                 sources.extend(src)
 
         if self.verbose:

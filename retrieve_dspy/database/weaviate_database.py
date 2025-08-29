@@ -58,7 +58,7 @@ async def async_weaviate_search_tool(
     return_score: bool = False,
     return_vector: bool = False,
     tag_filter_value: Optional[str] = None,
-):
+) -> list[ObjectFromDB]:
     try:
         collection = weaviate_async_client.collections.get(collection_name)
         '''
