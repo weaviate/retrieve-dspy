@@ -10,7 +10,7 @@ from retrieve_dspy.database.weaviate_database import (
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 
-from retrieve_dspy.models import DSPyAgentRAGResponse, Source
+from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB
 from retrieve_dspy.signatures import WriteSearchQueries, DiversityRanker
 
 class QueryWriterWithListwiseReranker(BaseRAG):
@@ -39,7 +39,7 @@ class QueryWriterWithListwiseReranker(BaseRAG):
         usage_buckets = [qw_pred.get_lm_usage() or {}]
 
         all_search_results = []
-        all_sources: list[Source] = []
+        all_sources: list[ObjectFromDB] = []
         for q in queries:
             sources = weaviate_search_tool(
                 query=q,
@@ -47,9 +47,9 @@ class QueryWriterWithListwiseReranker(BaseRAG):
                 target_property_name=self.target_property_name,
                 retrieved_k=self.retrieved_k,
             )
-            # Build SearchResult objects from sources
+            # Build ObjectFromDB objects from sources
             for i, s in enumerate(sources, 1):
-                all_search_results.append(SearchResult(id=i, initial_rank=i, content=s.content))
+                all_search_results.append(ObjectFromDB(id=i, initial_rank=i, content=s.content))
             all_sources.extend(sources)
 
         print(f"\033[96mCollected {len(all_sources)} candidates from {len(queries)} queries\033[0m")
@@ -105,10 +105,10 @@ class QueryWriterWithListwiseReranker(BaseRAG):
         ]
         results = await asyncio.gather(*tasks)
         all_search_results = []
-        all_sources: list[Source] = []
+        all_sources: list[ObjectFromDB] = []
         for sources in results:
             for i, s in enumerate(sources, 1):
-                all_search_results.append(SearchResult(id=i, initial_rank=i, content=s.content))
+                all_search_results.append(ObjectFromDB(id=i, initial_rank=i, content=s.content))
             all_sources.extend(sources)
 
         print(f"\033[96mCollected {len(all_sources)} candidates from {len(queries)} queries\033[0m")
