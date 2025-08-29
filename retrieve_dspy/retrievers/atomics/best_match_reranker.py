@@ -4,7 +4,7 @@ import os
 import dspy
 
 
-from retrieve_dspy.models import DSPyAgentRAGResponse, SearchResult
+from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB
 from retrieve_dspy.signatures import BestMatchRanker
 
 class BestMatchReranker(dspy.Module):
@@ -19,7 +19,7 @@ class BestMatchReranker(dspy.Module):
         self.verbose = verbose
         self.reranker = dspy.ChainOfThought(BestMatchRanker) # update to send rationale through to metric
 
-    def forward(self, question: str, candidates: list[SearchResult]) -> DSPyAgentRAGResponse:
+    def forward(self, question: str, candidates: list[ObjectFromDB]) -> DSPyAgentRAGResponse:
         # Perform reranking
         rerank_pred = self.reranker(
             query=question,
@@ -73,9 +73,9 @@ async def main():
     )
     test_q = "What number did David Ortiz wear when he played for the Boston Red Sox?"
     candidates = [
-        SearchResult(id=1, content="David Ortiz wore the number 34 when he played for the Boston Red Sox."),
-        SearchResult(id=2, content="Derek Jeter wore the number 2 for the New York Yankees throughout his career."),
-        SearchResult(id=3, content="The Boston Red Sox retired David Ortiz's number 34 in 2017, making him the 11th player to receive this honor."),
+        ObjectFromDB(id=1, content="David Ortiz wore the number 34 when he played for the Boston Red Sox."),
+        ObjectFromDB(id=2, content="Derek Jeter wore the number 2 for the New York Yankees throughout his career."),
+        ObjectFromDB(id=3, content="The Boston Red Sox retired David Ortiz's number 34 in 2017, making him the 11th player to receive this honor."),
     ]
     response = test_pipeline.forward(test_q, candidates)
     print(response)
