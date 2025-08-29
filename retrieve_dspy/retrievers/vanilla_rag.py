@@ -10,7 +10,6 @@ from retrieve_dspy.database.weaviate_database import (
 )
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.models import DSPyAgentRAGResponse
-from retrieve_dspy.signatures import QuerySummarizer
 
 class VanillaRAG(BaseRAG):
     def __init__(
