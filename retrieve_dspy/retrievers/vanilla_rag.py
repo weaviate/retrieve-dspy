@@ -22,7 +22,7 @@ class VanillaRAG(BaseRAG):
     ):
         super().__init__(collection_name, target_property_name, search_only=search_only, verbose=verbose, retrieved_k=retrieved_k)
         
-    def forward(self, weaviate_client: weaviate.Client, question: str) -> DSPyAgentRAGResponse:
+    def forward(self, weaviate_client: weaviate.WeaviateClient, question: str) -> DSPyAgentRAGResponse:
         sources = weaviate_search_tool(
             weaviate_client=weaviate_client,
             query=question,
@@ -44,7 +44,7 @@ class VanillaRAG(BaseRAG):
             usage={},
         )
     
-    async def aforward(self, weaviate_async_client: weaviate.AsyncClient, question: str) -> DSPyAgentRAGResponse:
+    async def aforward(self, weaviate_async_client: weaviate.WeaviateAsyncClient, question: str) -> DSPyAgentRAGResponse:
         sources = await async_weaviate_search_tool(
             weaviate_async_client=weaviate_async_client,
             query=question,
