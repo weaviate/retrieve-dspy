@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Literal
+
 import dspy
 
 class ObjectFromDB(BaseModel):
@@ -27,3 +28,7 @@ class DSPyAgentRAGResponse(dspy.Prediction):
         self.sources = sources or []
         self.searches = searches
         self.usage = usage or {}
+
+class RerankerClient(BaseModel):
+    name: Literal["cohere", "voyage"]
+    client: Any
