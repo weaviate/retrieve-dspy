@@ -15,13 +15,11 @@ class RAGFusion(BaseRAG):
         self,
         collection_name: str,
         target_property_name: str,
-        num_queries: int = 4,  # Number of query variations to generate
         rrf_k: int = 60,  # RRF constant
         verbose: Optional[bool] = False,
         verbose_signature: Optional[bool] = True
     ):
         super().__init__(collection_name, target_property_name, verbose)
-        self.num_queries = num_queries
         self.rrf_k = rrf_k
         
         if verbose_signature:
@@ -32,11 +30,11 @@ class RAGFusion(BaseRAG):
     def forward(self, weaviate_client: weaviate.WeaviateClient, question: str) -> DSPyAgentRAGResponse:
         # Generate query variations
         search_queries_response = self.decompose_query(question=question)
-        search_queries = search_queries_response.search_queries[:self.num_queries]
+        search_queries = search_queries_response.search_queries
         
         # Add original query if not already included
         if question not in search_queries:
-            search_queries = [question] + search_queries[:self.num_queries-1]
+            search_queries = [question] + search_queries
         
         if self.verbose:
             print(f"Search queries: {search_queries}")
@@ -50,7 +48,6 @@ class RAGFusion(BaseRAG):
                 collection_name=self.collection_name,
                 target_property_name=self.target_property_name,
                 retrieved_k=self.retrieved_k,
-                return_score=True  # Enable score retrieval
             )
             
             # Tag results with source query for debugging
@@ -65,12 +62,9 @@ class RAGFusion(BaseRAG):
             k=self.rrf_k,
             top_k=self.retrieved_k
         )
-        
+
         if self.verbose:
             print(f"Fused {len(fused_results)} unique documents from {sum(len(rs) for rs in result_sets)} total")
-        
-        # Generate answer using fused results
-        context = "\n\n".join([obj.content for obj in fused_results])
         
         # Use your existing answer generation logic here
         # For now, returning structured response
@@ -81,3 +75,45 @@ class RAGFusion(BaseRAG):
             aggregations=None,
             usage={},
         )
+
+
+if __name__ == "__main__":
+    import os
+    
+    # Initialize Weaviate client
+    weaviate_client = weaviate.connect_to_weaviate_cloud(
+        cluster_url=os.getenv("WEAVIATE_URL"),
+        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY"))
+    )
+    
+    # Initialize RAG Fusion
+    rag_fusion = RAGFusion(
+        collection_name="EnronEmails",
+        target_property_name="email_body",
+        verbose=True,
+        verbose_signature=True
+    )
+    
+    # Test query
+    test_question = "What are the implications of SBX12?"
+    
+    print(f"Testing RAG Fusion with question: {test_question}")
+    
+    try:
+        response = rag_fusion.forward(weaviate_client, test_question)
+        
+        print(f"\nGenerated {len(response.searches)} search queries:")
+        for i, query in enumerate(response.searches, 1):
+            print(f"  {i}. {query}")
+        
+        print(f"\nFound {len(response.sources)} sources after fusion:")
+        for i, source in enumerate(response.sources[:3], 1):  # Show first 3
+            print(f"  {i}. (Score: {source.relevance_score:.4f}) {source.content[:100]}...")
+            if source.source_query:
+                print(f"     Source query: {source.source_query}")
+        
+    except Exception as e:
+        print(f"Error during testing: {e}")
+    
+    finally:
+        weaviate_client.close()

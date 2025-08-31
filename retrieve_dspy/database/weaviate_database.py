@@ -30,8 +30,6 @@ def weaviate_search_tool(
         limit=retrieved_k
     )
 
-    weaviate_client.close()
-
     objects: list[ObjectFromDB] = []
     if search_results.objects:
         for rank, obj in enumerate(search_results.objects, start=1):
@@ -59,38 +57,34 @@ async def async_weaviate_search_tool(
     return_vector: bool = False,
     tag_filter_value: Optional[str] = None,
 ) -> list[ObjectFromDB]:
-    try:
-        collection = weaviate_async_client.collections.get(collection_name)
-        '''
-        TODO: Add Support for Tag Filtering and Target Vectors with something like `**kwargs`
-        if tag_filter_value:
-            filter = Filter.by_property("tags").contains_any([tag_filter_value])
-        '''
-        
-        search_results = await collection.query.hybrid(
-            query=query,
-            return_metadata=MetadataQuery(score=True),
-            limit=retrieved_k
-        )
-        
-        objects: list[ObjectFromDB] = []
-        if search_results.objects:
-            for rank, obj in enumerate(search_results.objects, start=1):
-                object_id = str(obj.properties.get('dataset_id') or obj.uuid)
-                content_value = None
-                if obj.properties and target_property_name in obj.properties:
-                    content_value = obj.properties[target_property_name]
-                objects.append(ObjectFromDB(
-                    object_id=object_id,
-                    content=str(content_value) if content_value is not None else "",
-                    relevance_rank=rank,
-                    relevance_score=obj.metadata.score,
-                    vector=(obj.vector.get("default") if return_vector and getattr(obj, 'vector', None) else None)
-                ))
-        return objects
+    collection = weaviate_async_client.collections.get(collection_name)
+    '''
+    TODO: Add Support for Tag Filtering and Target Vectors with something like `**kwargs`
+    if tag_filter_value:
+        filter = Filter.by_property("tags").contains_any([tag_filter_value])
+    '''
     
-    finally:
-        await weaviate_async_client.close()
+    search_results = await collection.query.hybrid(
+        query=query,
+        return_metadata=MetadataQuery(score=True),
+        limit=retrieved_k
+    )
+    
+    objects: list[ObjectFromDB] = []
+    if search_results.objects:
+        for rank, obj in enumerate(search_results.objects, start=1):
+            object_id = str(obj.properties.get('dataset_id') or obj.uuid)
+            content_value = None
+            if obj.properties and target_property_name in obj.properties:
+                content_value = obj.properties[target_property_name]
+            objects.append(ObjectFromDB(
+                object_id=object_id,
+                content=str(content_value) if content_value is not None else "",
+                relevance_rank=rank,
+                relevance_score=obj.metadata.score,
+                vector=(obj.vector.get("default") if return_vector and getattr(obj, 'vector', None) else None)
+            ))
+    return objects
 
 def get_tag_values(collection_name: str) -> list[str]:
     weaviate_client = weaviate.connect_to_weaviate_cloud(
