@@ -4,8 +4,6 @@ from typing import Literal, Optional
 
 import weaviate
 from weaviate.classes.query import Filter, Metrics, MetadataQuery
-from weaviate.classes.init import AdditionalConfig, Timeout
-from weaviate.outputs.query import QueryReturn
 
 from retrieve_dspy.models import ObjectFromDB
 
@@ -28,6 +26,7 @@ def weaviate_search_tool(
     '''
     search_results = collection.query.hybrid(
         query=query,
+        return_metadata=MetadataQuery(score=True),
         limit=retrieved_k
     )
 
@@ -44,6 +43,7 @@ def weaviate_search_tool(
                 object_id=object_id,
                 content=str(content_value) if content_value is not None else "",
                 relevance_rank=rank,
+                relevance_score=obj.metadata.score,
                 vector=(obj.vector.get("default") if return_vector and getattr(obj, 'vector', None) else None)
             ))
     return objects
@@ -69,6 +69,7 @@ async def async_weaviate_search_tool(
         
         search_results = await collection.query.hybrid(
             query=query,
+            return_metadata=MetadataQuery(score=True),
             limit=retrieved_k
         )
         
@@ -83,6 +84,7 @@ async def async_weaviate_search_tool(
                     object_id=object_id,
                     content=str(content_value) if content_value is not None else "",
                     relevance_rank=rank,
+                    relevance_score=obj.metadata.score,
                     vector=(obj.vector.get("default") if return_vector and getattr(obj, 'vector', None) else None)
                 ))
         return objects
