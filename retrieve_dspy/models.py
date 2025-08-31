@@ -6,8 +6,10 @@ import dspy
 class ObjectFromDB(BaseModel):
     object_id: str
     content: str
-    relevance_rank: Optional[int]
-    vector: Optional[list[float]]
+    relevance_rank: Optional[int] = None
+    relevance_score: Optional[float] = None
+    vector: Optional[list[float]] = None
+    source_query: Optional[str] = None
 
 class SearchQueryWithFilter(BaseModel):
     search_query: str
