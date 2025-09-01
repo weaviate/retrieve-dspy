@@ -22,9 +22,20 @@ rag_pipeline = retrieve_dspy.RAGFusion(
     weaviate_client=weaviate_client,
     collection_name="EnronEmails",
     target_property_name="email_body",
-    verbose=False,
+    retrieved_k=20,
+    reranked_k=20,
+    verbose=True,
     verbose_signature=True
 )
+
+'''
+rag_pipeline = retrieve_dspy.VanillaRAG(
+    weaviate_client=weaviate_client,
+    collection_name="EnronEmails",
+    target_property_name="email_body",
+    verbose=False,
+)
+'''
 
 #print(rag_pipeline.__class__.__name__)
 
@@ -39,7 +50,8 @@ scores = []
 
 metric = create_metric(
     metric_type="recall",
-    k=1
+    k=20,
+    verbose=False
 )
 
 recall_metrics = {

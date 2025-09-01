@@ -16,11 +16,15 @@ class RAGFusion(BaseRAG):
         weaviate_client: weaviate.WeaviateClient,
         collection_name: str,
         target_property_name: str,
+        retrieved_k: int = 20,
+        reranked_k: int = 20,
         rrf_k: int = 60,  # RRF constant
         verbose: Optional[bool] = False,
         verbose_signature: Optional[bool] = True
     ):
         super().__init__(weaviate_client, collection_name, target_property_name, verbose)
+        self.retrieved_k = retrieved_k
+        self.reranked_k = reranked_k
         self.rrf_k = rrf_k
         
         if verbose_signature:
@@ -64,7 +68,7 @@ class RAGFusion(BaseRAG):
         fused_results = reciprocal_rank_fusion(
             result_sets=result_sets,
             k=self.rrf_k,
-            top_k=self.retrieved_k
+            top_k=self.reranked_k
         )
 
         if self.verbose:
@@ -95,7 +99,10 @@ if __name__ == "__main__":
         collection_name="EnronEmails",
         target_property_name="email_body",
         verbose=True,
-        verbose_signature=True
+        verbose_signature=True,
+        retrieved_k=20,
+        reranked_k=20,
+        rrf_k=60
     )
     
     # Test query
@@ -104,7 +111,7 @@ if __name__ == "__main__":
     print(f"Testing RAG Fusion with question: {test_question}")
     
     try:
-        response = rag_fusion.forward(weaviate_client, test_question)
+        response = rag_fusion.forward(test_question)
         
         print(f"\nGenerated {len(response.searches)} search queries:")
         for i, query in enumerate(response.searches, 1):

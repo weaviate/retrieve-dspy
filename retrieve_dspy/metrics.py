@@ -1,10 +1,12 @@
 from typing import Callable
 
+from retrieve_dspy.models import ObjectFromDB
+
 from dspy import Example, Prediction
 
 def calculate_recall_at_k(
     target_ids: list[str],
-    retrieved_ids: list[str],
+    retrieved_objects: list[ObjectFromDB],
     k: int,
     verbose: bool = True
 ):
@@ -12,7 +14,7 @@ def calculate_recall_at_k(
     
     Args:
         target_ids: List of target document IDs (ground truth).
-        retrieved_ids: List of retrieved document IDs.
+        retrieved_objects: List of retrieved document objects.
         k: The number of top results to consider for recall calculation.
         
     Returns:
@@ -24,7 +26,8 @@ def calculate_recall_at_k(
     
     # Use sets for efficient lookup
     target_id_set = {str(id) for id in target_ids}
-    retrieved_ids = [str(id) for id in retrieved_ids] if retrieved_ids else []
+    
+    retrieved_ids = [obj.object_id for obj in retrieved_objects] if retrieved_objects else []
     
     # Consider only the top k retrieved IDs
     retrieved_ids_at_k = retrieved_ids[:k]
@@ -48,13 +51,13 @@ def calculate_recall_at_k(
     
     return recall
 
-def calculate_coverage(retrieved_ids: list[str], nugget_data: list[dict], k: int = 1000):
+def calculate_coverage(retrieved_objects: list[ObjectFromDB], nugget_data: list[dict], k: int = 1000):
     """Calculate Coverage@k metric from FreshStack.
     
     Measures the proportion of nuggets covered by the top-k retrieved documents.
     
     Args:
-        retrieved_ids: List of retrieved document IDs in ranked order
+        retrieved_objects: List of retrieved document objects in ranked order
         nugget_data: List of nugget information, each with 'relevant_corpus_ids' field
         k: Number of top documents to consider (default: 20)
     
@@ -65,14 +68,14 @@ def calculate_coverage(retrieved_ids: list[str], nugget_data: list[dict], k: int
         return 0.0
     
     # Convert to strings for consistent comparison
-    retrieved_ids = [str(id) for id in retrieved_ids[:k]] if retrieved_ids else []
+    retrieved_ids = [obj.object_id for obj in retrieved_objects[:k]] if retrieved_objects else []
     
     covered_nuggets = set()
     nugget_coverage_details = []
     
     for i, nugget in enumerate(nugget_data):
         nugget_id = nugget.get('id', f'nugget_{i}')
-        nugget_relevant_ids = [str(id) for id in nugget.get('relevant_corpus_ids', [])]
+        nugget_relevant_ids = [obj.object_id for obj in nugget.get('relevant_corpus_objects', [])]
         
         # Check if any relevant doc for this nugget is in top-k retrieved
         covered = any(doc_id in retrieved_ids for doc_id in nugget_relevant_ids)
@@ -112,7 +115,7 @@ def create_recall_metric(k: int, verbose: bool = True) -> Callable:
     def recall_metric(example: Example, prediction, trace=None) -> float:
         try:
             # Extract sources from prediction
-            retrieved_ids = prediction.sources
+            retrieved_objects = prediction.sources
             
             # Get target IDs from example
             target_ids = example.dataset_ids
@@ -120,7 +123,7 @@ def create_recall_metric(k: int, verbose: bool = True) -> Callable:
             # Use the existing calculate_recall function
             recall_score = calculate_recall_at_k(
                 target_ids=target_ids,
-                retrieved_ids=retrieved_ids,
+                retrieved_objects=retrieved_objects,
                 k=k,
                 verbose=verbose
             )
@@ -146,12 +149,12 @@ def create_coverage_metric(k: int = 1000) -> Callable:
     
     def coverage_metric(example: Example, prediction, trace=None) -> float:
         try:
-            retrieved_ids = prediction.sources
+            retrieved_objects = prediction.sources
             
             nugget_data = example.nugget_data if hasattr(example, 'nugget_data') else []
             
             coverage_score = calculate_coverage(
-                retrieved_ids=retrieved_ids,
+                retrieved_objects=retrieved_objects,
                 nugget_data=nugget_data,
                 k=k
             )
@@ -200,17 +203,17 @@ def create_coverage_metric_with_feedback(
         pred_trace=None
     ) -> Prediction:
         try:
-            retrieved_ids = prediction.sources
+            retrieved_objects = prediction.sources
             
             nugget_data = example.nugget_data if hasattr(example, 'nugget_data') else []
             
-            retrieved_ids_str = [str(id) for id in retrieved_ids[:k]] if retrieved_ids else []
+            retrieved_ids_str = [obj.object_id for obj in retrieved_objects[:k]] if retrieved_objects else []
             
             covered = []
             uncovered = []
             
             for nugget in nugget_data:
-                nugget_relevant_ids = [str(id) for id in nugget.get('relevant_corpus_ids', [])]
+                nugget_relevant_ids = [obj.object_id for obj in nugget.get('relevant_corpus_objects', [])]
                 nugget_text = nugget.get('text', '')
                 
                 if any(doc_id in retrieved_ids_str for doc_id in nugget_relevant_ids):
