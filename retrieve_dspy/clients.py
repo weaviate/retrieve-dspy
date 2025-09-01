@@ -1,7 +1,7 @@
 import os
 import weaviate
 import cohere
-import voyage
+import voyageai
 
 def get_weaviate_client():
     return weaviate.connect_to_weaviate_cloud(
@@ -21,4 +21,4 @@ def get_cohere_client():
     return cohere.ClientV2(os.getenv("COHERE_API_KEY"))
 
 def get_voyage_client():
-    return voyage.Client(os.getenv("VOYAGE_API_KEY"))
+    return voyageai.Client(os.getenv("VOYAGE_API_KEY"))
