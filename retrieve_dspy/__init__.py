@@ -23,6 +23,7 @@ from .retrievers import (
 from . import utils
 from . import metrics
 from . import datasets
+from . import clients
 
 __version__ = "0.1.0"
 
@@ -49,4 +50,5 @@ __all__ = [
     "utils",
     "metrics", 
     "datasets",
+    "clients",
 ]

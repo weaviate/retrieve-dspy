@@ -3,6 +3,7 @@ import numpy as np
 import retrieve_dspy
 from retrieve_dspy.metrics import create_metric
 from retrieve_dspy.datasets.in_memory import load_queries_in_memory
+from retrieve_dspy.clients import get_weaviate_client
 
 '''
 rag_pipeline = retrieve_dspy.CrossEncoderReranker(
@@ -15,7 +16,10 @@ rag_pipeline = retrieve_dspy.CrossEncoderReranker(
 )
 '''
 
+weaviate_client = get_weaviate_client()
+
 rag_pipeline = retrieve_dspy.RAGFusion(
+    weaviate_client=weaviate_client,
     collection_name="EnronEmails",
     target_property_name="email_body",
     verbose=False,
