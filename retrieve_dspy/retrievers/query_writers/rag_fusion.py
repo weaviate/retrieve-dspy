@@ -13,13 +13,14 @@ from retrieve_dspy.signatures import WriteSearchQueries, VerboseWriteSearchQueri
 class RAGFusion(BaseRAG):
     def __init__(
         self,
+        weaviate_client: weaviate.WeaviateClient,
         collection_name: str,
         target_property_name: str,
         rrf_k: int = 60,  # RRF constant
         verbose: Optional[bool] = False,
         verbose_signature: Optional[bool] = True
     ):
-        super().__init__(collection_name, target_property_name, verbose)
+        super().__init__(weaviate_client, collection_name, target_property_name, verbose)
         self.rrf_k = rrf_k
         
         if verbose_signature:
@@ -27,8 +28,11 @@ class RAGFusion(BaseRAG):
         else:
             self.decompose_query = dspy.Predict(WriteSearchQueries)
     
-    def forward(self, weaviate_client: weaviate.WeaviateClient, question: str) -> DSPyAgentRAGResponse:
+    def forward(self, question: str, weaviate_client: Optional[weaviate.WeaviateClient] = None) -> DSPyAgentRAGResponse:
         # Generate query variations
+        if weaviate_client is None:
+            weaviate_client = self.weaviate_client
+
         search_queries_response = self.decompose_query(question=question)
         search_queries = search_queries_response.search_queries
         

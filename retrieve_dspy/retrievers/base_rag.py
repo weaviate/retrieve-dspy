@@ -3,12 +3,14 @@ import os
 from typing import Optional
 
 import dspy
+import weaviate
 
 from retrieve_dspy.models import DSPyAgentRAGResponse
 
 class BaseRAG(dspy.Module):
     def __init__(
-        self, 
+        self,
+        weaviate_client: weaviate.WeaviateClient,
         collection_name: str, 
         target_property_name: Optional[str] = "content",
         verbose: Optional[bool] = True,
@@ -16,6 +18,7 @@ class BaseRAG(dspy.Module):
         retrieved_k: Optional[int] = 5,
         verbose_signature: Optional[bool] = True,
     ) -> None:
+        self.weaviate_client = weaviate_client
         self.collection_name = collection_name
         self.target_property_name = target_property_name
         self.verbose = verbose

@@ -13,53 +13,14 @@ rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     reranker_provider="voyage",
     verbose=True
 )
-
-rag_pipeline = retrieve_dspy.ListwiseReranker(
-    collection_name="EnronEmails",
-    target_property_name="email_body_vector",
-    return_property_name="email_summary",
-    retrieved_k=5,
-    reranked_k=5,
-    verbose=True
-)
-
-rag_pipeline = retrieve_dspy.VanillaRAG(
-    collection_name="EnronEmails",
-    target_property_name="email_body_vector",
-    retrieved_k=5,
-    verbose=True
-)
-
-rag_pipeline = retrieve_dspy.SummarizedListwiseReranker(
-    collection_name="EnronEmails",
-    target_property_name="email_body_vector",
-    return_property_name="email_body",
-    retrieved_k=5,
-    reranked_k=5,
-    verbose=True
-)
-
-rag_pipeline = retrieve_dspy.CrossEncoderReranker(
-    collection_name="EnronEmails",
-    target_property_name="email_body_vector",
-    return_property_name="email_body",
-    reranker_provider="hybrid",
-    retrieved_k=50,
-    reranked_k=20,
-    verbose=True
-)
 '''
 
-rag_pipeline = retrieve_dspy.LayeredReranker(
+rag_pipeline = retrieve_dspy.RAGFusion(
     collection_name="EnronEmails",
-    target_property_name="email_body_vector",
-    return_property_name="email_body",
-    retrieved_k=50,
-    reranked_N=5,
-    reranked_M=1,
-    verbose=True
+    target_property_name="email_body",
+    verbose=False,
+    verbose_signature=True
 )
-
 
 #print(rag_pipeline.__class__.__name__)
 
@@ -74,26 +35,22 @@ scores = []
 
 metric = create_metric(
     metric_type="recall",
-    dataset_name="enron",
     k=1
 )
 
 recall_metrics = {
     'recall@1': create_metric(
         metric_type="recall",
-        dataset_name="enron",
         k=1,
         verbose=False
     ),
     'recall@5': create_metric(
         metric_type="recall",
-        dataset_name="enron",
         k=5,
         verbose=False
     ),
     'recall@20': create_metric(
         metric_type="recall",
-        dataset_name="enron",
         k=20,
         verbose=False
     )
