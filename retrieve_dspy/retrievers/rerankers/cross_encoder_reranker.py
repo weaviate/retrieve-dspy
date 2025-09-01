@@ -21,6 +21,8 @@ Provider = Literal["cohere", "voyage", "hybrid"]
 class CrossEncoderReranker(BaseRAG):
     def __init__(
         self,
+        weaviate_client: weaviate.WeaviateClient,
+        reranker_clients: List[RerankerClient],
         collection_name: str,
         target_property_name: str,
         return_property_name: Optional[str] = None,
@@ -35,6 +37,7 @@ class CrossEncoderReranker(BaseRAG):
         hybrid_weights: Optional[Dict[str, float]] = None,
     ):
         super().__init__(
+            weaviate_client=weaviate_client,
             collection_name=collection_name,
             target_property_name=target_property_name,
             verbose=verbose,
@@ -42,6 +45,7 @@ class CrossEncoderReranker(BaseRAG):
             retrieved_k=retrieved_k,
         )
         self.return_property_name = return_property_name
+        self.reranker_clients = reranker_clients
         self.reranked_k = int(reranked_k or 20)
         self.reranker_provider = reranker_provider
         self.cohere_model = cohere_model or "rerank-v3.5"
@@ -63,27 +67,23 @@ class CrossEncoderReranker(BaseRAG):
     def forward(
         self,
         question: str,
-        weaviate_client: weaviate.WeaviateClient,
+        weaviate_client: Optional[weaviate.WeaviateClient] = None,
         reranker_clients: Optional[List[RerankerClient]] = None,
     ) -> DSPyAgentRAGResponse:
-        try:
-            sources = weaviate_search_tool(
-                weaviate_client=weaviate_client,
-                query=question,
-                collection_name=self.collection_name,
-                target_property_name=self.target_property_name,
-                return_property_name=self.return_property_name,
-                retrieved_k=self.retrieved_k,
-            )
-        except TypeError:
-            # fallback if your helper doesn't accept the client kwarg
-            sources = weaviate_search_tool(
-                query=question,
-                collection_name=self.collection_name,
-                target_property_name=self.target_property_name,
-                return_property_name=self.return_property_name,
-                retrieved_k=self.retrieved_k,
-            )
+        if weaviate_client is None:
+                weaviate_client = self.weaviate_client
+        
+        if reranker_clients is None:
+            reranker_clients = self.reranker_clients
+
+        sources = weaviate_search_tool(
+            weaviate_client=weaviate_client,
+            query=question,
+            collection_name=self.collection_name,
+            target_property_name=self.target_property_name,
+            return_property_name=self.return_property_name,
+            retrieved_k=self.retrieved_k,
+        )
 
         if self.verbose:
             print(f"\033[96mInitial retrieval: {len(sources)} documents\033[0m")
@@ -133,6 +133,7 @@ class CrossEncoderReranker(BaseRAG):
         weaviate_client: weaviate.WeaviateClient,
         reranker_clients: Optional[List[RerankerClient]] = None,
     ) -> DSPyAgentRAGResponse:
+        pass
         try:
             sources = weaviate_search_tool(
                 weaviate_client=weaviate_client,

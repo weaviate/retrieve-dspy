@@ -1,9 +1,10 @@
 import numpy as np
+import time
 
 import retrieve_dspy
 from retrieve_dspy.metrics import create_metric
 from retrieve_dspy.datasets.in_memory import load_queries_in_memory
-from retrieve_dspy.clients import get_weaviate_client
+from retrieve_dspy.clients import get_weaviate_client, get_voyage_client
 
 '''
 rag_pipeline = retrieve_dspy.CrossEncoderReranker(
@@ -18,15 +19,17 @@ rag_pipeline = retrieve_dspy.CrossEncoderReranker(
 
 weaviate_client = get_weaviate_client()
 
+'''
 rag_pipeline = retrieve_dspy.RAGFusion(
     weaviate_client=weaviate_client,
     collection_name="EnronEmails",
     target_property_name="email_body",
-    retrieved_k=20,
+    retrieved_k=50,
     reranked_k=20,
     verbose=True,
     verbose_signature=True
 )
+'''
 
 '''
 rag_pipeline = retrieve_dspy.VanillaRAG(
@@ -36,6 +39,20 @@ rag_pipeline = retrieve_dspy.VanillaRAG(
     verbose=False,
 )
 '''
+
+voyage_client = get_voyage_client()
+
+rag_pipeline = retrieve_dspy.CrossEncoderReranker(
+    weaviate_client=weaviate_client,
+    reranker_clients=[voyage_client],
+    collection_name="EnronEmails",
+    target_property_name="email_body",
+    retrieved_k=50,
+    reranked_k=20,
+    reranker_provider="voyage",
+    verbose=True
+)
+
 
 #print(rag_pipeline.__class__.__name__)
 
@@ -80,7 +97,7 @@ for trial in range(NUM_TRIALS):
     trainset, testset = load_queries_in_memory(
         dataset_name="enron",
         train_samples=20,
-        test_samples=20,
+        test_samples=50,
         training_samples=used_qs,
         seed=trial
     )
@@ -107,6 +124,9 @@ for trial in range(NUM_TRIALS):
     for key, value in offline_scores.items():
         print(f"\033[96m{key}\033[0m: \033[92m{value:.3f}\033[0m")
         offline_scores_across_trials[key].append(value)
+
+    print("Sleeping to avoid rate limits...")
+    time.sleep(60)
 
 
 print("\n" + "="*60)
