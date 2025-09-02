@@ -57,9 +57,9 @@ class VerboseBestMatchRanker(dspy.Signature):
        - Factual accuracy and completeness
        - Information quality and clarity
     3. Compare passages against each other (not just individually)
-    4. Return the ID of the single most relevant passage
+    4. Return the `object_id` of the single most relevant passage
     
-    CRITICAL: You must return exactly 1 passage ID - the best match.
+    CRITICAL: You must return exactly 1 passage `object_id` - the best match.
     """
     
     query: str = dspy.InputField(
@@ -68,8 +68,11 @@ class VerboseBestMatchRanker(dspy.Signature):
     search_results: list[ObjectFromDB] = dspy.InputField(
         desc="List of passages to analyze. Each contains: id, text, initial_rank, and hybrid_score"
     )
-    best_match_id: int = dspy.OutputField(
-        desc="The ID of the single most relevant passage. Must match an ID from search_results."
+    valid_object_ids: list[int] = dspy.InputField(
+        desc="A reminder of the valid `object_id`s from search_results."
+    )
+    best_match_object_id: str = dspy.OutputField(
+        desc="The `object_id` of the single most relevant passage. Must match an `object_id` from search_results."
     )
 
 class BestMatchRanker(dspy.Signature):

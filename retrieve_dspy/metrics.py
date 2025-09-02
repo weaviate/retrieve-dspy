@@ -1,3 +1,4 @@
+import time
 from typing import Callable
 
 from retrieve_dspy.models import ObjectFromDB
@@ -24,6 +25,12 @@ def calculate_recall_at_k(
     if not isinstance(target_ids, list):
         target_ids = [target_ids]
     
+    # convert target_ids to strings
+    target_ids = [str(id) for id in target_ids]
+
+    # truncate target_ids if longer than 5
+    target_ids = [id[:5] for id in target_ids]
+
     # Use sets for efficient lookup
     target_id_set = {str(id) for id in target_ids}
     
@@ -44,10 +51,18 @@ def calculate_recall_at_k(
     else:
         if verbose:
             print(f"\033[91mRetrieved IDs @{k}: {retrieved_ids_at_k}\033[0m")
-    
-    recall = found_count / len(target_id_set) if target_id_set else 0
+
+    print(f"Length of gold ids: {len(target_id_set)}")    
+
+    if len(retrieved_ids_at_k) == 1:
+        recall = found_count
+    else:
+        recall = found_count / len(target_id_set)
     if verbose:
         print(f"\033[96mRecall@{k}: {found_count}/{len(target_id_set)} = {recall:.2f}\033[0m")
+    
+    # hack for rate limiting
+    # time.sleep(2)
     
     return recall
 

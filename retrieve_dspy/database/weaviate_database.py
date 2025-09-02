@@ -37,6 +37,8 @@ def weaviate_search_tool(
             content_value = None
             if obj.properties and target_property_name in obj.properties:
                 content_value = obj.properties[target_property_name]
+            if len(object_id) > 5:
+                object_id = object_id[:5]
             objects.append(ObjectFromDB(
                 object_id=object_id,
                 content=str(content_value) if content_value is not None else "",

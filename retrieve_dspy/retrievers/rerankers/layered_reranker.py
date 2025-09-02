@@ -120,12 +120,18 @@ class LayeredReranker(BaseRAG):
 
         if self.verbose:
             print("\033[93mSummarized objects...\033[0m")
+            print(f"Here is a sample:")
+            print(f"{objects_with_summarized_content[0].content[:100]}...")
+            print(f"{objects_with_summarized_content[0].object_id}")
 
+        valid_object_ids = [obj.object_id for obj in objects_with_summarized_content]
+        
         listwise_reranked_result = self.listwise_reranker(
             query=question,
             search_results=objects_with_summarized_content,
-            top_k=self.reranked_M
-        ).best_match_id
+            top_k=self.reranked_M,
+            valid_object_ids=valid_object_ids
+        ).best_match_object_id
 
         print(f"\033[96mListwise reranked result: {listwise_reranked_result}\033[0m")
         
@@ -133,7 +139,7 @@ class LayeredReranker(BaseRAG):
         if self.listwise_reranker_strategy == "BestMatch":
             for idx, obj in enumerate(reranked_results):
                 print(f"\033[38;5;208mChecking object {obj.object_id} against {listwise_reranked_result}\033[0m")
-                if obj.object_id == str(listwise_reranked_result):
+                if str(obj.object_id) == str(listwise_reranked_result):
                     chosen = reranked_results.pop(idx)
                     break
             reranked_results.insert(0, chosen)
