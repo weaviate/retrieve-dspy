@@ -21,7 +21,7 @@ from retrieve_dspy.retrievers.common.call_ce_ranker import (
 )
 
 RerankProvider = Literal["voyage", "hybrid"]
-ListwiseReranker = Literal["BestMatch", "Relevance"]
+ListwiseRerankerStrategy = Literal["BestMatch", "Relevance"]
 
 class LayeredReranker(BaseRAG):
     def __init__(
@@ -40,7 +40,7 @@ class LayeredReranker(BaseRAG):
         cohere_model: Optional[str] = "rerank-v3.5",
         voyage_model: str = "rerank-2.5",
         rrf_k: Optional[int] = 60,
-        listwise_reranker: Optional[ListwiseReranker] = "BestMatch",
+        listwise_reranker_strategy: Optional[ListwiseRerankerStrategy] = "BestMatch",
     ):
         super().__init__(
             weaviate_client=weaviate_client,
@@ -59,10 +59,10 @@ class LayeredReranker(BaseRAG):
         self.cohere_model = cohere_model
         self.rrf_k = rrf_k
         self.verbose = verbose
-        self.listwise_reranker = listwise_reranker
+        self.listwise_reranker_strategy = listwise_reranker_strategy
 
         # Initialize Listwise Reranker
-        if self.listwise_reranker == "BestMatch":
+        if self.listwise_reranker_strategy == "BestMatch":
             self.listwise_reranker = dspy.Predict(VerboseBestMatchRanker)
         else:
             self.listwise_reranker = dspy.Predict(RelevanceRanker)
@@ -119,7 +119,7 @@ class LayeredReranker(BaseRAG):
             ))
 
         if self.verbose:
-            print("Summarized objects...")
+            print("\033[93mSummarized objects...\033[0m")
 
         listwise_reranked_result = self.listwise_reranker(
             query=question,
@@ -127,17 +127,17 @@ class LayeredReranker(BaseRAG):
             top_k=self.reranked_M
         ).best_match_id
 
-        print(f"Listwise reranked result: {listwise_reranked_result}")
+        print(f"\033[96mListwise reranked result: {listwise_reranked_result}\033[0m")
         
         chosen = None
-        if self.listwise_reranker == "BestMatch":
+        if self.listwise_reranker_strategy == "BestMatch":
             for idx, obj in enumerate(reranked_results):
-                print(f"Checking object {obj.object_id} against {listwise_reranked_result}")
-                if obj.object_id == listwise_reranked_result:
-                    print("Found it!"*50)
+                print(f"\033[38;5;208mChecking object {obj.object_id} against {listwise_reranked_result}\033[0m")
+                if obj.object_id == str(listwise_reranked_result):
                     chosen = reranked_results.pop(idx)
+                    break
             reranked_results.insert(0, chosen)
-        elif self.listwise_reranker == "Relevance":
+        elif self.listwise_reranker_strategy == "Relevance":
             pass
 
         if self.verbose:
@@ -145,7 +145,7 @@ class LayeredReranker(BaseRAG):
         
         return DSPyAgentRAGResponse(
             final_answer="",
-            sources=reranked_results[:self.reranked_M],
+            sources=reranked_results[:self.reranked_N],
             searches=[question],
             aggregations=None,
             usage={},
@@ -165,7 +165,7 @@ async def main():
         retrieved_k=50,
         reranked_N=20,
         reranked_M=5,
-        listwise_reranker="BestMatch",
+        listwise_reranker_strategy="BestMatch",
         voyage_model="rerank-2.5",
         reranker_provider="voyage",
         verbose=True

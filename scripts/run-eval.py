@@ -42,6 +42,7 @@ rag_pipeline = retrieve_dspy.VanillaRAG(
 
 voyage_client = get_voyage_client()
 
+'''
 rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     weaviate_client=weaviate_client,
     reranker_clients=[voyage_client],
@@ -52,7 +53,21 @@ rag_pipeline = retrieve_dspy.CrossEncoderReranker(
     reranker_provider="voyage",
     verbose=True
 )
+'''
 
+rag_pipeline = retrieve_dspy.LayeredReranker(
+    weaviate_client=weaviate_client,
+    reranker_clients=[voyage_client],
+    collection_name="EnronEmails",
+    target_property_name="email_body",
+    return_property_name="email_body",
+    retrieved_k=50,
+    reranked_N=20,
+    reranked_M=5,
+    reranker_provider="voyage",
+    listwise_reranker_strategy="BestMatch",
+    verbose=True
+)
 
 #print(rag_pipeline.__class__.__name__)
 
@@ -91,8 +106,20 @@ recall_metrics = {
 
 offline_scores_across_trials = {metric_name: [] for metric_name in recall_metrics.keys()}
 
+# queries = load_queries_in_memory(dataset_name="enron")
+# testset = prepare_random_subset(
+#   queries,
+#   num_samples=50,
+#   seed=0,
+#   samples_used_in_training=used_qs,
+# )
+
 for trial in range(NUM_TRIALS):
     print(f"\nRunning trial {trial + 1}/{NUM_TRIALS}")
+
+    '''
+    
+    '''
 
     trainset, testset = load_queries_in_memory(
         dataset_name="enron",
