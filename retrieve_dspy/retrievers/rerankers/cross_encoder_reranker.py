@@ -13,9 +13,10 @@ from retrieve_dspy.retrievers.common.call_ce_ranker import (
     RerankItem,
     ce_rank,
     async_ce_rank,
+    reorder,
 )
 
-Provider = Literal["cohere", "voyage", "hybrid"]
+RerankProvider = Literal["cohere", "voyage", "hybrid"]
 
 
 class CrossEncoderReranker(BaseRAG):
@@ -30,7 +31,7 @@ class CrossEncoderReranker(BaseRAG):
         search_only: Optional[bool] = True,
         retrieved_k: Optional[int] = 50,
         reranked_k: Optional[int] = 20,
-        reranker_provider: Optional[Provider] = None,  # None => auto based on clients
+        reranker_provider: Optional[RerankProvider] = None,  # None => auto based on clients
         cohere_model: Optional[str] = "rerank-v3.5",
         voyage_model: Optional[str] = "rerank-2.5",
         rrf_k: Optional[int] = 60,
@@ -53,16 +54,6 @@ class CrossEncoderReranker(BaseRAG):
         self.rrf_k = int(rrf_k or 60)
         self.hybrid_weights = hybrid_weights
         self.verbose = bool(verbose)
-
-    def _reorder(self, items: List[RerankItem], sources: List[ObjectFromDB], *, tag: str = "") -> List[ObjectFromDB]:
-        out: List[ObjectFromDB] = []
-        for i, it in enumerate(items):
-            if 0 <= it.index < len(sources):
-                out.append(sources[it.index])
-                if self.verbose and i < 5:
-                    prefix = f"{tag} " if tag else ""
-                    print(f"{prefix}Rank {i+1}: Doc {it.index + 1} (score: {it.relevance_score:.4f})")
-        return out
 
     def forward(
         self,
@@ -102,7 +93,7 @@ class CrossEncoderReranker(BaseRAG):
                 usage={},
             )
 
-        items = ce_rank(
+        items: List[RerankItem] = ce_rank(
             query=question,
             documents=docs,
             top_k=self.reranked_k,
@@ -115,7 +106,7 @@ class CrossEncoderReranker(BaseRAG):
             verbose=self.verbose,
         )
 
-        reranked = self._reorder(items, sources)
+        reranked = reorder(items, sources)
         if self.verbose:
             print(f"\n\033[96mReranked: Returning {len(reranked)} documents\033[0m")
 

@@ -34,3 +34,7 @@ class DSPyAgentRAGResponse(dspy.Prediction):
 class RerankerClient(BaseModel):
     name: Literal["cohere", "voyage"]
     client: Any
+
+class RerankItem(BaseModel):
+    index: int
+    relevance_score: float

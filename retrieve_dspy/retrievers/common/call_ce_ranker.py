@@ -6,24 +6,14 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Literal, Optional
 
 from retrieve_dspy.models import RerankerClient  # Pydantic: name: Literal["cohere","voyage"], client: Any
+from retrieve_dspy.models import ObjectFromDB, RerankItem
 
 Provider = Literal["cohere", "voyage", "hybrid"]
-
-
-# ----------------------------- Data & Types -----------------------------
-
-@dataclass
-class RerankItem:
-    index: int
-    relevance_score: float  # for hybrid this is the fused RRF score
 
 # (query, documents, top_k) -> List[RerankItem]
 SyncReranker = Callable[[str, List[str], int], List[RerankItem]]
 # (query, documents, top_k) -> awaitable List[RerankItem]
 AsyncReranker = Callable[[str, List[str], int], "asyncio.Future[List[RerankItem]]"]
-
-
-# ----------------------------- Provider Adapters ------------------------
 
 def make_cohere_reranker(client: Any, model: str = "rerank-v3.5") -> SyncReranker:
     def _fn(query: str, documents: List[str], top_k: int) -> List[RerankItem]:
@@ -36,7 +26,6 @@ def make_cohere_reranker(client: Any, model: str = "rerank-v3.5") -> SyncReranke
         return [RerankItem(index=r.index, relevance_score=float(r.relevance_score)) for r in res.results]
     return _fn
 
-
 def make_voyage_reranker(client: Any, model: str = "rerank-2.5") -> SyncReranker:
     def _fn(query: str, documents: List[str], top_k: int) -> List[RerankItem]:
         res = client.rerank(
@@ -47,9 +36,6 @@ def make_voyage_reranker(client: Any, model: str = "rerank-2.5") -> SyncReranker
         )
         return [RerankItem(index=r.index, relevance_score=float(r.relevance_score)) for r in res.results]
     return _fn
-
-
-# ------------------------------- Fusion ---------------------------------
 
 def fuse_rrf(
     rankings: Dict[str, List[RerankItem]],
@@ -80,9 +66,6 @@ def fuse_rrf(
 
     fused_pairs = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
     return [RerankItem(index=i, relevance_score=s) for i, s in fused_pairs]
-
-
-# --------------------------- Low-level runners --------------------------
 
 def _single_provider(
     provider: Literal["cohere", "voyage"],
@@ -164,9 +147,6 @@ async def async_rerank(
 
     raise ValueError(f"Unsupported provider: {provider}")
 
-
-# --------------------------- High-level helpers -------------------------
-
 def _adapters_from_clients(
     clients: Optional[List[RerankerClient]],
     *,
@@ -246,3 +226,10 @@ async def async_ce_rank(
     adapters = _adapters_from_clients(clients, cohere_model=cohere_model, voyage_model=voyage_model)
     eff = _pick_provider(provider, adapters)
     return await async_rerank(eff, query, documents, top_k, rerankers=adapters, rrf_k=rrf_k, hybrid_weights=hybrid_weights, verbose=verbose)
+
+def reorder(items: List[RerankItem], sources: List[ObjectFromDB]) -> List[ObjectFromDB]:
+    out: List[ObjectFromDB] = []
+    for i, it in enumerate(items):
+        if 0 <= it.index < len(sources):
+            out.append(sources[it.index])
+    return out
