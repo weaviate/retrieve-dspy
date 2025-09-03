@@ -74,14 +74,30 @@ rag_pipeline = retrieve_dspy.LayeredReranker(
     verbose=True
 )
 '''
-
-rag_pipeline = retrieve_dspy.VanillaRAG(
+'''
+rag_pipeline = retrieve_dspy.RAGFusion(
     weaviate_client=weaviate_client,
-    collection_name="EnronEmails",
-    target_property_name="email_body",
+    collection_name="WixKB",
+    target_property_name="contents",
+    retrieved_k=50,
+    reranked_k=20,
+    verbose=True,
+    verbose_signature=True
+)
+'''
+rag_pipeline = retrieve_dspy.LayeredReranker(
+    weaviate_client=weaviate_client,
+    reranker_clients=[voyage_client],
+    collection_name="WixKB",
+    target_property_name="contents",
+    return_property_name="contents",
+    retrieved_k=50,
+    reranked_N=20,
+    reranked_M=5,
+    reranker_provider="voyage",
+    listwise_reranker_strategy="BestMatch",
     verbose=True
 )
-
 
 #print(rag_pipeline.__class__.__name__)
 
@@ -128,7 +144,7 @@ offline_scores_across_trials = {metric_name: [] for metric_name in recall_metric
 #   samples_used_in_training=used_qs,
 # )
 
-_, queries = in_memory_dataset_loader(dataset_name="enron")
+_, queries = in_memory_dataset_loader(dataset_name="wixqa")
 
 for trial in range(NUM_TRIALS):
     print(f"\nRunning trial {trial + 1}/{NUM_TRIALS}")

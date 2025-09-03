@@ -62,6 +62,7 @@ def calculate_recall_at_k(
         print(f"\033[96mRecall@{k}: {found_count}/{len(target_id_set)} = {recall:.2f}\033[0m")
     
     # hack for rate limiting
+    # print("Sleeping to avoid rate limits...")
     # time.sleep(2)
     
     return recall
