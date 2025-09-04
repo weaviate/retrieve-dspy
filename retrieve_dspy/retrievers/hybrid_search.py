@@ -11,7 +11,7 @@ from retrieve_dspy.database.weaviate_database import (
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.models import DSPyAgentRAGResponse
 
-class VanillaRAG(BaseRAG):
+class HybridSearch(BaseRAG):
     def __init__(
         self, 
         weaviate_client: weaviate.WeaviateClient,
@@ -73,7 +73,7 @@ class VanillaRAG(BaseRAG):
 
 async def main():
     import os
-    test_pipeline = VanillaRAG(
+    test_pipeline = HybridSearch(
         collection_name="EnronEmails",
         target_property_name="email_body",
         retrieved_k=5

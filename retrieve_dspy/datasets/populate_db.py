@@ -47,6 +47,77 @@ def database_loader(
         end_time = time.time()
         upload_time = end_time - start_time
         print(f"Inserted {i + 1} emails into Weaviate... (Time elapsed: {upload_time:.2f} seconds)")
+
+    if dataset_name.startswith("beir/"):
+        beir_subset = dataset_name.split("beir/")[1]
+        formatted_beir_name = beir_subset.replace("-", "_").replace("/", "_").lower()
+        collection_name = f"Beir{formatted_beir_name.capitalize()}"
+        
+        if weaviate_client.collections.exists(collection_name):
+            weaviate_client.collections.delete(collection_name)
+        
+        weaviate_client.collections.create(
+            name=collection_name,
+            vectorizer_config=wvcc.Configure.Vectorizer.text2vec_weaviate(),
+            properties=[
+                wvcc.Property(name="title", data_type=wvcc.DataType.TEXT),
+                wvcc.Property(name="content", data_type=wvcc.DataType.TEXT),
+                wvcc.Property(name="dataset_id", data_type=wvcc.DataType.TEXT, index_searchable=False),
+            ],
+        )
+
+        start_time = time.time()
+        with weaviate_client.batch.fixed_size(batch_size=100, concurrent_requests=4) as batch:
+            for i, doc in enumerate(objects):
+                batch.add_object(
+                    collection=collection_name,
+                    properties={
+                        "title": doc["title"],
+                        "content": doc["content"],
+                        "dataset_id": str(doc["doc_id"])
+                    }
+                )
+                if i % 1000 == 999:
+                    print(f"Inserted {i + 1} documents into Weaviate... (Time elapsed: {time.time()-start_time:.2f} seconds)")
+
+            end_time = time.time()
+            upload_time = end_time - start_time
+            print(f"Inserted {i + 1} documents into Weaviate... (Time elapsed: {upload_time:.2f} seconds)")
+    
+    if dataset_name.startswith("lotte/"):
+        lotte_subset = dataset_name.split("/")[1]
+        collection_name = f"Lotte{lotte_subset.capitalize()}"
+        print(f"Creating collection: {collection_name}")
+        
+        if weaviate_client.collections.exists(collection_name):
+            weaviate_client.collections.delete(collection_name)
+        
+        weaviate_client.collections.create(
+            name=collection_name,
+            vectorizer_config=wvcc.Configure.Vectorizer.text2vec_weaviate(),
+            properties=[
+                wvcc.Property(name="content", data_type=wvcc.DataType.TEXT),
+                wvcc.Property(name="dataset_id", data_type=wvcc.DataType.TEXT, index_searchable=False),
+            ],
+        )
+
+        start_time = time.time()
+        with weaviate_client.batch.fixed_size(batch_size=100, concurrent_requests=4) as batch:
+            for i, doc in enumerate(objects):
+                batch.add_object(
+                    collection=collection_name,
+                    properties={
+                        "content": doc["text"],
+                        "dataset_id": str(doc["doc_id"])
+                    }
+                )
+                if i % 1000 == 999:
+                    print(f"Inserted {i + 1} documents into Weaviate... (Time elapsed: {time.time()-start_time:.2f} seconds)")
+
+            end_time = time.time()
+            upload_time = end_time - start_time
+            print(f"Inserted {i + 1} documents into Weaviate... (Time elapsed: {upload_time:.2f} seconds)")
+
     if dataset_name == "wixqa":
         if weaviate_client.collections.exists("WixKB"):
             weaviate_client.collections.delete("WixKB")

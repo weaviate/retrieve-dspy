@@ -4,12 +4,17 @@ from typing import List, Dict, Optional, Set, Tuple
 
 from datasets import load_dataset
 from dspy import Example
+import ir_datasets
 
 def in_memory_dataset_loader(dataset_name: str):
     if dataset_name == "enron":
         return _in_memory_dataset_loader_enron()
     elif dataset_name == "wixqa":
         return _in_memory_dataset_loader_wixqa()
+    elif dataset_name.startswith("beir/"):
+        return _in_memory_dataset_loader_beir(dataset_name)
+    elif dataset_name.startswith("lotte/"):
+        return _in_memory_dataset_loader_lotte(dataset_name)
     elif dataset_name == "freshstack-angular":
         return _in_memory_dataset_loader_freshstack(subset="angular")
     elif dataset_name == "freshstack-godot":
@@ -22,6 +27,53 @@ def in_memory_dataset_loader(dataset_name: str):
         return _in_memory_dataset_loader_freshstack(subset="yolo")
     else:
         return None
+    
+def _in_memory_dataset_loader_beir(dataset_name: str):
+    dataset = ir_datasets.load(f"{dataset_name}")
+    print(f"Loading BEIR dataset: {dataset_name}")
+    docs, questions = [], []
+    for doc in dataset.docs_iter():
+        docs.append({
+        "title": getattr(doc, "title", ""),
+        "content": getattr(doc, "text", ""),
+        "doc_id": getattr(doc, "doc_id", None)
+    })
+    qrels = {}
+    for qrel in dataset.qrels_iter():
+        query_id = qrel.query_id
+        if query_id not in qrels:
+            qrels[query_id] = []
+        qrels[query_id].append(qrel.doc_id)
+    for question in dataset.queries_iter():
+        questions.append({
+            "query_id": question.query_id,
+            "question": question.text,
+            "dataset_ids": qrels[question.query_id]
+        })
+    return docs, questions
+
+def _in_memory_dataset_loader_lotte(dataset_name: str):
+    dataset = ir_datasets.load(f"{dataset_name}")
+    print(f"Loading LOTTE dataset: {dataset_name}")
+    docs, questions = [], []
+    for doc in dataset.docs_iter():
+        docs.append({
+        "text": getattr(doc, "text", ""),
+        "doc_id": getattr(doc, "doc_id", None)
+    })
+    qrels = {}
+    for qrel in dataset.qrels_iter():
+        query_id = qrel.query_id
+        if query_id not in qrels:
+            qrels[query_id] = []
+        qrels[query_id].append(qrel.doc_id)
+    for question in dataset.queries_iter():
+        questions.append({
+            "query_id": question.query_id,
+            "question": question.text,
+            "dataset_ids": qrels[question.query_id]
+        })
+    return docs, questions
 
 def _in_memory_dataset_loader_enron():
     emails = _load_dataset_from_hf_hub("weaviate/enron-qa-emails-dasovich-j")

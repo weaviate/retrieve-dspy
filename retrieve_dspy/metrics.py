@@ -1,15 +1,17 @@
 import time
 from typing import Callable
 
-from retrieve_dspy.models import ObjectFromDB
-
 from dspy import Example, Prediction
+import numpy as np
+
+from retrieve_dspy.models import ObjectFromDB
 
 def calculate_recall_at_k(
     target_ids: list[str],
     retrieved_objects: list[ObjectFromDB],
     k: int,
-    verbose: bool = True
+    verbose: bool = True,
+    sleep_time: int = None
 ):
     """Calculate traditional recall@k for retrieved documents.
     
@@ -62,10 +64,61 @@ def calculate_recall_at_k(
         print(f"\033[96mRecall@{k}: {found_count}/{len(target_id_set)} = {recall:.2f}\033[0m")
     
     # hack for rate limiting
-    # print("Sleeping to avoid rate limits...")
-    # time.sleep(2)
+    if sleep_time:
+        print(f"Sleeping to avoid rate limits for {sleep_time} seconds...")
+        time.sleep(sleep_time)
     
     return recall
+
+def calculate_nDCG_at_k(
+    target_ids: list[str], 
+    retrieved_objects: list[ObjectFromDB], 
+    k: int, 
+    verbose: bool = False
+) -> float:
+    """Calculate nDCG@k for retrieved documents with binary relevance.
+    
+    Args:
+        target_ids: List of relevant document IDs
+        retrieved_ids: List of retrieved document IDs in ranked order
+        k: Number of top documents to consider
+        verbose: Whether to print debug information
+    
+    Returns:
+        nDCG@k score (0 to 1)
+    """
+    # convert target_ids to strings
+    target_ids = [str(id) for id in target_ids]
+
+    # truncate target_ids if longer than 5
+    target_ids = [id[:5] for id in target_ids]
+    
+    target_id_set = {str(id) for id in target_ids}
+    retrieved_ids = [str(obj.object_id) for obj in retrieved_objects[:k]] if retrieved_objects else []
+
+    # Calculate DCG@k - sum of (relevance / log2(position + 1))
+    dcg = 0.0
+    for i, doc_id in enumerate(retrieved_ids):
+        if doc_id in target_id_set:
+            # Position starts at 1, so we use i+2 for the denominator
+            dcg += 1.0 / np.log2(i + 2) if i > 0 else 1.0
+    
+    # Calculate IDCG@k - best possible DCG if we had perfect ranking
+    idcg = 0.0
+    num_relevant = min(len(target_id_set), k)
+    for i in range(num_relevant):
+        idcg += 1.0 / np.log2(i + 2) if i > 0 else 1.0
+    
+    # Calculate nDCG
+    ndcg = dcg / idcg if idcg > 0 else 0.0
+    
+    if verbose:
+        print(f"\033[96mTarget IDs: {target_id_set}\033[0m")
+        print(f"\033[92mRetrieved IDs @{k}: {retrieved_ids}\033[0m")
+        print(f"\033[93mDCG@{k}: {dcg:.4f}, IDCG@{k}: {idcg:.4f}\033[0m")
+        print(f"\033[96mnDCG@{k}: {ndcg:.4f}\033[0m")
+    
+    return ndcg
 
 def calculate_coverage(retrieved_objects: list[ObjectFromDB], nugget_data: list[dict], k: int = 1000):
     """Calculate Coverage@k metric from FreshStack.
@@ -116,7 +169,7 @@ def calculate_coverage(retrieved_objects: list[ObjectFromDB], nugget_data: list[
     
     return coverage_score
 
-def create_recall_metric(k: int, verbose: bool = True) -> Callable:
+def create_recall_metric(k: int, verbose: bool = True, sleep_time: int = None) -> Callable:
     """
     Create a recall metric function that wraps the existing calculate_recall function.
     
@@ -141,7 +194,8 @@ def create_recall_metric(k: int, verbose: bool = True) -> Callable:
                 target_ids=target_ids,
                 retrieved_objects=retrieved_objects,
                 k=k,
-                verbose=verbose
+                verbose=verbose,
+                sleep_time=sleep_time
             )
             
             return recall_score
@@ -151,6 +205,32 @@ def create_recall_metric(k: int, verbose: bool = True) -> Callable:
             return 0.0
             
     return recall_metric
+
+def create_nDCG_metric(k: int, verbose: bool = True) -> Callable:
+    """
+    Create a nDCG metric function that wraps the existing calculate_nDCG function.
+    """
+    
+    def nDCG_metric(example: Example, prediction, trace=None) -> float:
+        try:
+            retrieved_objects = prediction.sources
+            
+            target_ids = example.dataset_ids
+            
+            nDCG_score = calculate_nDCG_at_k(
+                target_ids=target_ids,
+                retrieved_objects=retrieved_objects,
+                k=k,
+                verbose=verbose
+            )
+            
+            return nDCG_score
+            
+        except Exception as e:
+            print(f"Error calculating nDCG: {e}")
+            return 0.0
+    
+    return nDCG_metric
 
 def create_coverage_metric(k: int = 1000) -> Callable:
     """
@@ -191,7 +271,7 @@ def create_metric(
     Factory function for creating metric functions.
     
     Args:
-        metric_type: Type of metric ("recall", "coverage")
+        metric_type: Type of metric ("recall", "coverage", "nDCG")
         **kwargs: Additional arguments for metric configuration
         
     Returns:
@@ -199,6 +279,8 @@ def create_metric(
     """
     if metric_type == "recall":
         return create_recall_metric(**kwargs)
+    elif metric_type == "nDCG":
+        return create_nDCG_metric(**kwargs)
     elif metric_type == "coverage":
         return create_coverage_metric(**kwargs)
     else:

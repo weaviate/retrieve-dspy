@@ -2,7 +2,7 @@ import dspy
 
 from retrieve_dspy.models import ObjectFromDB, SearchQueryWithFilter
 
-# Rerankers
+# ============ Rerankers ============
 
 class VerboseRelevanceRanker(dspy.Signature):
     """Rerank passages based on their relevance to the query using listwise comparison.
@@ -136,7 +136,7 @@ class DiversityRanker(dspy.Signature):
     top_k: int = dspy.InputField(desc="Exact number of passage IDs to return.")
     reranked_ids: list[int] = dspy.OutputField(desc="List of top_k passage IDs representing diverse relevant topics.")
 
-# Query Writers
+# ============ Query Writers ============
 
 class VerboseExpandQuery(dspy.Signature):
     """Expand a query to gather more comprehensive information from a search engine.
@@ -286,7 +286,30 @@ class WriteFollowUpQueries(dspy.Signature):
     follow_up_queries_needed: bool = dspy.OutputField()
     follow_up_queries: list[str] = dspy.OutputField()
 
-# Summarizers
+class VerboseWriteFollowUpQuery(dspy.Signature):
+    """Given a user question and contexts retrieved so far from search, assess if an additional search query is needed to fully answer the question.
+    
+    You are part of a retrieval system that has already performed an initial search and retrieved some contexts. Your job is to:
+    1. Analyze whether the current contexts provide sufficient information to answer the user's question
+    2. If not, determine what specific information is still missing
+    3. Generate a single targeted search query that would retrieve the most critical missing information from a search engine
+    
+    The follow-up query should be optimized for search engines and designed to fill the most important gap in the current knowledge base."""
+
+    question: str = dspy.InputField()
+    contexts: str = dspy.InputField()
+    follow_up_queries_needed: bool = dspy.OutputField()
+    follow_up_query: str = dspy.OutputField()
+
+class WriteFollowUpQuery(dspy.Signature):
+    """Assess if more information is needed to answer a question and generate a follow-up search query if necessary."""
+
+    question: str = dspy.InputField()
+    results_found_so_far: list[ObjectFromDB] = dspy.InputField()
+    follow_up_query_needed: bool = dspy.OutputField()
+    follow_up_query: str = dspy.OutputField()
+
+# ============ Summarizers ============
 
 class VerboseFilterIrrelevantSearchResults(dspy.Signature):
     """Filter out search results that are not relevant to answering the question.
@@ -396,4 +419,11 @@ class QuerySummarizer(dspy.Signature):
     """Summarize a technical question into one or two sentences."""
 
     question: str = dspy.InputField()
+    summary: str = dspy.OutputField()
+
+class SummarizeSearchResults(dspy.Signature):
+    """You are an iterative searching agent. You are given a list of search queries and a summary of their results. You need to summarize the results of the search queries."""
+
+    search_queries: list[str] = dspy.InputField()
+    search_results: list[str] = dspy.InputField()
     summary: str = dspy.OutputField()

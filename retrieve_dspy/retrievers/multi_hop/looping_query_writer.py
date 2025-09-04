@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Literal
 import asyncio
 import os
 
@@ -11,7 +11,16 @@ from retrieve_dspy.database.weaviate_database import (
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.models import DSPyAgentRAGResponse
-from retrieve_dspy.signatures import WriteFollowUpQueries
+from retrieve_dspy.signatures import WriteFollowUpQueries, SummarizeSearchRelevance, SummarizeSearchResults
+
+from retrieve_dspy.retrievers.common.call_ce_ranker import (
+    RerankItem,
+    ce_rank,
+    async_ce_rank,
+    reorder,
+)
+
+RerankProvider = Literal["voyage", "hybrid"]
 
 class LoopingQueryWriter(BaseRAG):
     def __init__(
@@ -26,6 +35,8 @@ class LoopingQueryWriter(BaseRAG):
         super().__init__(collection_name, target_property_name, search_only=search_only, verbose=verbose, retrieved_k=retrieved_k)
         self.max_loops = max_loops
         self.looping_query_writer = dspy.Predict(WriteFollowUpQueries)
+        self.summarize_search_result_relevance = dspy.Predict(SummarizeSearchRelevance)
+        self.summarize_search_results = dspy.Predict(SummarizeSearchResults)
 
     def forward(self, question: str) -> DSPyAgentRAGResponse:
         all_contexts = []

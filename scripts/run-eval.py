@@ -85,12 +85,13 @@ rag_pipeline = retrieve_dspy.RAGFusion(
     verbose_signature=True
 )
 '''
+
 rag_pipeline = retrieve_dspy.LayeredReranker(
     weaviate_client=weaviate_client,
     reranker_clients=[voyage_client],
-    collection_name="WixKB",
-    target_property_name="contents",
-    return_property_name="contents",
+    collection_name="BeirFiqa_test",
+    target_property_name="content",
+    return_property_name="content",
     retrieved_k=50,
     reranked_N=20,
     reranked_M=5,
@@ -131,6 +132,11 @@ recall_metrics = {
         metric_type="recall",
         k=20,
         verbose=False
+    ),
+    'nDCG@10': create_metric(
+        metric_type="nDCG",
+        k=10,
+        verbose=True
     )
 }
 
@@ -144,7 +150,7 @@ offline_scores_across_trials = {metric_name: [] for metric_name in recall_metric
 #   samples_used_in_training=used_qs,
 # )
 
-_, queries = in_memory_dataset_loader(dataset_name="wixqa")
+_, queries = in_memory_dataset_loader(dataset_name="beir/fiqa/test")
 
 for trial in range(NUM_TRIALS):
     print(f"\nRunning trial {trial + 1}/{NUM_TRIALS}")
