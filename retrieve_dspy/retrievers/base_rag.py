@@ -5,7 +5,7 @@ from typing import Optional
 import dspy
 import weaviate
 
-from retrieve_dspy.models import DSPyAgentRAGResponse
+from retrieve_dspy.models import DSPyAgentRAGResponse, MultiLMConfig
 
 class BaseRAG(dspy.Module):
     def __init__(
@@ -17,6 +17,7 @@ class BaseRAG(dspy.Module):
         search_only: Optional[bool] = True, 
         retrieved_k: Optional[int] = 5,
         verbose_signature: Optional[bool] = True,
+        multi_lm_configs: Optional[list[MultiLMConfig]] = None,
     ) -> None:
         self.weaviate_client = weaviate_client
         self.collection_name = collection_name
@@ -25,8 +26,12 @@ class BaseRAG(dspy.Module):
         self.search_only = search_only
         self.retrieved_k = retrieved_k
         self.verbose_signature = verbose_signature
-        
-        # TODO: Interface ablating `lms` here
+        self.multi_lm_configs = multi_lm_configs
+        if self.multi_lm_configs:
+            self._multi_lm_configs_to_dict()
+        else:
+            self.multi_lm_configs_dict = None
+
         lm = dspy.LM(
             "openai/gpt-4.1-mini",
             cache=False, 
@@ -48,6 +53,9 @@ class BaseRAG(dspy.Module):
                 bucket["prompt_tokens"] += stats.get("prompt_tokens", 0)
                 bucket["completion_tokens"] += stats.get("completion_tokens", 0)
         return merged
+
+    def _multi_lm_configs_to_dict(self):
+        self.multi_lm_configs_dict = {config.signature_name: config.lm for config in self.multi_lm_configs}
 
     @abc.abstractmethod
     def forward(self, question: str) -> DSPyAgentRAGResponse: ...

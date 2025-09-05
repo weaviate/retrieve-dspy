@@ -106,7 +106,7 @@ class CrossEncoderReranker(BaseRAG):
             verbose=self.verbose,
         )
 
-        reranked = reorder(items, sources)
+        reranked: List[ObjectFromDB] = reorder(items, sources)
         if self.verbose:
             print(f"\n\033[96mReranked: Returning {len(reranked)} documents\033[0m")
 
@@ -173,7 +173,7 @@ class CrossEncoderReranker(BaseRAG):
             verbose=self.verbose,
         )
 
-        reranked = self._reorder(items, sources, tag="[async]")
+        reranked: List[ObjectFromDB] = self._reorder(items, sources, tag="[async]")
         if self.verbose:
             print(f"\n\033[96mReranked: Returning {len(reranked)} documents\033[0m")
 

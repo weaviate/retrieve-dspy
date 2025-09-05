@@ -9,14 +9,14 @@ from .retrievers import (
     LayeredReranker,
     FilteredQueryWriter,
     SummarizedListwiseReranker,
-    LoopingQueryWriter,
     QueryExpander,
     DecomposeAndExpand,
     QueryExpanderWithHint,
     DecomposeAndExpandWithHints,
     QueryExpanderWithReranker,
     BestMatchReranker,
-    QueryDocumentSummarizer
+    QueryDocumentSummarizer,
+    SimplifiedBaleen,
 )
 
 from . import utils
@@ -37,7 +37,6 @@ __all__ = [
     "CrossEncoderReranker",
     "ListwiseReranker",
     "LayeredReranker",
-    "LoopingQueryWriter",
     "QueryExpander",
     "DecomposeAndExpand",
     "QueryExpanderWithHint",
@@ -45,6 +44,7 @@ __all__ = [
     "QueryExpanderWithReranker",
     "BestMatchReranker",
     "QueryDocumentSummarizer",
+    "SimplifiedBaleen",
     "utils",
     "metrics", 
     "datasets",

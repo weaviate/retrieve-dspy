@@ -297,8 +297,8 @@ class VerboseWriteFollowUpQuery(dspy.Signature):
     The follow-up query should be optimized for search engines and designed to fill the most important gap in the current knowledge base."""
 
     question: str = dspy.InputField()
-    contexts: str = dspy.InputField()
-    follow_up_queries_needed: bool = dspy.OutputField()
+    results_found_so_far: list[ObjectFromDB] = dspy.InputField()
+    follow_up_query_needed: bool = dspy.OutputField()
     follow_up_query: str = dspy.OutputField()
 
 class WriteFollowUpQuery(dspy.Signature):
@@ -356,14 +356,14 @@ class VerboseSummarizeSearchResults(dspy.Signature):
     """
     
     question: str = dspy.InputField(desc="The user's question.")
-    search_results: dict[int, str] = dspy.InputField(desc="A dictionary of search results, with ID as key and text as value.")
+    search_results: list[ObjectFromDB] = dspy.InputField(desc="A dictionary of search results, with ID as key and text as value.")
     summary: str = dspy.OutputField(desc="A comprehensive summary of the search results with citations to the result IDs, e.g., '...information [1, 2].'")
 
 class SummarizeSearchResults(dspy.Signature):
     """Summarize search results to extract the most important information related to the question."""
     
     question: str = dspy.InputField()
-    search_results: dict[int, str] = dspy.InputField()
+    search_results: list[ObjectFromDB] = dspy.InputField()
     summary: str = dspy.OutputField() # add citations to the ids in the summary
 
 class VerboseSummarizeSearchRelevance(dspy.Signature):

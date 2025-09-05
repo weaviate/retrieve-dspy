@@ -1,3 +1,7 @@
+# ==============================
+# WIP!
+# ==============================
+
 import asyncio
 import os
 from typing import Optional, Dict, Literal
@@ -8,7 +12,12 @@ import weaviate
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.database.weaviate_database import weaviate_search_tool
-from retrieve_dspy.signatures import WriteFollowUpQuery, VerboseWriteFollowUpQuery
+from retrieve_dspy.signatures import (
+    WriteFollowUpQuery,
+    VerboseWriteFollowUpQuery,
+    VerboseSummarizeSearchResults,
+    SummarizeSearchResults,
+)
 from retrieve_dspy.models import ObjectFromDB, RerankerClient, DSPyAgentRAGResponse
 
 from retrieve_dspy.retrievers.common.deduplicate import deduplicate_and_join
@@ -60,12 +69,16 @@ class SimplifiedBaleen(BaseRAG):
         self.hybrid_weights = hybrid_weights
         self.verbose = verbose
         if self.verbose_signature:
-            self.query_writer = dspy.ChainOfThought(VerboseWriteFollowUpQuery)
+            self.query_writer = dspy.ChainOfThought(WriteFollowUpQuery)
+            self.search_results_summarizer = dspy.ChainOfThought(VerboseSummarizeSearchResults)
         else:
             self.query_writer = dspy.Predict(WriteFollowUpQuery)
+            self.search_results_summarizer = dspy.Predict(SummarizeSearchResults)
 
     def forward(self, question: str) -> list[ObjectFromDB]:
         results: list[ObjectFromDB] = []
+        # init by searching with the original query
+        summary_of_results_found_so_far = ""
 
         for hop in range(self.max_hops):
             query_writer_pred = self.query_writer(question=question, results_found_so_far=results)
@@ -78,6 +91,10 @@ class SimplifiedBaleen(BaseRAG):
                     weaviate_client=self.weaviate_client
                 )
                 results = deduplicate_and_join(results, passages)
+                summary_of_results_found_so_far = self.search_results_summarizer(
+                    question=question, 
+                    search_results=results
+                ).summary_of_search_results
                 if self.verbose:
                     print(f"\033[92mHop {hop + 1}:\nQuery '{query_writer_pred.follow_up_query}'\nreturned {len(passages)} sources\033[0m")
 

@@ -1,6 +1,6 @@
 from retrieve_dspy.models import ObjectFromDB
 
-def deduplicate(original_list: list[ObjectFromDB], incoming_list: list[ObjectFromDB]) -> list[ObjectFromDB]:
+def deduplicate_and_join(original_list: list[ObjectFromDB], incoming_list: list[ObjectFromDB]) -> list[ObjectFromDB]:
     seen_ids = set()
     for obj in original_list:
         seen_ids.add(obj.object_id)

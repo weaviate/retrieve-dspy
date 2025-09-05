@@ -5,10 +5,12 @@ import retrieve_dspy
 from retrieve_dspy.metrics import create_metric
 from retrieve_dspy.datasets.in_memory import in_memory_dataset_loader, prepare_random_subset
 from retrieve_dspy.clients import get_weaviate_client, get_voyage_client
+from retrieve_dspy.models import RerankerClient, MultiLMConfig
+from retrieve_dspy.utils import get_lm
 
 weaviate_client = get_weaviate_client()
 voyage_client = get_voyage_client()
-
+gpt5 = get_lm("openai/gpt-5", max_tokens=32000)
 '''
 rag_pipeline = retrieve_dspy.VanillaRAG(
     weaviate_client=weaviate_client,
@@ -86,19 +88,40 @@ rag_pipeline = retrieve_dspy.RAGFusion(
 )
 '''
 
-rag_pipeline = retrieve_dspy.LayeredReranker(
+'''
+'''
+'''
+rag_pipeline = retrieve_dspy.SimplifiedBaleen(
     weaviate_client=weaviate_client,
     reranker_clients=[voyage_client],
     collection_name="BeirFiqa_test",
     target_property_name="content",
-    return_property_name="content",
+    retrieved_k=10,
+    reranked_N=20,
+    reranker_provider="voyage",
+    voyage_model="rerank-2.5",
+    max_hops=2,
+    verbose=True,
+    verbose_signature=True
+)
+'''
+
+rag_pipeline = retrieve_dspy.LayeredReranker(
+    weaviate_client=weaviate_client,
+    reranker_clients=[voyage_client],
+    collection_name="EnronEmails",
+    target_property_name="email_body",
+    return_property_name="email_body",
     retrieved_k=50,
     reranked_N=20,
     reranked_M=5,
     reranker_provider="voyage",
     listwise_reranker_strategy="BestMatch",
-    verbose=True
+    verbose=True,
+    verbose_signature=True,
+    multi_lm_configs=[MultiLMConfig(signature_name="listwise_reranker", lm=gpt5)]
 )
+
 
 #print(rag_pipeline.__class__.__name__)
 
@@ -113,8 +136,8 @@ scores = []
 
 metric = create_metric(
     metric_type="recall",
-    k=20,
-    verbose=False
+    k=1,
+    verbose=True
 )
 
 recall_metrics = {
@@ -150,7 +173,7 @@ offline_scores_across_trials = {metric_name: [] for metric_name in recall_metric
 #   samples_used_in_training=used_qs,
 # )
 
-_, queries = in_memory_dataset_loader(dataset_name="beir/fiqa/test")
+_, queries = in_memory_dataset_loader(dataset_name="enron")
 
 for trial in range(NUM_TRIALS):
     print(f"\nRunning trial {trial + 1}/{NUM_TRIALS}")

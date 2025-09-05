@@ -85,3 +85,13 @@ def load_training_questions(path: str) -> Set[str]:
                 questions.add(line)
 
     return questions
+
+available_lms = (
+    "openai/gpt-4.1-mini",
+    "openai/gpt-5"
+)
+
+def get_lm(requested_lm: str, max_tokens: int = 32000) -> dspy.LM:
+    if requested_lm not in available_lms:
+        raise ValueError(f"Requested LM {requested_lm} not available. Available LMs: {available_lms}")
+    return dspy.LM(requested_lm, cache=False, temperature=1.0, api_key=os.getenv("OPENAI_API_KEY"), max_tokens=max_tokens)

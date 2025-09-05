@@ -11,8 +11,15 @@ from retrieve_dspy.database.weaviate_database import (
     weaviate_search_tool
 )
 from retrieve_dspy.retrievers.base_rag import BaseRAG
-from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerClient
-from retrieve_dspy.signatures import RelevanceRanker, VerboseBestMatchRanker, SummarizeSearchRelevance
+from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerClient, MultiLMConfig
+from retrieve_dspy.signatures import (
+    VerboseRelevanceRanker, 
+    RelevanceRanker,
+    VerboseBestMatchRanker,
+    BestMatchRanker,
+    VerboseSummarizeSearchRelevance,
+    SummarizeSearchRelevance,
+)
 from retrieve_dspy.retrievers.common.call_ce_ranker import (
     RerankItem,
     ce_rank,
@@ -32,6 +39,7 @@ class LayeredReranker(BaseRAG):
         target_property_name: str, 
         return_property_name: str,
         verbose: bool = False,
+        verbose_signature: bool = True,
         search_only: bool = True,
         retrieved_k: int = 50,
         reranked_N: int = 20,
@@ -39,8 +47,8 @@ class LayeredReranker(BaseRAG):
         reranker_provider: Optional[RerankProvider] = None,
         cohere_model: Optional[str] = "rerank-v3.5",
         voyage_model: str = "rerank-2.5",
-        rrf_k: Optional[int] = 60,
         listwise_reranker_strategy: Optional[ListwiseRerankerStrategy] = "BestMatch",
+        multi_lm_configs: Optional[List[MultiLMConfig]] = None,
     ):
         super().__init__(
             weaviate_client=weaviate_client,
@@ -48,7 +56,9 @@ class LayeredReranker(BaseRAG):
             target_property_name=target_property_name,
             verbose=verbose,
             search_only=search_only,
-            retrieved_k=retrieved_k
+            retrieved_k=retrieved_k,
+            verbose_signature=verbose_signature,
+            multi_lm_configs=multi_lm_configs,
         )
         self.return_property_name = return_property_name
         self.reranker_clients = reranker_clients
@@ -57,17 +67,23 @@ class LayeredReranker(BaseRAG):
         self.voyage_model = voyage_model
         self.reranker_provider = reranker_provider
         self.cohere_model = cohere_model
-        self.rrf_k = rrf_k
-        self.verbose = verbose
         self.listwise_reranker_strategy = listwise_reranker_strategy
-
         # Initialize Listwise Reranker
         if self.listwise_reranker_strategy == "BestMatch":
-            self.listwise_reranker = dspy.Predict(VerboseBestMatchRanker)
+            if self.verbose_signature:
+                self.listwise_reranker = dspy.ChainOfThought(VerboseBestMatchRanker)
+            else:
+                self.listwise_reranker = dspy.Predict(BestMatchRanker)
         else:
-            self.listwise_reranker = dspy.Predict(RelevanceRanker)
+            if self.verbose_signature:
+                self.listwise_reranker = dspy.ChainOfThought(VerboseRelevanceRanker)
+            else:
+                self.listwise_reranker = dspy.Predict(RelevanceRanker)
         
-        self.summarizer = dspy.Predict(SummarizeSearchRelevance)
+        if self.verbose_signature:
+            self.summarizer = dspy.ChainOfThought(VerboseSummarizeSearchRelevance)
+        else:
+            self.summarizer = dspy.Predict(SummarizeSearchRelevance)
 
     def forward(self, question: str) -> DSPyAgentRAGResponse:
         # first search with the original query
@@ -95,7 +111,6 @@ class LayeredReranker(BaseRAG):
             provider=self.reranker_provider,
             cohere_model=self.cohere_model,
             voyage_model=self.voyage_model,
-            rrf_k=self.rrf_k,
             verbose=self.verbose,
         )
         
@@ -126,14 +141,31 @@ class LayeredReranker(BaseRAG):
 
         valid_object_ids = [obj.object_id for obj in objects_with_summarized_content]
         
-        listwise_reranked_result = self.listwise_reranker(
-            query=question,
-            search_results=objects_with_summarized_content,
-            top_k=self.reranked_M,
-            valid_object_ids=valid_object_ids
-        ).best_match_object_id
+        if self.multi_lm_configs:
+            with dspy.context(lm=self.multi_lm_configs_dict["listwise_reranker"]):
+                listwise_reranked_pred = self.listwise_reranker(
+                    query=question,
+                    search_results=objects_with_summarized_content,
+                    top_k=self.reranked_M,
+                    valid_object_ids=valid_object_ids
+                )
 
-        print(f"\033[96mListwise reranked result: {listwise_reranked_result}\033[0m")
+        else:
+            listwise_reranked_pred = self.listwise_reranker(
+                query=question,
+                search_results=objects_with_summarized_content,
+                top_k=self.reranked_M,
+                valid_object_ids=valid_object_ids
+            )
+
+        listwise_reranked_result = listwise_reranked_pred.best_match_object_id
+        listwise_reranked_result = str(listwise_reranked_result).strip().strip('"').strip("'") # parsing
+        if self.verbose:
+            print(f"\033[96mListwise reranked result: {listwise_reranked_result}\033[0m")
+            if self.verbose_signature:
+                rationale = listwise_reranked_pred.reasoning
+                print(f"\033[96mListwise reranked result rationale: {rationale}\033[0m")
+
         
         chosen = None
         if self.listwise_reranker_strategy == "BestMatch":
@@ -141,8 +173,8 @@ class LayeredReranker(BaseRAG):
                 print(f"\033[38;5;208mChecking object {obj.object_id} against {listwise_reranked_result}\033[0m")
                 if str(obj.object_id) == str(listwise_reranked_result):
                     chosen = reranked_results.pop(idx)
+                    reranked_results.insert(0, chosen)
                     break
-            reranked_results.insert(0, chosen)
         elif self.listwise_reranker_strategy == "Relevance":
             pass
 
@@ -162,6 +194,10 @@ class LayeredReranker(BaseRAG):
 
 async def main():
     from retrieve_dspy.clients import get_weaviate_client, get_voyage_client
+    from retrieve_dspy.utils import get_lm
+
+    gpt5 = get_lm("openai/gpt-5", max_tokens=32000)
+
     rag_pipeline = LayeredReranker(
         weaviate_client=get_weaviate_client(),
         reranker_clients=[get_voyage_client()],
@@ -174,7 +210,9 @@ async def main():
         listwise_reranker_strategy="BestMatch",
         voyage_model="rerank-2.5",
         reranker_provider="voyage",
-        verbose=True
+        verbose=True,
+        verbose_signature=True,
+        multi_lm_configs=[MultiLMConfig(signature_name="listwise_reranker", lm=gpt5)]
     )
     print("Testing sync forward")
     test_query = "Where will Governor Gray Davis host a party for the delegates, according to the article “Davis faces dire political consequences if power woes linger?"

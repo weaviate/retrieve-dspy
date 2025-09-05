@@ -38,3 +38,7 @@ class RerankerClient(BaseModel):
 class RerankItem(BaseModel):
     index: int
     relevance_score: float
+
+class MultiLMConfig(BaseModel):
+    signature_name: str
+    lm: Any
