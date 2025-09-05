@@ -17,6 +17,7 @@ from .retrievers import (
     BestMatchReranker,
     QueryDocumentSummarizer,
     SimplifiedBaleen,
+    QUIPLER,
 )
 
 from . import utils
@@ -49,4 +50,5 @@ __all__ = [
     "metrics", 
     "datasets",
     "clients",
+    "QUIPLER",
 ]

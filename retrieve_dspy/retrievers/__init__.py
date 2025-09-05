@@ -16,6 +16,7 @@ from .rerankers.layered_reranker import LayeredReranker
 from .query_writers.decompose_and_expand import DecomposeAndExpand
 from .query_writers.decompose_and_expand_with_hints import DecomposeAndExpandWithHints
 from .atomics.query_document_summarizer import QueryDocumentSummarizer
+from .compositions.quipler import QUIPLER
 
 __all__ = [
     "HybridSearch",
@@ -35,5 +36,6 @@ __all__ = [
     "DecomposeAndExpandWithHints",
     "QueryExpanderWithReranker",
     "QueryDocumentSummarizer",
-    "SimplifiedBaleen"
+    "SimplifiedBaleen",
+    "QUIPLER"
 ]

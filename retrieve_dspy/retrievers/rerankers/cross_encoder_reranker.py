@@ -5,7 +5,7 @@ from typing import Optional, List, Literal, Dict
 
 import weaviate
 
-from retrieve_dspy.database.weaviate_database import weaviate_search_tool
+from retrieve_dspy.database.weaviate_database import weaviate_search_tool, async_weaviate_search_tool
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerClient
 
@@ -22,10 +22,10 @@ RerankProvider = Literal["cohere", "voyage", "hybrid"]
 class CrossEncoderReranker(BaseRAG):
     def __init__(
         self,
-        weaviate_client: weaviate.WeaviateClient,
-        reranker_clients: List[RerankerClient],
         collection_name: str,
         target_property_name: str,
+        weaviate_client: Optional[weaviate.WeaviateClient] = None,
+        reranker_clients: Optional[List[RerankerClient]] = None,
         return_property_name: Optional[str] = None,
         verbose: Optional[bool] = False,
         search_only: Optional[bool] = True,
@@ -121,27 +121,17 @@ class CrossEncoderReranker(BaseRAG):
     async def aforward(
         self,
         question: str,
-        weaviate_client: weaviate.WeaviateClient,
+        weaviate_async_client: Optional[weaviate.AsyncWeaviateClient] = None,
         reranker_clients: Optional[List[RerankerClient]] = None,
     ) -> DSPyAgentRAGResponse:
-        pass
-        try:
-            sources = weaviate_search_tool(
-                weaviate_client=weaviate_client,
-                query=question,
-                collection_name=self.collection_name,
-                target_property_name=self.target_property_name,
-                return_property_name=self.return_property_name,
-                retrieved_k=self.retrieved_k,
-            )
-        except TypeError:
-            sources = weaviate_search_tool(
-                query=question,
-                collection_name=self.collection_name,
-                target_property_name=self.target_property_name,
-                return_property_name=self.return_property_name,
-                retrieved_k=self.retrieved_k,
-            )
+        sources = await async_weaviate_search_tool(
+            weaviate_async_client=weaviate_async_client,
+            query=question,
+            collection_name=self.collection_name,
+            target_property_name=self.target_property_name,
+            return_property_name=self.return_property_name,
+            retrieved_k=self.retrieved_k,
+        )
 
         if self.verbose:
             print(f"\033[96mInitial retrieval: {len(sources)} documents\033[0m")
@@ -173,7 +163,7 @@ class CrossEncoderReranker(BaseRAG):
             verbose=self.verbose,
         )
 
-        reranked: List[ObjectFromDB] = self._reorder(items, sources, tag="[async]")
+        reranked: List[ObjectFromDB] = reorder(items, sources)
         if self.verbose:
             print(f"\n\033[96mReranked: Returning {len(reranked)} documents\033[0m")
 
@@ -205,12 +195,32 @@ async def main():
         retrieved_k=50,
         reranked_k=20,
     )
+    
+    # Test forward() method
+    print("Testing forward() method:")
     response = cross_encoder_reranker.forward(
         question="What are the implications of SBX12?",
         weaviate_client=weaviate_client,
         reranker_clients=[RerankerClient(name="cohere", client=cohere_client)],
     )
-    print(response)
+    print(f"\033[92mSync successfully returned: {len(response.sources)} documents\033[0m")
+
+    weaviate_async_client = weaviate.use_async_with_weaviate_cloud(
+        cluster_url=os.getenv("WEAVIATE_URL"),
+        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
+    )
+    await weaviate_async_client.connect()
+    cohere_async_client = cohere.AsyncClientV2(api_key=os.getenv("COHERE_API_KEY"))
+    voyage_async_client = voyageai.AsyncClient(api_key=os.getenv("VOYAGE_API_KEY"))
+    
+    # Test aforward() method
+    print("\nTesting aforward() method:")
+    async_response = await cross_encoder_reranker.aforward(
+        question="What are the implications of SBX12?",
+        weaviate_async_client=weaviate_async_client,
+        reranker_clients=[RerankerClient(name="cohere", client=cohere_async_client), RerankerClient(name="voyage", client=voyage_async_client)],
+    )
+    print(f"\033[92mAsync successfully returned: {len(async_response.sources)} documents\033[0m")
 
 if __name__ == "__main__":
     import asyncio

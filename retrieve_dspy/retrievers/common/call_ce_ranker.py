@@ -1,7 +1,7 @@
-# call_ce_ranker.py
 from __future__ import annotations
 
 import asyncio
+import inspect
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Literal, Optional
 
@@ -17,7 +17,39 @@ AsyncReranker = Callable[[str, List[str], int], "asyncio.Future[List[RerankItem]
 
 def make_cohere_reranker(client: Any, model: str = "rerank-v3.5") -> SyncReranker:
     def _fn(query: str, documents: List[str], top_k: int) -> List[RerankItem]:
-        res = client.rerank(
+        rerank_call = client.rerank(
+            model=model,
+            query=query,
+            documents=list(documents),
+            top_n=min(top_k, len(documents)),
+        )
+        
+        # If the result is a coroutine, we can't handle it in sync context
+        if inspect.iscoroutine(rerank_call):
+            raise RuntimeError("Cannot use async client in sync reranker. Use async_ce_rank instead.")
+        
+        return [RerankItem(index=r.index, relevance_score=float(r.relevance_score)) for r in rerank_call.results]
+    return _fn
+
+def make_voyage_reranker(client: Any, model: str = "rerank-2.5") -> SyncReranker:
+    def _fn(query: str, documents: List[str], top_k: int) -> List[RerankItem]:
+        rerank_call = client.rerank(
+            query=query,
+            documents=list(documents),
+            model=model,
+            top_k=min(top_k, len(documents)),
+        )
+        
+        # If the result is a coroutine, we can't handle it in sync context
+        if inspect.iscoroutine(rerank_call):
+            raise RuntimeError("Cannot use async client in sync reranker. Use async_ce_rank instead.")
+        
+        return [RerankItem(index=r.index, relevance_score=float(r.relevance_score)) for r in rerank_call.results]
+    return _fn
+
+def make_async_cohere_reranker(client: Any, model: str = "rerank-v3.5") -> AsyncReranker:
+    async def _fn(query: str, documents: List[str], top_k: int) -> List[RerankItem]:
+        res = await client.rerank(
             model=model,
             query=query,
             documents=list(documents),
@@ -26,9 +58,9 @@ def make_cohere_reranker(client: Any, model: str = "rerank-v3.5") -> SyncReranke
         return [RerankItem(index=r.index, relevance_score=float(r.relevance_score)) for r in res.results]
     return _fn
 
-def make_voyage_reranker(client: Any, model: str = "rerank-2.5") -> SyncReranker:
-    def _fn(query: str, documents: List[str], top_k: int) -> List[RerankItem]:
-        res = client.rerank(
+def make_async_voyage_reranker(client: Any, model: str = "rerank-2.5") -> AsyncReranker:
+    async def _fn(query: str, documents: List[str], top_k: int) -> List[RerankItem]:
+        res = await client.rerank(
             query=query,
             documents=list(documents),
             model=model,
@@ -128,8 +160,10 @@ async def async_rerank(
     async_rerankers = async_rerankers or {}
 
     async def _run(p: str) -> List[RerankItem]:
+        # First try async rerankers
         if p in async_rerankers:
             return await async_rerankers[p](query, documents, top_k)
+        # Fallback to sync rerankers only if no async version available
         if rerankers and p in rerankers:
             return await asyncio.to_thread(rerankers[p], query, documents, top_k)
         if verbose:
@@ -165,8 +199,34 @@ def _adapters_from_clients(
             raise ValueError("RerankerClient.name must be 'cohere' or 'voyage'")
     return adapters
 
+def _async_adapters_from_clients(
+    clients: Optional[List[RerankerClient]],
+    *,
+    cohere_model: str,
+    voyage_model: str,
+) -> Dict[str, AsyncReranker]:
+    adapters: Dict[str, AsyncReranker] = {}
+    if not clients:
+        return adapters
+    for rc in clients:
+        if rc.name == "cohere":
+            # Check if client.rerank is async by examining if it's a coroutine function
+            if hasattr(rc.client, 'rerank') and inspect.iscoroutinefunction(rc.client.rerank):
+                adapters["cohere"] = make_async_cohere_reranker(rc.client, cohere_model)
+            # If it's already a callable async reranker, use it directly
+            elif callable(rc.client) and inspect.iscoroutinefunction(rc.client):
+                adapters["cohere"] = rc.client  # type: ignore[assignment]
+        elif rc.name == "voyage":
+            if hasattr(rc.client, 'rerank') and inspect.iscoroutinefunction(rc.client.rerank):
+                adapters["voyage"] = make_async_voyage_reranker(rc.client, voyage_model)
+            elif callable(rc.client) and inspect.iscoroutinefunction(rc.client):
+                adapters["voyage"] = rc.client  # type: ignore[assignment]
+        else:
+            raise ValueError("RerankerClient.name must be 'cohere' or 'voyage'")
+    return adapters
 
-def _pick_provider(requested: Optional[Provider], available: Dict[str, SyncReranker]) -> Provider:
+
+def _pick_provider(requested: Optional[Provider], available: Dict[str, Any]) -> Provider:
     have_co = "cohere" in available
     have_vo = "voyage" in available
     if requested is None:
@@ -223,9 +283,25 @@ async def async_ce_rank(
     hybrid_weights: Optional[Dict[str, float]] = None,
     verbose: bool = False,
 ) -> List[RerankItem]:
-    adapters = _adapters_from_clients(clients, cohere_model=cohere_model, voyage_model=voyage_model)
-    eff = _pick_provider(provider, adapters)
-    return await async_rerank(eff, query, documents, top_k, rerankers=adapters, rrf_k=rrf_k, hybrid_weights=hybrid_weights, verbose=verbose)
+    # Create both sync and async adapters
+    sync_adapters = _adapters_from_clients(clients, cohere_model=cohere_model, voyage_model=voyage_model)
+    async_adapters = _async_adapters_from_clients(clients, cohere_model=cohere_model, voyage_model=voyage_model)
+    
+    # Combine available adapters for provider selection
+    all_adapters = {**sync_adapters, **async_adapters}
+    eff = _pick_provider(provider, all_adapters)
+    
+    return await async_rerank(
+        eff, 
+        query, 
+        documents, 
+        top_k, 
+        async_rerankers=async_adapters,
+        rerankers=sync_adapters, 
+        rrf_k=rrf_k, 
+        hybrid_weights=hybrid_weights, 
+        verbose=verbose
+    )
 
 def reorder(items: List[RerankItem], sources: List[ObjectFromDB]) -> List[ObjectFromDB]:
     out: List[ObjectFromDB] = []

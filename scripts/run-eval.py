@@ -4,12 +4,16 @@ import time
 import retrieve_dspy
 from retrieve_dspy.metrics import create_metric
 from retrieve_dspy.datasets.in_memory import in_memory_dataset_loader, prepare_random_subset
-from retrieve_dspy.clients import get_weaviate_client, get_voyage_client
+from retrieve_dspy.clients import get_weaviate_client, get_voyage_client, get_and_connect_weaviate_async_client, get_voyage_async_client
 from retrieve_dspy.models import RerankerClient, MultiLMConfig
 from retrieve_dspy.utils import get_lm
 
 weaviate_client = get_weaviate_client()
+weaviate_async_client = get_and_connect_weaviate_async_client()
+
 voyage_client = get_voyage_client()
+voyage_async_client = get_voyage_async_client()
+
 gpt5 = get_lm("openai/gpt-5", max_tokens=32000)
 '''
 rag_pipeline = retrieve_dspy.VanillaRAG(
@@ -106,6 +110,7 @@ rag_pipeline = retrieve_dspy.SimplifiedBaleen(
 )
 '''
 
+'''
 rag_pipeline = retrieve_dspy.LayeredReranker(
     weaviate_client=weaviate_client,
     reranker_clients=[voyage_client],
@@ -121,7 +126,30 @@ rag_pipeline = retrieve_dspy.LayeredReranker(
     verbose_signature=True,
     multi_lm_configs=[MultiLMConfig(signature_name="listwise_reranker", lm=gpt5)]
 )
+'''
 
+'''
+rag_pipeline = retrieve_dspy.QUIPLER(
+    weaviate_client=weaviate_client,
+    reranker_clients=[voyage_client],
+    collection_name="EnronEmails",
+    target_property_name="email_body",
+    retrieved_k=50,
+    reranked_k=20,
+    verbose=True,
+    verbose_signature=True
+)
+'''
+
+rag_pipeline = retrieve_dspy.CrossEncoderReranker(
+    weaviate_client=weaviate_client,
+    reranker_clients=[voyage_client],
+    collection_name="EnronEmails",
+    target_property_name="email_body",
+    retrieved_k=50,
+    reranked_k=20,
+    verbose=True
+)
 
 #print(rag_pipeline.__class__.__name__)
 
@@ -180,7 +208,7 @@ for trial in range(NUM_TRIALS):
 
     testset = prepare_random_subset(
         queries=queries,
-        num_samples=150, #150
+        num_samples=50, #150
         seed=42,
         samples_used_in_training=used_qs,
     )
