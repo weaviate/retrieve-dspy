@@ -31,8 +31,8 @@ class VerboseRelevanceRanker(dspy.Signature):
     top_k: int = dspy.InputField(
         desc="Exact number of passage IDs to return (strict requirement)"
     )
-    reranked_ids: list[int] = dspy.OutputField(
-        desc="List of exactly `top_k` passage IDs ordered by relevance (most relevant first). Must match IDs from search_results."
+    reranked_ids: list[str] = dspy.OutputField(
+        desc="List of exactly `top_k` object_id strings ordered by relevance (most relevant first). Must use EXACT strings from valid_object_ids (e.g., 'doc2023976', not '2023976')."
     )
 
 class RelevanceRanker(dspy.Signature):

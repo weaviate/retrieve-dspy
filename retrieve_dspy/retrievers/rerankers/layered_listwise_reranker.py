@@ -87,6 +87,16 @@ class LayeredListwiseReranker(BaseRAG):
         
         if self.verbose:
             print(f"\033[96mInitial retrieval: {len(sources)} documents\033[0m")
+            
+        # Debug the initial search results
+        print("DEBUG: First 10 source object_ids from initial search:")
+        for i, source in enumerate(sources[:10]):
+            print(f"  Source {i}: {source.object_id}")
+            
+        print("DEBUG: Unique object_ids in sources:")
+        unique_ids = set(s.object_id for s in sources)
+        print(f"  Total sources: {len(sources)}, Unique IDs: {len(unique_ids)}")
+        print(f"  Unique IDs: {list(unique_ids)[:10]}") 
         
         # Extract document content for reranking
         documents = [s.content for s in sources]
@@ -102,16 +112,26 @@ class LayeredListwiseReranker(BaseRAG):
             voyage_model=self.voyage_model,
             verbose=self.verbose,
         )
+
+        print("DEBUG: ce_rank results:")
+        for i, item in enumerate(reranked_results[:5]):
+            print(f"  Item {i}: index={item.index}, score={getattr(item, 'score', 'N/A')}")
+            
+        print("DEBUG: Original sources object_ids:")
+        for i, source in enumerate(sources[:10]):
+            print(f"  Source {i}: {source.object_id}")
         
         # Reorder sources based on Cohere's reranking
-        reranked_results: list[ObjectFromDB] = reorder(reranked_results, sources)
-        
+        reordered_results: list[ObjectFromDB] = reorder(reranked_results, sources)
+
         if self.verbose:
-            print(f"\033[93mCross encoder reranking: {len(reranked_results)} documents\033[0m")
+            print(f"\033[93mCross encoder reranking: {len(reordered_results)} documents\033[0m")
+            print("DEBUG: First 5 reranked object_ids:", [r.object_id for r in reordered_results[:5]])
+            print("DEBUG: First 5 reranked relevance_ranks:", [r.relevance_rank for r in reordered_results[:5]])
         
         objects_with_summarized_content: List[ObjectFromDB] = []
 
-        for result in reranked_results[:self.reranked_M]:
+        for result in reordered_results[:self.reranked_M]:
             if self.multi_lm_configs:
                 with dspy.context(lm=self.multi_lm_configs_dict["summarizer"]):
                     summary = self.summarizer(
@@ -136,7 +156,9 @@ class LayeredListwiseReranker(BaseRAG):
             print(f"{objects_with_summarized_content[0].object_id}")
 
         valid_object_ids = [obj.object_id for obj in objects_with_summarized_content]
-        
+        print("DEBUG: objects_with_summarized_content object_ids:", [obj.object_id for obj in objects_with_summarized_content])
+        print("DEBUG: valid_object_ids:", valid_object_ids)
+
         if self.multi_lm_configs:
             with dspy.context(lm=self.multi_lm_configs_dict["listwise_reranker"]):
                 listwise_reranked_pred = self.listwise_reranker(
@@ -164,7 +186,7 @@ class LayeredListwiseReranker(BaseRAG):
         
         # Reorder reranked_results based on the listwise ranking
         # Create a mapping from object_id to the original object
-        id_to_obj = {obj.object_id: obj for obj in reranked_results}
+        id_to_obj = {obj.object_id: obj for obj in reordered_results}
         
         # Reorder according to listwise_reranked_result
         reordered_results = []
@@ -202,13 +224,14 @@ async def main():
     from retrieve_dspy.utils import get_lm
 
     gpt5 = get_lm("openai/gpt-5", max_tokens=32000)
+    gpt4_1_mini = get_lm("openai/gpt-4.1-mini", max_tokens=32000)
 
     rag_pipeline = LayeredListwiseReranker(
         weaviate_client=get_weaviate_client(),
         reranker_clients=[get_voyage_client()],
-        collection_name="EnronEmails",
-        target_property_name="email_body",
-        return_property_name="email_body",
+        collection_name="BeirNq",
+        target_property_name="content",
+        return_property_name="content",
         retrieved_k=50,
         reranked_N=20,
         reranked_M=5,
@@ -216,10 +239,10 @@ async def main():
         reranker_provider="voyage",
         verbose=True,
         verbose_signature=True,
-        multi_lm_configs=[MultiLMConfig(signature_name="listwise_reranker", lm=gpt5)]
+        multi_lm_configs=[MultiLMConfig(signature_name="listwise_reranker", lm=gpt5), MultiLMConfig(signature_name="summarizer", lm=gpt4_1_mini)]
     )
     print("Testing sync with Listwise strategy forward")
-    test_query = "Where will Governor Gray Davis host a party for the delegates, according to the article “Davis faces dire political consequences if power woes linger?"
+    test_query = "How many types of MIDI messages are there?"
     response = rag_pipeline.forward(test_query)    
     #print("Testing async forward")
     #response = await rag_pipeline.aforward("What is the best way to learn Angular?")
