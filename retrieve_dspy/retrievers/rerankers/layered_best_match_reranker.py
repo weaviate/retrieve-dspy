@@ -13,8 +13,6 @@ from retrieve_dspy.database.weaviate_database import (
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerClient, MultiLMConfig
 from retrieve_dspy.signatures import (
-    VerboseRelevanceRanker, 
-    RelevanceRanker,
     VerboseBestMatchRanker,
     BestMatchRanker,
     VerboseSummarizeSearchRelevance,
@@ -28,9 +26,8 @@ from retrieve_dspy.retrievers.common.call_ce_ranker import (
 )
 
 RerankProvider = Literal["voyage", "hybrid"]
-ListwiseRerankerStrategy = Literal["BestMatch", "Relevance"]
 
-class LayeredReranker(BaseRAG):
+class LayeredBestMatchReranker(BaseRAG):
     def __init__(
         self, 
         weaviate_client: weaviate.WeaviateClient,
@@ -47,7 +44,6 @@ class LayeredReranker(BaseRAG):
         reranker_provider: Optional[RerankProvider] = None,
         cohere_model: Optional[str] = "rerank-v3.5",
         voyage_model: str = "rerank-2.5",
-        listwise_reranker_strategy: Optional[ListwiseRerankerStrategy] = "BestMatch",
         multi_lm_configs: Optional[List[MultiLMConfig]] = None,
     ):
         super().__init__(
@@ -67,18 +63,11 @@ class LayeredReranker(BaseRAG):
         self.voyage_model = voyage_model
         self.reranker_provider = reranker_provider
         self.cohere_model = cohere_model
-        self.listwise_reranker_strategy = listwise_reranker_strategy
         # Initialize Listwise Reranker
-        if self.listwise_reranker_strategy == "BestMatch":
-            if self.verbose_signature:
-                self.listwise_reranker = dspy.ChainOfThought(VerboseBestMatchRanker)
-            else:
-                self.listwise_reranker = dspy.Predict(BestMatchRanker)
+        if self.verbose_signature:
+            self.listwise_reranker = dspy.ChainOfThought(VerboseBestMatchRanker)
         else:
-            if self.verbose_signature:
-                self.listwise_reranker = dspy.ChainOfThought(VerboseRelevanceRanker)
-            else:
-                self.listwise_reranker = dspy.Predict(RelevanceRanker)
+            self.listwise_reranker = dspy.Predict(BestMatchRanker)
         
         if self.verbose_signature:
             self.summarizer = dspy.ChainOfThought(VerboseSummarizeSearchRelevance)
@@ -123,10 +112,17 @@ class LayeredReranker(BaseRAG):
         objects_with_summarized_content: List[ObjectFromDB] = []
 
         for result in reranked_results[:self.reranked_M]:
-            summary = self.summarizer(
-                query=question,
-                passage=result.content,
-            ).relevance_summary
+            if self.multi_lm_configs:
+                with dspy.context(lm=self.multi_lm_configs_dict["summarizer"]):
+                    summary = self.summarizer(
+                            query=question,
+                            passage=result.content,
+                        ).relevance_summary
+            else:
+                summary = self.summarizer(
+                    query=question,
+                    passage=result.content,
+                ).relevance_summary
             objects_with_summarized_content.append(ObjectFromDB(
                 object_id=result.object_id,
                 relevance_rank=result.relevance_rank,
@@ -149,7 +145,6 @@ class LayeredReranker(BaseRAG):
                     top_k=self.reranked_M,
                     valid_object_ids=valid_object_ids
                 )
-
         else:
             listwise_reranked_pred = self.listwise_reranker(
                 query=question,
@@ -158,7 +153,7 @@ class LayeredReranker(BaseRAG):
                 valid_object_ids=valid_object_ids
             )
 
-        listwise_reranked_result = listwise_reranked_pred.best_match_object_id
+        listwise_reranked_result = listwise_reranked_pred.best_match_id
         listwise_reranked_result = str(listwise_reranked_result).strip().strip('"').strip("'") # parsing
         if self.verbose:
             print(f"\033[96mListwise reranked result: {listwise_reranked_result}\033[0m")
@@ -168,15 +163,12 @@ class LayeredReranker(BaseRAG):
 
         
         chosen = None
-        if self.listwise_reranker_strategy == "BestMatch":
-            for idx, obj in enumerate(reranked_results):
-                print(f"\033[38;5;208mChecking object {obj.object_id} against {listwise_reranked_result}\033[0m")
-                if str(obj.object_id) == str(listwise_reranked_result):
-                    chosen = reranked_results.pop(idx)
-                    reranked_results.insert(0, chosen)
-                    break
-        elif self.listwise_reranker_strategy == "Relevance":
-            pass
+        for idx, obj in enumerate(reranked_results):
+            print(f"\033[38;5;208mChecking object {obj.object_id} against {listwise_reranked_result}\033[0m")
+            if str(obj.object_id) == str(listwise_reranked_result):
+                chosen = reranked_results.pop(idx)
+                reranked_results.insert(0, chosen)
+                break
 
         if self.verbose:
             print(f"\033[92mListwise reranking: Returning {self.reranked_M} documents\033[0m")
@@ -198,7 +190,7 @@ async def main():
 
     gpt5 = get_lm("openai/gpt-5", max_tokens=32000)
 
-    rag_pipeline = LayeredReranker(
+    rag_pipeline = LayeredBestMatchReranker(
         weaviate_client=get_weaviate_client(),
         reranker_clients=[get_voyage_client()],
         collection_name="EnronEmails",
@@ -207,16 +199,15 @@ async def main():
         retrieved_k=50,
         reranked_N=20,
         reranked_M=5,
-        listwise_reranker_strategy="BestMatch",
         voyage_model="rerank-2.5",
         reranker_provider="voyage",
         verbose=True,
         verbose_signature=True,
         multi_lm_configs=[MultiLMConfig(signature_name="listwise_reranker", lm=gpt5)]
     )
-    print("Testing sync forward")
+    print("Testing sync with BestMatch strategy forward")
     test_query = "Where will Governor Gray Davis host a party for the delegates, according to the article “Davis faces dire political consequences if power woes linger?"
-    response = rag_pipeline.forward(test_query)
+    response = rag_pipeline.forward(test_query)    
     #print("Testing async forward")
     #response = await rag_pipeline.aforward("What is the best way to learn Angular?")
     #print(response)

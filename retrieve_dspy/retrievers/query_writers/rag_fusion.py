@@ -17,7 +17,7 @@ class RAGFusion(BaseRAG):
         collection_name: str,
         target_property_name: str,
         retrieved_k: int = 20,
-        reranked_k: int = 20,
+        reranked_k: int = 200,
         rrf_k: int = 60,  # RRF constant
         verbose: Optional[bool] = False,
         verbose_signature: Optional[bool] = True
