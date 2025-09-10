@@ -12,7 +12,8 @@ from .query_writers.multi_query_writer_with_hint import MultiQueryWriterWithHint
 from .query_writers.multi_query_writer_with_reranker import MultiQueryWriterWithReranker
 from .query_writers.filtered_query_writer import FilteredQueryWriter
 from .multi_hop.simplified_baleen import SimplifiedBaleen
-from .rerankers.layered_reranker import LayeredReranker
+from .rerankers.layered_best_match_reranker import LayeredBestMatchReranker
+from .rerankers.layered_listwise_reranker import LayeredListwiseReranker
 from .query_writers.decompose_and_expand import DecomposeAndExpand
 from .query_writers.decompose_and_expand_with_hints import DecomposeAndExpandWithHints
 from .atomics.query_document_summarizer import QueryDocumentSummarizer
@@ -30,7 +31,8 @@ __all__ = [
     "SummarizedListwiseReranker",
     "FilteredQueryWriter",
     "QueryExpander",
-    "LayeredReranker",
+    "LayeredBestMatchReranker",
+    "LayeredListwiseReranker",
     "DecomposeAndExpand",
     "QueryExpanderWithHint",
     "DecomposeAndExpandWithHints",
