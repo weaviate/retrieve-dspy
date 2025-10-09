@@ -8,15 +8,20 @@ from weaviate.classes.query import Filter, Metrics, MetadataQuery
 from retrieve_dspy.models import ObjectFromDB
 
 def weaviate_search_tool(
-        weaviate_client: weaviate.WeaviateClient,
         query: str,
         collection_name: str,
         target_property_name: str,
+        weaviate_client: Optional[weaviate.WeaviateClient] = None,
         return_property_name: Optional[str] = None,
         retrieved_k: Optional[int] = 5,
         return_vector: bool = False,
         tag_filter_value: Optional[str] = None,
 ) -> list[ObjectFromDB]:
+    if weaviate_client is None:
+        weaviate_client = weaviate.connect_to_weaviate_cloud(
+            cluster_url=os.getenv("WEAVIATE_URL"),
+            auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
+        )
     collection = weaviate_client.collections.get(collection_name)
 
     '''
@@ -49,16 +54,22 @@ def weaviate_search_tool(
     return objects
 
 async def async_weaviate_search_tool(
-    weaviate_async_client: weaviate.WeaviateAsyncClient,
     query: str,
     collection_name: str,
     target_property_name: str,
+    weaviate_async_client: Optional[weaviate.WeaviateAsyncClient] = None,
     return_property_name: Optional[str] = None,
     retrieved_k: Optional[int] = 10,
     return_score: bool = False,
     return_vector: bool = False,
     tag_filter_value: Optional[str] = None,
 ) -> list[ObjectFromDB]:
+    if weaviate_async_client is None:
+        weaviate_async_client = weaviate.use_async_with_weaviate_cloud(
+            cluster_url=os.getenv("WEAVIATE_URL"),
+            auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
+        )
+        await weaviate_async_client.connect()
     collection = weaviate_async_client.collections.get(collection_name)
     '''
     TODO: Add Support for Tag Filtering and Target Vectors with something like `**kwargs`

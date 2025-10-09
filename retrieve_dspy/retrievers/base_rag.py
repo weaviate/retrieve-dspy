@@ -3,14 +3,12 @@ import os
 from typing import Optional
 
 import dspy
-import weaviate
 
 from retrieve_dspy.models import DSPyAgentRAGResponse, MultiLMConfig
 
 class BaseRAG(dspy.Module):
     def __init__(
         self,
-        weaviate_client: weaviate.WeaviateClient,
         collection_name: str, 
         target_property_name: Optional[str] = "content",
         verbose: Optional[bool] = True,
@@ -19,7 +17,6 @@ class BaseRAG(dspy.Module):
         verbose_signature: Optional[bool] = True,
         multi_lm_configs: Optional[list[MultiLMConfig]] = None,
     ) -> None:
-        self.weaviate_client = weaviate_client
         self.collection_name = collection_name
         self.target_property_name = target_property_name
         self.verbose = verbose
