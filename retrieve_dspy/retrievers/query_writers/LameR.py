@@ -1,0 +1,132 @@
+import asyncio
+import os
+from typing import Optional
+
+import dspy
+import weaviate
+
+from retrieve_dspy.database.weaviate_database import (
+    weaviate_search_tool,
+    async_weaviate_search_tool
+)
+from retrieve_dspy.retrievers.base_rag import BaseRAG
+from retrieve_dspy.models import DSPyAgentRAGResponse
+from retrieve_dspy.signatures import LameR, VerboseLameR
+
+class LameR_QueryExpander(BaseRAG):
+    def __init__(
+        self,
+        collection_name: str,
+        target_property_name: str,
+        verbose: Optional[bool] = False,
+        search_only: Optional[bool] = True,
+        retrieved_k: Optional[int] = 20
+    ):
+        super().__init__(
+            collection_name=collection_name,
+            target_property_name=target_property_name,
+            search_only=search_only,
+            verbose=verbose,
+            retrieved_k=retrieved_k
+        )
+        if self.verbose:
+            self.LameR = dspy.Predict(VerboseLameR)
+        else:
+            self.LameR = dspy.Predict(LameR)
+
+    def forward(
+        self, 
+        question: str, 
+        weaviate_client: Optional[weaviate.WeaviateClient] = None
+    ) -> DSPyAgentRAGResponse:
+        initial_search_results = weaviate_search_tool(
+            query=question,
+            collection_name=self.collection_name,
+            target_property_name=self.target_property_name,
+            retrieved_k=self.retrieved_k,
+            weaviate_client=weaviate_client,
+        )
+        LameR_query = self.LameR(
+            question=question, 
+            possible_answering_passages=initial_search_results
+        ).correct_answering_passage
+
+
+        if self.verbose:
+            print(f"\033[95mLameR query:\n{LameR_query}\033[0m")
+
+        sources = weaviate_search_tool(
+            query=LameR_query,
+            collection_name=self.collection_name,
+            target_property_name=self.target_property_name,
+            retrieved_k=self.retrieved_k,
+            weaviate_client=weaviate_client,
+        )
+        return DSPyAgentRAGResponse(
+            final_answer="",
+            sources=sources,
+            searches=[LameR_query],
+            aggregations=None,
+            usage={},
+        )
+    
+    async def aforward(
+        self, 
+        question: str, 
+        weaviate_async_client: Optional[weaviate.WeaviateAsyncClient] = None
+    ) -> DSPyAgentRAGResponse:
+        initial_search_results = await async_weaviate_search_tool(
+            query=question,
+            collection_name=self.collection_name,
+            target_property_name=self.target_property_name,
+            retrieved_k=self.retrieved_k,
+            weaviate_async_client=weaviate_async_client,
+        )
+        LameR_response = await self.LameR.acall(
+            question=question, 
+            possible_answering_passages=initial_search_results
+        )
+        LameR_query = LameR_response.correct_answering_passage
+
+        if self.verbose:
+            print(f"\033[95mLameR query:\n{LameR_query}\033[0m")
+
+        sources = await async_weaviate_search_tool(
+            query=LameR_query,
+            collection_name=self.collection_name,
+            target_property_name=self.target_property_name,
+            retrieved_k=self.retrieved_k,
+            weaviate_async_client=weaviate_async_client,
+        )
+        return DSPyAgentRAGResponse(
+            final_answer="",
+            sources=sources,
+            searches=[LameR_query],
+            aggregations=None,
+            usage={},
+        )
+    
+async def main():
+    test_pipeline = LameR_QueryExpander(
+        collection_name="BrightBiology",
+        target_property_name="content",
+        verbose=True,
+        retrieved_k=5
+    )
+    test_q = "How many cells are in the human body?"
+    weaviate_client = weaviate.connect_to_weaviate_cloud(
+        cluster_url=os.getenv("WEAVIATE_URL"),
+        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
+    )
+    weaviate_async_client = weaviate.use_async_with_weaviate_cloud(
+        cluster_url=os.getenv("WEAVIATE_URL"),
+        auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
+    )
+    await weaviate_async_client.connect()
+    test_sync_response = test_pipeline.forward(test_q, weaviate_client=weaviate_client)
+    print(test_sync_response)
+    test_async_response = await test_pipeline.aforward(test_q, weaviate_async_client=weaviate_async_client)
+    print(test_async_response)
+
+if __name__ == "__main__":
+    asyncio.run(main())

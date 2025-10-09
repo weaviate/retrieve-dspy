@@ -180,6 +180,28 @@ class LameR(dspy.Signature):
     possible_answering_passages: list[ObjectFromDB] = dspy.InputField(desc="The possible answering passages to the question")
     correct_answering_passage: str = dspy.OutputField(desc="The correct answering passage to the question")
 
+class VerboseLameR(dspy.Signature):
+    """
+    Given a user question and a set of possible answering passages, write the best possible passage to answer the question.
+
+    Instructions:
+    - Carefully analyze the user's question or information need.
+    - Read and compare ALL the possible answering passages provided.
+    - Identify which passage(s) contain key information needed to answer the question correctly and completely.
+    - If useful information is found across multiple passages, synthesize and combine relevant details to produce a comprehensive, accurate answer.
+    - Write a well-structured, context-rich, self-contained passage that fully addresses the question, using only the provided information.
+    - Include important background, explanatory details, and any clarifications necessary for a reader unfamiliar with the topic.
+    - Avoid copying text verbatim; instead, rewrite and integrate content for clarity and quality.
+    - Do NOT include any information not found in the provided passages.
+    - The output should be suitable as a top-quality answer in a knowledge base or search engine result.
+
+    Your task is to return a single coherent passage that is the best possible answer to the question, based only on the given passages.
+    """
+
+    question: str = dspy.InputField(desc="The user's question or information need")
+    possible_answering_passages: list[ObjectFromDB] = dspy.InputField(desc="The possible answering passages to the question")
+    correct_answering_passage: str = dspy.OutputField(desc="The best, synthesized passage answering the question based only on the provided passages.")
+
 class VerboseExpandQuery(dspy.Signature):
     """Expand a query to gather more comprehensive information from a search engine.
 
