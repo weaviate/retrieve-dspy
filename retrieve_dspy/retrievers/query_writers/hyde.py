@@ -5,8 +5,6 @@ from typing import Optional
 import dspy
 import weaviate
 
-print("USING DSPY VERSION: ", dspy.__version__)
-
 from retrieve_dspy.database.weaviate_database import (
     weaviate_search_tool,
     async_weaviate_search_tool
