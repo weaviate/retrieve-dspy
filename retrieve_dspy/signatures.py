@@ -149,6 +149,37 @@ class DiversityRanker(dspy.Signature):
 
 # ============ Query Writers ============
 
+class HyDE(dspy.Signature):
+    """Please write a passage to answer the question."""
+
+    question: str = dspy.InputField(desc="The user's question or information need")
+    passage: str = dspy.OutputField(desc="A passage to answer the question.")
+
+class VerboseHyDE(dspy.Signature):
+    """
+    Write a comprehensive, informative passage that fully answers the user's question.
+
+    Instructions:
+    - Carefully read and understand the user's question or information need.
+    - Write a passage that directly addresses the question, providing a clear, detailed, and self-contained answer.
+    - Include all relevant background, context, and explanations necessary for a reader unfamiliar with the topic.
+    - Cover important aspects, nuances, and potential follow-up points related to the question.
+    - Use precise, accurate, and well-organized language.
+    - The passage should be suitable as a high-quality answer in a knowledge base or search engine result.
+
+    Your goal is to produce a passage that is as helpful and complete as possible for someone seeking an answer to the question.
+    """
+
+    question: str = dspy.InputField(desc="The user's question or information need")
+    passage: str = dspy.OutputField(desc="A comprehensive passage that fully answers the question.")
+
+class LameR(dspy.Signature):
+    """Given a question and its possible answering passages, please write a correct answering passage."""
+
+    question: str = dspy.InputField(desc="The user's question or information need")
+    possible_answering_passages: list[ObjectFromDB] = dspy.InputField(desc="The possible answering passages to the question")
+    correct_answering_passage: str = dspy.OutputField(desc="The correct answering passage to the question")
+
 class VerboseExpandQuery(dspy.Signature):
     """Expand a query to gather more comprehensive information from a search engine.
 
