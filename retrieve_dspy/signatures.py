@@ -202,6 +202,37 @@ class VerboseLameR(dspy.Signature):
     possible_answering_passages: list[ObjectFromDB] = dspy.InputField(desc="The possible answering passages to the question")
     correct_answering_passage: str = dspy.OutputField(desc="The best, synthesized passage answering the question based only on the provided passages.")
 
+class ThinkQE(dspy.Signature):
+    """Given a question and its possible answering passages (most of these passages are wrong), please write a correct answering passage. Use your own knowledge, not just the example passages!"""
+
+    question: str = dspy.InputField(desc="The original user's question")
+    possible_answering_passages: list = dspy.InputField(desc="Top-K retrieved documents from the corpus (most may be incorrect)")
+    correct_answering_passage: str = dspy.OutputField(desc="A correct answering passage generated through thinking")
+
+class VerboseThinkQE(dspy.Signature):
+    """
+    Given a user question and a set of possible answering passages (most of which may be wrong), 
+    generate a correct answering passage through deep reasoning and exploration.
+
+    Instructions:
+    - Carefully analyze the user's question to identify all possible interpretations, facets, and ambiguities.
+    - Review the provided passages, noting that most may contain incorrect or incomplete information.
+    - Think deeply about the query space: consider alternative formulations, related concepts, and different semantic angles.
+    - Explore multiple hypotheses about what the user might be seeking.
+    - Use your own knowledge to generate a comprehensive, correct answering passage.
+    - The passage should capture diverse facets and interpretations of the information need.
+    - Introduce exploratory terms and concepts that go beyond the initial query scope.
+    - DO NOT simply paraphrase or copy from the provided passages.
+    - Focus on breadth and exploration rather than narrow, overconfident answers.
+    
+    Your task is to produce an expanded, exploratory passage that will help retrieve 
+    a more diverse and comprehensive set of relevant documents.
+    """
+
+    question: str = dspy.InputField(desc="The original user's question")
+    possible_answering_passages: list = dspy.InputField(desc="Top-K retrieved documents (most may be incorrect)")
+    correct_answering_passage: str = dspy.OutputField(desc="A comprehensive, exploratory answering passage generated through thinking")
+
 class VerboseExpandQuery(dspy.Signature):
     """Expand a query to gather more comprehensive information from a search engine.
 
