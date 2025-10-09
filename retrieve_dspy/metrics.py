@@ -30,8 +30,8 @@ def calculate_recall_at_k(
     # convert target_ids to strings
     target_ids = [str(id) for id in target_ids]
 
-    # truncate target_ids if longer than 5
-    target_ids = [id[:5] for id in target_ids]
+    # truncate target_ids if longer than 11
+    target_ids = [id[:11] for id in target_ids]
 
     # Use sets for efficient lookup
     target_id_set = {str(id) for id in target_ids}

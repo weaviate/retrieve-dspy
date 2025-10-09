@@ -17,7 +17,7 @@ from .retrievers import (
     QueryExpanderWithReranker,
     BestMatchReranker,
     QueryDocumentSummarizer,
-    SimplifiedBaleen,
+    SimplifiedBaleenWithCrossEncoder,
     QUIPLER,
 )
 
@@ -47,7 +47,7 @@ __all__ = [
     "QueryExpanderWithReranker",
     "BestMatchReranker",
     "QueryDocumentSummarizer",
-    "SimplifiedBaleen",
+    "SimplifiedBaleenWithCrossEncoder",
     "utils",
     "metrics", 
     "datasets",

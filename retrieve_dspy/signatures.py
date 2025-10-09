@@ -4,6 +4,17 @@ from retrieve_dspy.models import ObjectFromDB, SearchQueryWithFilter
 
 # ============ Rerankers ============
 
+# Pointwise Rerankers
+
+class CrossEncoderReranker(dspy.Signature):
+    """Assess whether or not the candidate document is relevant to the query."""
+
+    query: str = dspy.InputField(desc="The user's question or information need")
+    candidate_document: str = dspy.InputField(desc="The candidate document to assess for relevance")
+    is_relevant: bool = dspy.OutputField(desc="Whether or not the candidate document is relevant to the query")
+
+# Listwise Rerankers
+
 class VerboseRelevanceRanker(dspy.Signature):
     """Rerank passages based on their relevance to the query using listwise comparison.
     

@@ -21,7 +21,7 @@ from retrieve_dspy.retrievers.common.call_ce_ranker import (
 
 RerankProvider = Literal["cohere", "voyage", "hybrid"]
 
-class SimplifiedBaleen(BaseRAG):
+class SimplifiedBaleenWithCrossEncoder(BaseRAG):
     def __init__(
         self,
         weaviate_client: weaviate.WeaviateClient,
@@ -84,6 +84,17 @@ class SimplifiedBaleen(BaseRAG):
         # Add Cross Encoder Ranking to the end (or RRF)
 
         documents = [s.content for s in results]
+
+        if len(documents) == 0: # actually fix later
+            print("For some reason, no documents were found. Returning empty results.")
+            return DSPyAgentRAGResponse(
+                final_answer="",
+                sources=[],
+                searches=[question],
+                aggregations=None,
+                usage={},
+            )
+        
         reranked_results: list[RerankItem] = ce_rank(
             query=question,
             documents=documents,

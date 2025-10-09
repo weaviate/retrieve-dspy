@@ -1,22 +1,19 @@
-# cross_encoder_ranker.py
 from __future__ import annotations
 
-from typing import Optional, List, Literal, Dict
+from typing import Optional, List, Dict
 
 import weaviate
 
 from retrieve_dspy.database.weaviate_database import weaviate_search_tool, async_weaviate_search_tool
-from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerClient
-
+from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.retrievers.common.call_ce_ranker import (
     RerankItem,
     ce_rank,
     async_ce_rank,
     reorder,
 )
-
-RerankProvider = Literal["cohere", "voyage", "hybrid"]
+from retrieve_dspy.signatures import CrossEncoderReranker
 
 
 class CrossEncoderReranker(BaseRAG):
@@ -31,12 +28,18 @@ class CrossEncoderReranker(BaseRAG):
         search_only: Optional[bool] = True,
         retrieved_k: Optional[int] = 50,
         reranked_k: Optional[int] = 20,
-        reranker_provider: Optional[RerankProvider] = None,  # None => auto based on clients
-        cohere_model: Optional[str] = "rerank-v3.5",
-        voyage_model: Optional[str] = "rerank-2.5",
-        rrf_k: Optional[int] = 60,
+        model_name_overrides: Optional[Dict[str, str]] = None,
+        rrf_k: Optional[int] = 60, # Used for Mixture of Cross Encoders
         hybrid_weights: Optional[Dict[str, float]] = None,
     ):
+        """
+        Initialize CrossEncoderReranker.
+        
+        Args:
+            model_name_overrides: Optional dict mapping provider names to model names.
+                Example: {"cohere": "rerank-v4.0", "voyage": "rerank-3.0"}
+                If not provided, defaults from call_ce_ranker will be used.
+        """
         super().__init__(
             weaviate_client=weaviate_client,
             collection_name=collection_name,
@@ -48,9 +51,7 @@ class CrossEncoderReranker(BaseRAG):
         self.return_property_name = return_property_name
         self.reranker_clients = reranker_clients
         self.reranked_k = int(reranked_k or 20)
-        self.reranker_provider = reranker_provider
-        self.cohere_model = cohere_model or "rerank-v3.5"
-        self.voyage_model = voyage_model or "rerank-2.5"
+        self.model_name_overrides = model_name_overrides or {}
         self.rrf_k = int(rrf_k or 60)
         self.hybrid_weights = hybrid_weights
         self.verbose = bool(verbose)
@@ -62,7 +63,7 @@ class CrossEncoderReranker(BaseRAG):
         reranker_clients: Optional[List[RerankerClient]] = None,
     ) -> DSPyAgentRAGResponse:
         if weaviate_client is None:
-                weaviate_client = self.weaviate_client
+            weaviate_client = self.weaviate_client
         
         if reranker_clients is None:
             reranker_clients = self.reranker_clients
@@ -98,9 +99,7 @@ class CrossEncoderReranker(BaseRAG):
             documents=docs,
             top_k=self.reranked_k,
             clients=reranker_clients,
-            provider=self.reranker_provider,  # None => auto
-            cohere_model=self.cohere_model,
-            voyage_model=self.voyage_model,
+            model_name_overrides=self.model_name_overrides,
             rrf_k=self.rrf_k,
             hybrid_weights=self.hybrid_weights,
             verbose=self.verbose,
@@ -155,9 +154,7 @@ class CrossEncoderReranker(BaseRAG):
             documents=docs,
             top_k=self.reranked_k,
             clients=reranker_clients,
-            provider=self.reranker_provider,
-            cohere_model=self.cohere_model,
-            voyage_model=self.voyage_model,
+            model_name_overrides=self.model_name_overrides,
             rrf_k=self.rrf_k,
             hybrid_weights=self.hybrid_weights,
             verbose=self.verbose,
@@ -175,11 +172,13 @@ class CrossEncoderReranker(BaseRAG):
             usage={},
         )
 
+
 async def main():
     import os
     import cohere
     import voyageai
     import weaviate
+    
     weaviate_client = weaviate.connect_to_weaviate_cloud(
         cluster_url=os.getenv("WEAVIATE_URL"),
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
@@ -187,6 +186,7 @@ async def main():
     cohere_client = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
     voyage_client = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
 
+    # Example with default models
     cross_encoder_reranker = CrossEncoderReranker(
         collection_name="EnronEmails",
         target_property_name="email_body",
@@ -194,6 +194,20 @@ async def main():
         search_only=True,
         retrieved_k=50,
         reranked_k=20,
+    )
+    
+    # Example with custom model overrides
+    cross_encoder_with_overrides = CrossEncoderReranker(
+        collection_name="EnronEmails",
+        target_property_name="email_body",
+        verbose=True,
+        search_only=True,
+        retrieved_k=50,
+        reranked_k=20,
+        model_name_overrides={
+            "cohere": "rerank-v3.5",
+            "voyage": "rerank-2.5"
+        }
     )
     
     # Test forward() method
@@ -218,9 +232,13 @@ async def main():
     async_response = await cross_encoder_reranker.aforward(
         question="What are the implications of SBX12?",
         weaviate_async_client=weaviate_async_client,
-        reranker_clients=[RerankerClient(name="cohere", client=cohere_async_client), RerankerClient(name="voyage", client=voyage_async_client)],
+        reranker_clients=[
+            RerankerClient(name="cohere", client=cohere_async_client),
+            RerankerClient(name="voyage", client=voyage_async_client)
+        ],
     )
     print(f"\033[92mAsync successfully returned: {len(async_response.sources)} documents\033[0m")
+
 
 if __name__ == "__main__":
     import asyncio

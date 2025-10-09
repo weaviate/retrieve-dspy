@@ -11,7 +11,7 @@ from .rerankers.summarized_listwise_reranker import SummarizedListwiseReranker
 from .query_writers.multi_query_writer_with_hint import MultiQueryWriterWithHint
 from .query_writers.multi_query_writer_with_reranker import MultiQueryWriterWithReranker
 from .query_writers.filtered_query_writer import FilteredQueryWriter
-from .multi_hop.simplified_baleen import SimplifiedBaleen
+from .multi_hop.simplified_baleen_with_cross_encoder import SimplifiedBaleenWithCrossEncoder
 from .rerankers.layered_best_match_reranker import LayeredBestMatchReranker
 from .rerankers.layered_listwise_reranker import LayeredListwiseReranker
 from .query_writers.decompose_and_expand import DecomposeAndExpand
@@ -38,6 +38,6 @@ __all__ = [
     "DecomposeAndExpandWithHints",
     "QueryExpanderWithReranker",
     "QueryDocumentSummarizer",
-    "SimplifiedBaleen",
+    "SimplifiedBaleenWithCrossEncoder",
     "QUIPLER"
 ]

@@ -1,0 +1,52 @@
+# Evaluation Configuration
+dataset:
+  name: "beir/nq"  # Check options in `eval_config.py`
+  collection_name: "BeirNq"  # Weaviate collection name
+  target_property_name: "content"  # Property to search in
+  # return_property_name: "content"  # Only needed for LayeredReranker - commented out for HybridSearch
+
+evaluation:
+  num_trials: 1
+  num_samples: 150
+  seed: 42
+  num_threads: 1
+
+retriever:
+  type: "SimplifiedBaleenWithCrossEncoder"  # Check options in `eval_config.py`
+
+  # Common parameters
+  retrieved_k: 10
+  verbose: true
+  # verbose_signature: true  # Only supported by: RAGFusion, LayeredReranker, SimplifiedBaleen, QUIPLER
+  
+  # Reranking parameters (used by applicable retrievers)
+  reranked_k: 20
+  reranked_N: 20  # For LayeredReranker
+  reranked_M: 5   # For LayeredReranker
+  reranker_provider: "voyage"
+  voyage_model: "rerank-2.5"
+  
+  layered_best_match_reranker:
+    return_property_name: "content"
+
+  layered_listwise_reranker:
+    return_property_name: "content"
+  
+  simplified_baleen_with_cross_encoder:
+    max_hops: 2
+  
+
+# Metrics to evaluate
+metrics:
+  - name: "recall@1"
+    type: "recall"
+    k: 1
+  - name: "recall@5" 
+    type: "recall"
+    k: 5
+  - name: "recall@20"
+    type: "recall"
+    k: 20
+  - name: "nDCG@10"
+    type: "nDCG"
+    k: 10
