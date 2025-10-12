@@ -1,7 +1,6 @@
 import asyncio
 import os
-from typing import Optional, List, Dict, Any
-from dataclasses import dataclass
+from typing import Optional, List, Any
 
 import dspy
 import weaviate
@@ -14,6 +13,7 @@ from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.models import DSPyAgentRAGResponse, ListwiseRankedDocument
 from retrieve_dspy.signatures import ListwiseRanking, VerboseListwiseRanking
 
+
 class SlidingWindowReranker(BaseRAG):
     """
     Listwise reranker using a sliding window approach.
@@ -21,10 +21,12 @@ class SlidingWindowReranker(BaseRAG):
     Processes documents in overlapping windows from bottom to top,
     progressively sorting and bubbling the most relevant documents to the top.
     
-    Example with window_size=5, stride=5, total_docs=15:
+    Example with window_size=5, stride=3, total_docs=15:
     Window 1: docs [10-14] → sort within window
-    Window 2: docs [5-9] → sort, best bubble up
-    Window 3: docs [0-4] → sort, best bubble up
+    Window 2: docs [7-11] → sort, best bubble up
+    Window 3: docs [4-8] → sort, best bubble up
+    Window 4: docs [1-5] → sort, best bubble up
+    Window 5: docs [0-4] → sort, best bubble up
     Final result: fully sorted list
     """
     
@@ -75,27 +77,6 @@ class SlidingWindowReranker(BaseRAG):
         
         return content
     
-    def _parse_ranked_indices(self, ranked_output: Any) -> List[int]:
-        """Parse the ranked indices from LLM output."""
-        if isinstance(ranked_output, list):
-            return [int(idx) for idx in ranked_output]
-        elif isinstance(ranked_output, str):
-            # Try to parse as list
-            import ast
-            try:
-                parsed = ast.literal_eval(ranked_output)
-                if isinstance(parsed, list):
-                    return [int(idx) for idx in parsed]
-            except:
-                pass
-            
-            # Fallback: extract numbers
-            import re
-            numbers = re.findall(r'\d+', ranked_output)
-            return [int(n) for n in numbers]
-        
-        raise ValueError(f"Could not parse ranked indices from: {ranked_output}")
-    
     def _rerank_window(
         self, 
         query: str, 
@@ -117,7 +98,13 @@ class SlidingWindowReranker(BaseRAG):
         # Parse ranked indices
         ranked_indices = self._parse_ranked_indices(ranking_response.ranked_indices)
         
-        # Validate indiceså
+        # Handle parsing failure - return original order
+        if ranked_indices is None:
+            if self.verbose:
+                print(f"\033[91mFailed to parse ranking output. Using original order.\033[0m")
+            return window_docs
+        
+        # Validate indices
         valid_indices = [idx for idx in ranked_indices 
                         if 0 <= idx < len(window_docs)]
         
@@ -129,7 +116,9 @@ class SlidingWindowReranker(BaseRAG):
         reranked = [window_docs[idx] for idx in valid_indices[:len(window_docs)]]
         
         if self.verbose:
-            print(f"\033[96mWindow ranking: {valid_indices[:len(window_docs)]}\033[0m")
+            # Show original indices instead of window-relative indices
+            original_indices = [window_docs[idx].original_position for idx in valid_indices[:len(window_docs)]]
+            print(f"\033[96mWindow ranking: {original_indices}\033[0m")
         
         return reranked
     
@@ -149,13 +138,14 @@ class SlidingWindowReranker(BaseRAG):
             documents=doc_texts,
         )
         
-        try:
-            ranked_indices = self._parse_ranked_indices(ranking_response.ranked_indices)
-        except Exception as e:
-            if self.verbose:
-                print(f"\033[91mError parsing ranking: {e}. Using original order.\033[0m")
-            return window_docs
+        ranked_indices = self._parse_ranked_indices(ranking_response.ranked_indices)
         
+        # Handle parsing failure - return original order
+        if ranked_indices is None:
+            if self.verbose:
+                print(f"\033[91mFailed to parse ranking output. Using original order.\033[0m")
+            return window_docs
+
         valid_indices = [idx for idx in ranked_indices 
                         if 0 <= idx < len(window_docs)]
         missing = set(range(len(window_docs))) - set(valid_indices)
@@ -164,7 +154,9 @@ class SlidingWindowReranker(BaseRAG):
         reranked = [window_docs[idx] for idx in valid_indices[:len(window_docs)]]
         
         if self.verbose:
-            print(f"\033[96mWindow ranking: {valid_indices[:len(window_docs)]}\033[0m")
+            # Show original indices instead of window-relative indices
+            original_indices = [window_docs[idx].original_position for idx in valid_indices[:len(window_docs)]]
+            print(f"\033[96mWindow ranking: {original_indices}\033[0m")
         
         return reranked
     
@@ -182,12 +174,12 @@ class SlidingWindowReranker(BaseRAG):
         if len(documents) == 0:
             return documents
         
-        # Wrap documents with RankedDocument (extends RerankItem)
+        # Wrap documents with ListwiseRankedDocument
         ranked_docs = [
             ListwiseRankedDocument(
                 content=doc, 
                 original_position=i,
-                relevance_score=1.0 - (i / len(documents))  # Initial score based on position
+                current_position=i
             ) 
             for i, doc in enumerate(documents)
         ]
@@ -238,7 +230,7 @@ class SlidingWindowReranker(BaseRAG):
             ListwiseRankedDocument(
                 content=doc, 
                 original_position=i,
-                relevance_score=1.0 - (i / len(documents))
+                current_position=i
             ) 
             for i, doc in enumerate(documents)
         ]
