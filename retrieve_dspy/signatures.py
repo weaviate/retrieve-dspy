@@ -15,6 +15,39 @@ class CrossEncoderReranker(dspy.Signature):
 
 # Listwise Rerankers
 
+class ListwiseRanking(dspy.Signature):
+    """Given a query and a list of documents, rank them by relevance in descending order (most relevant first)."""
+    
+    query: str = dspy.InputField(desc="The search query")
+    documents: list[str] = dspy.InputField(desc="List of document contents to rank")
+    ranked_indices: list[int] = dspy.OutputField(desc="List of document indices in order of relevance (0-indexed)")
+
+
+class VerboseListwiseRanking(dspy.Signature):
+    """
+    Given a query and a list of documents, carefully rank them by relevance.
+    
+    Instructions:
+    - Read the query carefully to understand the information need
+    - Examine each document thoroughly
+    - Consider multiple relevance factors:
+      * Direct answer to the query
+      * Topical relevance
+      * Information completeness
+      * Credibility and specificity
+    - Compare documents against each other, not in isolation
+    - Think about which documents best satisfy the user's intent
+    - Return the indices in descending order of relevance (most relevant first)
+    - The output should be a Python list of integers, e.g., [3, 0, 2, 1, 4]
+    
+    Your ranking should reflect a holistic assessment of relevance.
+    """
+    
+    query: str = dspy.InputField(desc="The search query")
+    documents: list[str] = dspy.InputField(desc="List of document contents to rank")
+    ranked_indices: list[int] = dspy.OutputField(desc="List of document indices in descending order of relevance (0-indexed)")
+
+
 class VerboseRelevanceRanker(dspy.Signature):
     """Rerank passages based on their relevance to the query using listwise comparison.
     

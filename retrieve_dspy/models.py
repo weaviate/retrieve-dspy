@@ -39,6 +39,11 @@ class RerankItem(BaseModel):
     index: int
     relevance_score: float
 
+class ListwiseRankedDocument(BaseModel):
+    content: Any
+    original_position: int
+    current_position: Optional[int] = None
+
 class MultiLMConfig(BaseModel):
     signature_name: str
     lm: Any
