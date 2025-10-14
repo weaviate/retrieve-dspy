@@ -11,7 +11,7 @@ evaluation:
   num_threads: 1
 
 retriever:
-  type: "LameR"  # Check options in `eval_config.py`
+  type: "ThinkQE"  # Check options in `eval_config.py`
 
   # Common parameters
   retrieved_k: 20

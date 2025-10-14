@@ -20,11 +20,13 @@ from .atomics.query_document_summarizer import QueryDocumentSummarizer
 from .compositions.quipler import QUIPLER
 from .query_writers.HyDE import HyDE_QueryExpander
 from .query_writers.LameR import LameR_QueryExpander
+from .query_writers.ThinkQE import ThinkQE_QueryExpander
 
 __all__ = [
     "HybridSearch",
     "HyDE_QueryExpander",
     "LameR_QueryExpander",
+    "ThinkQE_QueryExpander",
     "RAGFusion",
     "CrossEncoderReranker",
     "ListwiseReranker",

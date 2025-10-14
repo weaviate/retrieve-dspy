@@ -18,6 +18,7 @@ class ThinkQE_QueryExpander(BaseRAG):
         self,
         collection_name: str,
         target_property_name: str,
+        weaviate_client: Optional[weaviate.WeaviateClient | weaviate.WeaviateAsyncClient] = None,
         verbose: Optional[bool] = False,
         search_only: Optional[bool] = True,
         retrieved_k: Optional[int] = 5,
@@ -35,7 +36,7 @@ class ThinkQE_QueryExpander(BaseRAG):
         self.num_rounds = num_rounds
         self.num_samples = num_samples
         self.repetition_lambda = repetition_lambda
-        
+        self.weaviate_client = weaviate_client
         if self.verbose:
             self.ThinkQE = dspy.ChainOfThought(VerboseThinkQE)
         else:
@@ -78,6 +79,10 @@ class ThinkQE_QueryExpander(BaseRAG):
         question: str, 
         weaviate_client: Optional[weaviate.WeaviateClient] = None
     ) -> DSPyAgentRAGResponse:
+        if weaviate_client is None:
+            if isinstance(self.weaviate_client, weaviate.WeaviateClient):
+                weaviate_client = self.weaviate_client
+
         # Reset state for new query
         self.blacklist = set()
         self.previous_top_k = set()
@@ -87,7 +92,7 @@ class ThinkQE_QueryExpander(BaseRAG):
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
-            retrieved_k=self.retrieved_k,
+            retrieved_k=10,
             weaviate_client=weaviate_client,
         )
         
@@ -105,7 +110,7 @@ class ThinkQE_QueryExpander(BaseRAG):
                     query=current_query,
                     collection_name=self.collection_name,
                     target_property_name=self.target_property_name,
-                    retrieved_k=self.retrieved_k * 3,  # Retrieve more for filtering
+                    retrieved_k=10,  # Retrieve more for filtering
                     weaviate_client=weaviate_client,
                 )
                 
@@ -168,6 +173,10 @@ class ThinkQE_QueryExpander(BaseRAG):
         question: str, 
         weaviate_async_client: Optional[weaviate.WeaviateAsyncClient] = None
     ) -> DSPyAgentRAGResponse:
+        if weaviate_async_client is None:
+            if isinstance(self.weaviate_async_client, weaviate.WeaviateAsyncClient):
+                weaviate_async_client = self.weaviate_async_client
+
         # Reset state for new query
         self.blacklist = set()
         self.previous_top_k = set()

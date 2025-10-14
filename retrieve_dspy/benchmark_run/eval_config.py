@@ -19,4 +19,5 @@ supported_retriever_types = (
     "HybridSearch",
     "HyDE",
     "LameR",
+    "ThinkQE",
 )
