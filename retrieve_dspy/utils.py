@@ -7,38 +7,6 @@ import numpy as np
 import dspy
 from dspy import Example, Prediction
 
-def get_evaluator(
-    testset: list[Example],
-    metric: callable
-):
-    evaluator = dspy.Evaluate(
-        devset=testset,
-        metric=metric, 
-        num_threads=1,
-        display_progress=True,
-        max_errors=1,
-        provide_traceback=True
-    )
-
-    return evaluator
-
-def offline_recall_evaluator(
-    results: List[Tuple[Example, Prediction, float]],
-    metrics: Dict[str, Callable],
-) -> Dict[str, float]:
-    metric_scores = {name: [] for name in metrics.keys()}
-    
-    for example, prediction, original_score in results:
-        for metric_name, metric_func in metrics.items():
-            score = metric_func(example, prediction)
-            metric_scores[metric_name].append(score)
-
-    avg_scores = {}
-    for metric_name, scores in metric_scores.items():
-        avg_scores[metric_name] = np.mean(scores) if scores else 0.0
-    
-    return avg_scores
-
 # Used for saving training samples and ensuring we are not testing with training samples
 
 def _iter_example_questions(examples: Iterable[Example]) -> Iterable[str]:

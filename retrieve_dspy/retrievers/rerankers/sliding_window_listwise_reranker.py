@@ -95,14 +95,8 @@ class SlidingWindowReranker(BaseRAG):
             documents=doc_texts,
         )
         
-        # Parse ranked indices
-        ranked_indices = self._parse_ranked_indices(ranking_response.ranked_indices)
-        
-        # Handle parsing failure - return original order
-        if ranked_indices is None:
-            if self.verbose:
-                print(f"\033[91mFailed to parse ranking output. Using original order.\033[0m")
-            return window_docs
+        # Get ranked indices (trust LLM output is a list of ints)
+        ranked_indices = ranking_response.ranked_indices
         
         # Validate indices
         valid_indices = [idx for idx in ranked_indices 
@@ -138,13 +132,8 @@ class SlidingWindowReranker(BaseRAG):
             documents=doc_texts,
         )
         
-        ranked_indices = self._parse_ranked_indices(ranking_response.ranked_indices)
-        
-        # Handle parsing failure - return original order
-        if ranked_indices is None:
-            if self.verbose:
-                print(f"\033[91mFailed to parse ranking output. Using original order.\033[0m")
-            return window_docs
+        # Get ranked indices (trust LLM output is a list of ints)
+        ranked_indices = ranking_response.ranked_indices
 
         valid_indices = [idx for idx in ranked_indices 
                         if 0 <= idx < len(window_docs)]

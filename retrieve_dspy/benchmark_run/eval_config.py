@@ -7,5 +7,10 @@ supported_datasets = (
     "lotte/lifestyle/test/search",
     "lotte/recreation/test/forum",
     "lotte/recreation/test/search",
-    "wixqa"
+    "wixqa",
+    "bright/biology",
+    "bright/earth_science",
+    "bright/economics",
+    "bright/psychology",
+    "bright/robotics",
 )

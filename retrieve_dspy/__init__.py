@@ -25,6 +25,7 @@ from . import utils
 from . import metrics
 from . import datasets
 from . import clients
+from . import benchmark_run
 
 __version__ = "0.1.0"
 

@@ -6,6 +6,40 @@ import numpy as np
 
 from retrieve_dspy.models import ObjectFromDB
 
+def calculate_success_at_k(
+    target_ids: list[str],
+    retrieved_objects: list[ObjectFromDB],
+    k: int,
+    verbose: bool = False
+) -> int:
+    """Calculate Success@k (Hit Rate@k).
+    
+    Args:
+        target_ids: List of target document IDs (ground truth).
+        retrieved_objects: List of retrieved document objects.
+        k: The number of top results to consider.
+        
+    Returns:
+        int: 1 if at least one target_id is found in the top-k retrieved_ids,
+             otherwise 0.
+    """
+    target_id_set = {str(id) for id in target_ids}
+    retrieved_ids = [obj.object_id for obj in retrieved_objects] if retrieved_objects else []
+
+    retrieved_ids_at_k = retrieved_ids[:k]
+    
+    if verbose:
+        print(f"\033[96mTarget IDs: {target_id_set}\033[0m")
+        print(f"\033[92mRetrieved IDs @{k}: {retrieved_ids_at_k}\033[0m")
+
+    # Success is binary: 1 if any overlap, 0 otherwise
+    success = int(any(rid in target_id_set for rid in retrieved_ids_at_k))
+
+    if verbose:
+        print(f"\033[96mSuccess@{k}: {success}\033[0m")
+
+    return success
+
 def calculate_recall_at_k(
     target_ids: list[str],
     retrieved_objects: list[ObjectFromDB],
@@ -23,16 +57,7 @@ def calculate_recall_at_k(
     Returns:
         float: Recall@k score (0.0 to 1.0) - proportion of relevant docs
                found in the top k retrieved results.
-    """
-    if not isinstance(target_ids, list):
-        target_ids = [target_ids]
-    
-    # convert target_ids to strings
-    target_ids = [str(id) for id in target_ids]
-
-    # truncate target_ids if longer than 11
-    target_ids = [id[:11] for id in target_ids]
-
+    """    
     # Use sets for efficient lookup
     target_id_set = {str(id) for id in target_ids}
     
@@ -54,7 +79,7 @@ def calculate_recall_at_k(
         if verbose:
             print(f"\033[91mRetrieved IDs @{k}: {retrieved_ids_at_k}\033[0m")
 
-    print(f"Length of gold ids: {len(target_id_set)}")    
+    # print(f"Length of gold ids: {len(target_id_set)}")    
 
     if len(retrieved_ids_at_k) == 1:
         recall = found_count
@@ -88,11 +113,6 @@ def calculate_nDCG_at_k(
         nDCG@k score (0 to 1)
     """
     # convert target_ids to strings
-    target_ids = [str(id) for id in target_ids]
-
-    # truncate target_ids if longer than 5
-    target_ids = [id[:5] for id in target_ids]
-    
     target_id_set = {str(id) for id in target_ids}
     retrieved_ids = [str(obj.object_id) for obj in retrieved_objects[:k]] if retrieved_objects else []
 
@@ -168,6 +188,21 @@ def calculate_coverage(retrieved_objects: list[ObjectFromDB], nugget_data: list[
     print(f"\033[96mCoverage@{k}: {len(covered_nuggets)}/{len(nugget_data)} = {coverage_score:.2f}\033[0m")
     
     return coverage_score
+
+def create_success_at_k_metric(k: int, verbose: bool = True) -> Callable:
+    """
+    Create a success@k metric function that wraps the existing calculate_success_at_k function.
+    """
+    
+    def success_at_k_metric(example: Example, prediction, trace=None) -> float:
+        return calculate_success_at_k(
+            target_ids=example.dataset_ids,
+            retrieved_objects=prediction.sources,
+            k=k,
+            verbose=verbose
+        )
+    
+    return success_at_k_metric
 
 def create_recall_metric(k: int, verbose: bool = True, sleep_time: int = None) -> Callable:
     """
@@ -277,7 +312,9 @@ def create_metric(
     Returns:
         Configured metric function
     """
-    if metric_type == "recall":
+    if metric_type == "success":
+        return create_success_at_k_metric(**kwargs)
+    elif metric_type == "recall":
         return create_recall_metric(**kwargs)
     elif metric_type == "nDCG":
         return create_nDCG_metric(**kwargs)

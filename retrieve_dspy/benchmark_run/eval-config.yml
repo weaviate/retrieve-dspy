@@ -1,9 +1,8 @@
 # Evaluation Configuration
 dataset:
-  name: "beir/nq"  # Check options in `eval_config.py`
-  collection_name: "BeirNq"  # Weaviate collection name
+  name: "bright/biology"  # Check options in `eval_config.py`
+  collection_name: "BrightBiology"  # Weaviate collection name
   target_property_name: "content"  # Property to search in
-  # return_property_name: "content"  # Only needed for LayeredReranker - commented out for HybridSearch
 
 evaluation:
   num_trials: 1
@@ -12,12 +11,12 @@ evaluation:
   num_threads: 1
 
 retriever:
-  type: "SimplifiedBaleenWithCrossEncoder"  # Check options in `eval_config.py`
+  type: "HybridSearch"  # Check options in `eval_config.py`
 
   # Common parameters
-  retrieved_k: 10
+  retrieved_k: 20
   verbose: true
-  # verbose_signature: true  # Only supported by: RAGFusion, LayeredReranker, SimplifiedBaleen, QUIPLER
+  # verbose_signature: true
   
   # Reranking parameters (used by applicable retrievers)
   reranked_k: 20
@@ -38,8 +37,8 @@ retriever:
 
 # Metrics to evaluate
 metrics:
-  - name: "recall@1"
-    type: "recall"
+  - name: "success@1"
+    type: "success"
     k: 1
   - name: "recall@5" 
     type: "recall"
