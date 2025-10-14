@@ -5,6 +5,7 @@ import retrieve_dspy
 from retrieve_dspy.clients import get_weaviate_client, get_and_connect_weaviate_async_client, get_voyage_client, get_voyage_async_client
 from retrieve_dspy.models import MultiLMConfig
 from retrieve_dspy.utils import get_lm
+from retrieve_dspy.benchmark_run.eval_config import supported_retriever_types
 
 """Factory method for building different types of retrievers."""
 
@@ -21,6 +22,8 @@ def build_retriever(retriever_config, use_async, dataset_config, lm_config=None)
         Configured retriever instance
     """
     retriever_type = retriever_config["type"]
+    if retriever_type not in supported_retriever_types:
+        raise ValueError(f"Unsupported retriever type: {retriever_type}")
 
     # Common parameters
     common_params = {
@@ -38,8 +41,11 @@ def build_retriever(retriever_config, use_async, dataset_config, lm_config=None)
     if "return_property_name" in dataset_config:
         common_params["return_property_name"] = dataset_config["return_property_name"]
 
-    if retriever_type == "VanillaRAG":
-        return _build_vanilla_rag(common_params, retriever_config)
+    elif retriever_type == "HyDE":
+        return _build_hyde(common_params, retriever_config)
+
+    elif retriever_type == "LameR":
+        return _build_lame_r(common_params, retriever_config)
 
     elif retriever_type == "RAGFusion":
         return _build_rag_fusion(common_params, retriever_config)
@@ -70,8 +76,11 @@ def build_retriever(retriever_config, use_async, dataset_config, lm_config=None)
     else:
         raise ValueError(f"Unknown retriever type: {retriever_type}")
 
-def _build_vanilla_rag(common_params, config):
-    return retrieve_dspy.VanillaRAG(**common_params)
+def _build_hyde(common_params, config):
+    return retrieve_dspy.HyDE_QueryExpander(**common_params)
+
+def _build_lame_r(common_params, config):
+    return retrieve_dspy.LameR_QueryExpander(**common_params)
 
 def _build_rag_fusion(common_params, config):
     params = {

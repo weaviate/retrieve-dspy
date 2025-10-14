@@ -20,6 +20,7 @@ class HyDE_QueryExpander(BaseRAG):
         self,
         collection_name: str,
         target_property_name: str,
+        weaviate_client: Optional[weaviate.WeaviateClient | weaviate.WeaviateAsyncClient] = None,
         verbose: Optional[bool] = False,
         search_only: Optional[bool] = True,
         retrieved_k: Optional[int] = 20
@@ -31,12 +32,17 @@ class HyDE_QueryExpander(BaseRAG):
             verbose=verbose,
             retrieved_k=retrieved_k
         )
+        self.weaviate_client = weaviate_client
         if self.verbose:
             self.hyde = dspy.Predict(VerboseHyDE)
         else:
             self.hyde = dspy.Predict(HyDE)
 
     def forward(self, question: str, weaviate_client: Optional[weaviate.WeaviateClient] = None) -> DSPyAgentRAGResponse:
+        if weaviate_client is None:
+            if isinstance(self.weaviate_client, weaviate.WeaviateClient):
+                weaviate_client = self.weaviate_client
+
         hypothetical_passage = self.hyde(question=question).passage
 
         if self.verbose:
@@ -59,6 +65,10 @@ class HyDE_QueryExpander(BaseRAG):
         )
     
     async def aforward(self, question: str, weaviate_async_client: Optional[weaviate.WeaviateAsyncClient] = None) -> DSPyAgentRAGResponse:
+        if weaviate_async_client is None:
+            if isinstance(self.weaviate_async_client, weaviate.WeaviateAsyncClient):
+                weaviate_async_client = self.weaviate_async_client
+
         hypothetical_passage_pred = await self.hyde.acall(question=question)
         hypothetical_passage = hypothetical_passage_pred.passage
 

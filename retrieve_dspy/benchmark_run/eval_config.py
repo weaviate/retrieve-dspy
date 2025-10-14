@@ -14,3 +14,9 @@ supported_datasets = (
     "bright/psychology",
     "bright/robotics",
 )
+
+supported_retriever_types = (
+    "HybridSearch",
+    "HyDE",
+    "LameR",
+)

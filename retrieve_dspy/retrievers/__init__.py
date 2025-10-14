@@ -18,9 +18,13 @@ from .query_writers.decompose_and_expand import DecomposeAndExpand
 from .query_writers.decompose_and_expand_with_hints import DecomposeAndExpandWithHints
 from .atomics.query_document_summarizer import QueryDocumentSummarizer
 from .compositions.quipler import QUIPLER
+from .query_writers.HyDE import HyDE_QueryExpander
+from .query_writers.LameR import LameR_QueryExpander
 
 __all__ = [
     "HybridSearch",
+    "HyDE_QueryExpander",
+    "LameR_QueryExpander",
     "RAGFusion",
     "CrossEncoderReranker",
     "ListwiseReranker",

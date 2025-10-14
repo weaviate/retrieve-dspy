@@ -11,20 +11,14 @@ evaluation:
   num_threads: 1
 
 retriever:
-  type: "HybridSearch"  # Check options in `eval_config.py`
+  type: "LameR"  # Check options in `eval_config.py`
 
   # Common parameters
   retrieved_k: 20
   verbose: true
   # verbose_signature: true
   
-  # Reranking parameters (used by applicable retrievers)
-  reranked_k: 20
-  reranked_N: 20  # For LayeredReranker
-  reranked_M: 5   # For LayeredReranker
-  reranker_provider: "voyage"
-  voyage_model: "rerank-2.5"
-  
+  # parameters for particular retrievers
   layered_best_match_reranker:
     return_property_name: "content"
 
