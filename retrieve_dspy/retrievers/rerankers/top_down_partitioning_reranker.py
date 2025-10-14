@@ -270,6 +270,10 @@ class TopDownPartitioningReranker(BaseRAG):
         
         The pivot is returned separately to ensure it's not lost and can be
         included in the final ranking as per Algorithm 1: A_i ∪ p ∪ B
+        
+        CRITICAL: Documents below the pivot in the initial window must be
+        compared against the pivot in subsequent batches, not immediately
+        added to backfill!
         """
         if self.verbose:
             print(f"\n\033[94m{'='*60}\033[0m")
@@ -288,19 +292,30 @@ class TopDownPartitioningReranker(BaseRAG):
         pivot_idx = min(self.pivot_position, len(ranked_top) - 1)
         pivot = ranked_top[pivot_idx]
         
-        # Documents above pivot are candidates for top-k
+        # Documents above pivot are guaranteed candidates for top-k
         new_candidates = ranked_top[:pivot_idx]
         
-        # Documents below pivot go to backfill (pivot NOT included here)
-        backfill = ranked_top[pivot_idx + 1:]
+        # Documents below pivot need to be compared against the pivot!
+        # They do NOT go directly to backfill - that was the bug!
+        docs_below_pivot = ranked_top[pivot_idx + 1:]
         
         if self.verbose:
             print(f"\n\033[93mPivot selected: document at original position {pivot.original_position}\033[0m")
-            print(f"\033[93m{len(new_candidates)} docs above pivot, {len(backfill)} docs below pivot\033[0m")
+            print(f"\033[93m{len(new_candidates)} docs above pivot (added to candidates)\033[0m")
+            print(f"\033[93m{len(docs_below_pivot)} docs below pivot (need pivot comparison)\033[0m")
         
-        # Step 3: Process remaining documents in batches (can be parallelized)
+        # Step 3: Combine ALL documents that need to be compared with pivot:
+        # - Documents below the pivot in the initial window
+        # - Remaining unprocessed candidates from the candidate pool
+        # - Any leftover documents from previous iteration
         remaining_candidates = candidates[self.window_size:]
-        all_remaining = remaining_candidates + remaining
+        all_remaining = docs_below_pivot + remaining_candidates + remaining
+        
+        if self.verbose:
+            print(f"\033[93mTotal documents to compare with pivot: {len(all_remaining)}\033[0m")
+        
+        # Initialize empty backfill - only populated after pivot comparisons
+        backfill = []
         
         if len(all_remaining) == 0:
             return new_candidates, backfill, pivot
@@ -323,7 +338,7 @@ class TopDownPartitioningReranker(BaseRAG):
             # Early stopping if we've reached budget
             if len(new_candidates) >= self.budget:
                 if self.verbose:
-                    print(f"\n\033[93mBudget reached ({self.budget}), stopping early\033[0m")
+                    print(f"\n\033[93m⚠️  Budget reached ({self.budget}), stopping early\033[0m")
                 # Add remaining unprocessed docs to backfill
                 remaining_batches = batches[batch_idx:]
                 for remaining_batch in remaining_batches:
@@ -358,15 +373,21 @@ class TopDownPartitioningReranker(BaseRAG):
         pivot = ranked_top[pivot_idx]
         
         new_candidates = ranked_top[:pivot_idx]
-        backfill = ranked_top[pivot_idx + 1:]
+        docs_below_pivot = ranked_top[pivot_idx + 1:]
         
         if self.verbose:
             print(f"\n\033[93mPivot selected: document at original position {pivot.original_position}\033[0m")
-            print(f"\033[93m{len(new_candidates)} docs above pivot, {len(backfill)} docs below pivot\033[0m")
+            print(f"\033[93m{len(new_candidates)} docs above pivot (added to candidates)\033[0m")
+            print(f"\033[93m{len(docs_below_pivot)} docs below pivot (need pivot comparison)\033[0m")
         
-        # Step 3: Process remaining documents in batches (TRUE PARALLELIZATION)
+        # Step 3: Combine all documents needing pivot comparison
         remaining_candidates = candidates[self.window_size:]
-        all_remaining = remaining_candidates + remaining
+        all_remaining = docs_below_pivot + remaining_candidates + remaining
+        
+        if self.verbose:
+            print(f"\033[93mTotal documents to compare with pivot: {len(all_remaining)}\033[0m")
+        
+        backfill = []
         
         if len(all_remaining) == 0:
             return new_candidates, backfill, pivot
@@ -394,7 +415,7 @@ class TopDownPartitioningReranker(BaseRAG):
             
             if len(new_candidates) >= self.budget:
                 if self.verbose:
-                    print(f"\n\033[93mBudget reached ({self.budget})\033[0m")
+                    print(f"\n\033[93m⚠️  Budget reached ({self.budget})\033[0m")
                 # Add remaining unprocessed docs to backfill
                 for remaining_idx in range(batch_idx, len(batches)):
                     backfill.extend(batches[remaining_idx])
@@ -931,7 +952,7 @@ async def main():
             collection_name="BrightBiology",
             target_property_name="content",
             verbose=True,
-            retrieved_k=20,
+            retrieved_k=50,
             use_thinking=True,
             **{k: v for k, v in config.items() if k != 'name'}
         )
