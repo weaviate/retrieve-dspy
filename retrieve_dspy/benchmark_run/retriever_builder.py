@@ -31,6 +31,7 @@ def build_retriever(retriever_config, use_async, dataset_config, lm_config=None)
         "collection_name": dataset_config["collection_name"],
         "target_property_name": dataset_config["target_property_name"],
         "verbose": retriever_config.get("verbose", True),
+        "retrieved_k": retriever_config.get("retrieved_k"),
     }
 
     # Add verbose_signature if specified
@@ -92,7 +93,13 @@ def _build_think_qe(common_params, config):
     return retrieve_dspy.ThinkQE_QueryExpander(**common_params)
 
 def _build_sliding_window_listwise_reranker(common_params, config):
-    return retrieve_dspy.SlidingWindowListwiseReranker(**common_params)
+    params = {
+        **common_params,
+        "retrieved_k": config.get("retrieved_k", 50),
+        "window_size": config.get("window_size", 5),
+        "stride": config.get("stride", 3),
+    }
+    return retrieve_dspy.SlidingWindowListwiseReranker(**params)
 
 def _build_rag_fusion(common_params, config):
     params = {
