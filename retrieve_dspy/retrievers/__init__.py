@@ -22,6 +22,7 @@ from .query_writers.HyDE import HyDE_QueryExpander
 from .query_writers.LameR import LameR_QueryExpander
 from .query_writers.ThinkQE import ThinkQE_QueryExpander
 from .rerankers.sliding_window_listwise_reranker import SlidingWindowListwiseReranker
+from .rerankers.top_down_partitioning_reranker import TopDownPartitioningReranker
 
 __all__ = [
     "HybridSearch",
@@ -29,6 +30,7 @@ __all__ = [
     "LameR_QueryExpander",
     "ThinkQE_QueryExpander",
     "SlidingWindowListwiseReranker",
+    "TopDownPartitioningReranker",
     "RAGFusion",
     "CrossEncoderReranker",
     "ListwiseReranker",

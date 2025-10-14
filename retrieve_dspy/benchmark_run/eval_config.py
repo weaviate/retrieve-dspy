@@ -21,4 +21,5 @@ supported_retriever_types = (
     "LameR",
     "ThinkQE",
     "SlidingWindowListwiseReranker",
+    "TopDownPartitioningReranker",
 )

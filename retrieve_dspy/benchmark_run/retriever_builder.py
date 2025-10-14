@@ -54,6 +54,9 @@ def build_retriever(retriever_config, use_async, dataset_config, lm_config=None)
     elif retriever_type == "SlidingWindowListwiseReranker":
         return _build_sliding_window_listwise_reranker(common_params, retriever_config)
 
+    elif retriever_type == "TopDownPartitioningReranker":
+        return _build_top_down_partitioning_reranker(common_params, retriever_config)
+
     elif retriever_type == "RAGFusion":
         return _build_rag_fusion(common_params, retriever_config)
 
@@ -100,6 +103,9 @@ def _build_sliding_window_listwise_reranker(common_params, config):
         "stride": config.get("stride", 3),
     }
     return retrieve_dspy.SlidingWindowListwiseReranker(**params)
+
+def _build_top_down_partitioning_reranker(common_params, config):
+    return retrieve_dspy.TopDownPartitioningReranker(**common_params)
 
 def _build_rag_fusion(common_params, config):
     params = {

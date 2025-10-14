@@ -11,7 +11,7 @@ evaluation:
   num_threads: 1
 
 retriever:
-  type: "SlidingWindowListwiseReranker"  # Check options in `eval_config.py`
+  type: "TopDownPartitioningReranker"  # Check options in `eval_config.py`
 
   # Common parameters
   retrieved_k: 20
@@ -31,6 +31,12 @@ retriever:
   sliding_window_listwise_reranker:
     window_size: 5
     stride: 3
+  
+  top_down_partitioning_reranker:
+    window_size: 5
+    budget: 20
+    ranking_depth: 100
+    use_thinking: true
 
 # Metrics to evaluate
 metrics:

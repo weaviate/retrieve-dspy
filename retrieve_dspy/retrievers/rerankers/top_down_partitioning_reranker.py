@@ -590,8 +590,8 @@ async def main():
         collection_name="BrightBiology",
         target_property_name="content",
         verbose=True,
-        retrieved_k=50,      # Retrieve 50 documents
-        window_size=10,      # Process 10 docs at a time
+        retrieved_k=20,      # Retrieve 50 documents
+        window_size=5,      # Process 10 docs at a time
         budget=20,           # Allow up to 20 candidates (can increase for weaker retrievers)
         ranking_depth=100,   # Rank to depth 100
         use_thinking=True,
