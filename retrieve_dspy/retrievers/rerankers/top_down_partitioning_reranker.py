@@ -952,7 +952,7 @@ async def main():
             collection_name="BrightBiology",
             target_property_name="content",
             verbose=True,
-            retrieved_k=50,
+            retrieved_k=20,
             use_thinking=True,
             **{k: v for k, v in config.items() if k != 'name'}
         )
