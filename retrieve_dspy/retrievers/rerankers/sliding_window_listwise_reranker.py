@@ -34,6 +34,7 @@ class SlidingWindowReranker(BaseRAG):
         self,
         collection_name: str,
         target_property_name: str,
+        weaviate_client: Optional[weaviate.WeaviateClient | weaviate.WeaviateAsyncClient] = None,
         verbose: Optional[bool] = False,
         search_only: Optional[bool] = True,
         retrieved_k: Optional[int] = 50,
@@ -48,9 +49,9 @@ class SlidingWindowReranker(BaseRAG):
             verbose=verbose,
             retrieved_k=retrieved_k
         )
+        self.weaviate_client = weaviate_client
         self.window_size = window_size
         self.stride = stride
-        
         if use_thinking:
             if self.verbose:
                 self.ranker = dspy.ChainOfThought(VerboseListwiseRanking)
@@ -340,6 +341,8 @@ async def main():
     print(f"\nTop 3 reranked results:")
     for i, doc in enumerate(test_sync_response.sources[:3]):
         print(f"{i+1}. {str(doc)[:100]}...")
+
+    print(f"Returned {len(test_sync_response.sources)} documents.")
     
     print("\n\n=== Testing Async Reranking ===")
     test_async_response = await test_pipeline.aforward(test_q, weaviate_async_client=weaviate_async_client)

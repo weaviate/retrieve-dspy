@@ -21,12 +21,14 @@ from .compositions.quipler import QUIPLER
 from .query_writers.HyDE import HyDE_QueryExpander
 from .query_writers.LameR import LameR_QueryExpander
 from .query_writers.ThinkQE import ThinkQE_QueryExpander
+from .rerankers.sliding_window_listwise_reranker import SlidingWindowListwiseReranker
 
 __all__ = [
     "HybridSearch",
     "HyDE_QueryExpander",
     "LameR_QueryExpander",
     "ThinkQE_QueryExpander",
+    "SlidingWindowListwiseReranker",
     "RAGFusion",
     "CrossEncoderReranker",
     "ListwiseReranker",
