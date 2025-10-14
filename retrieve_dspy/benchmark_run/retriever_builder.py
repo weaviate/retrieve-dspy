@@ -50,6 +50,9 @@ def build_retriever(retriever_config, use_async, dataset_config, lm_config=None)
     elif retriever_type == "ThinkQE":
         return _build_think_qe(common_params, retriever_config)
 
+    elif retriever_type == "SlidingWindowListwiseReranker":
+        return _build_sliding_window_listwise_reranker(common_params, retriever_config)
+
     elif retriever_type == "RAGFusion":
         return _build_rag_fusion(common_params, retriever_config)
 
@@ -87,6 +90,9 @@ def _build_lame_r(common_params, config):
 
 def _build_think_qe(common_params, config):
     return retrieve_dspy.ThinkQE_QueryExpander(**common_params)
+
+def _build_sliding_window_listwise_reranker(common_params, config):
+    return retrieve_dspy.SlidingWindowListwiseReranker(**common_params)
 
 def _build_rag_fusion(common_params, config):
     params = {
