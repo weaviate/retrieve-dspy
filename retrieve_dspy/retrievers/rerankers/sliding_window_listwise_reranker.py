@@ -14,7 +14,7 @@ from retrieve_dspy.models import DSPyAgentRAGResponse, ListwiseRankedDocument
 from retrieve_dspy.signatures import ListwiseRanking, VerboseListwiseRanking
 
 
-class SlidingWindowReranker(BaseRAG):
+class SlidingWindowListwiseReranker(BaseRAG):
     """
     Listwise reranker using a sliding window approach.
     
@@ -320,7 +320,7 @@ class SlidingWindowReranker(BaseRAG):
 
 async def main():
     # Example with smaller numbers for demonstration
-    test_pipeline = SlidingWindowReranker(
+    test_pipeline = SlidingWindowListwiseReranker(
         collection_name="BrightBiology",
         target_property_name="content",
         verbose=True,
