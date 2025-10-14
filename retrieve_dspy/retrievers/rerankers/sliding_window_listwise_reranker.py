@@ -40,7 +40,7 @@ class SlidingWindowReranker(BaseRAG):
         retrieved_k: Optional[int] = 50,
         window_size: Optional[int] = 10,
         stride: Optional[int] = 5,
-        use_thinking: Optional[bool] = True,
+        use_thinking: Optional[bool] = False,
     ):
         super().__init__(
             collection_name=collection_name,
@@ -254,6 +254,10 @@ class SlidingWindowReranker(BaseRAG):
         question: str, 
         weaviate_client: Optional[weaviate.WeaviateClient] = None
     ) -> DSPyAgentRAGResponse:
+        if weaviate_client is None:
+            if isinstance(self.weaviate_client, weaviate.WeaviateClient):
+                weaviate_client = self.weaviate_client
+
         # Initial retrieval
         initial_results = weaviate_search_tool(
             query=question,
@@ -285,6 +289,10 @@ class SlidingWindowReranker(BaseRAG):
         question: str, 
         weaviate_async_client: Optional[weaviate.WeaviateAsyncClient] = None
     ) -> DSPyAgentRAGResponse:
+        if weaviate_async_client is None:
+            if isinstance(self.weaviate_async_client, weaviate.WeaviateAsyncClient):
+                weaviate_async_client = self.weaviate_async_client
+
         initial_results = await async_weaviate_search_tool(
             query=question,
             collection_name=self.collection_name,

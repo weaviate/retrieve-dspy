@@ -20,4 +20,5 @@ supported_retriever_types = (
     "HyDE",
     "LameR",
     "ThinkQE",
+    "SlidingWindowListwiseReranker",
 )

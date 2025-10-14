@@ -11,7 +11,7 @@ evaluation:
   num_threads: 1
 
 retriever:
-  type: "ThinkQE"  # Check options in `eval_config.py`
+  type: "SlidingWindowListwiseReranker"  # Check options in `eval_config.py`
 
   # Common parameters
   retrieved_k: 20
@@ -28,6 +28,9 @@ retriever:
   simplified_baleen_with_cross_encoder:
     max_hops: 2
   
+  sliding_window_listwise_reranker:
+    window_size: 5
+    stride: 3
 
 # Metrics to evaluate
 metrics:
