@@ -142,7 +142,7 @@ class QUIPLER(BaseRAG):
         # Handle event loop scenarios
         try:
             # Check if we're already in an async context
-            current_loop = asyncio.get_running_loop()
+            # current_loop = asyncio.get_running_loop()
             
             # If we're in an async context, we need to run in a thread
             with concurrent.futures.ThreadPoolExecutor() as executor:

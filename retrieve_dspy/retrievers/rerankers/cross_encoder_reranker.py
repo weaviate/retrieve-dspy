@@ -176,7 +176,6 @@ class CrossEncoderReranker(BaseRAG):
 async def main():
     import os
     import cohere
-    import voyageai
     import weaviate
     
     weaviate_client = weaviate.connect_to_weaviate_cloud(
@@ -184,7 +183,7 @@ async def main():
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
     )
     cohere_client = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
-    voyage_client = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
+    # voyage_client = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
 
     # Example with default models
     cross_encoder_reranker = CrossEncoderReranker(
@@ -225,7 +224,7 @@ async def main():
     )
     await weaviate_async_client.connect()
     cohere_async_client = cohere.AsyncClientV2(api_key=os.getenv("COHERE_API_KEY"))
-    voyage_async_client = voyageai.AsyncClient(api_key=os.getenv("VOYAGE_API_KEY"))
+    # voyage_async_client = voyageai.AsyncClient(api_key=os.getenv("VOYAGE_API_KEY"))
     
     # Test aforward() method
     print("\nTesting aforward() method:")
@@ -234,7 +233,7 @@ async def main():
         weaviate_async_client=weaviate_async_client,
         reranker_clients=[
             RerankerClient(name="cohere", client=cohere_async_client),
-            RerankerClient(name="voyage", client=voyage_async_client)
+            # RerankerClient(name="voyage", client=voyage_async_client)
         ],
     )
     print(f"\033[92mAsync successfully returned: {len(async_response.sources)} documents\033[0m")
