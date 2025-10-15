@@ -76,7 +76,7 @@ class SimplifiedBaleen(BaseRAG):
     def forward(self, question: str) -> list[ObjectFromDB]:
         results: list[ObjectFromDB] = []
         # init by searching with the original query
-        summary_of_results_found_so_far = ""
+        # summary_of_results_found_so_far = ""
 
         for hop in range(self.max_hops):
             query_writer_pred = self.query_writer(question=question, results_found_so_far=results)
@@ -89,10 +89,12 @@ class SimplifiedBaleen(BaseRAG):
                     weaviate_client=self.weaviate_client
                 )
                 results = deduplicate_and_join(results, passages)
+                '''
                 summary_of_results_found_so_far = self.search_results_summarizer(
                     question=question, 
                     search_results=results
                 ).summary_of_search_results
+                '''
                 if self.verbose:
                     print(f"\033[92mHop {hop + 1}:\nQuery '{query_writer_pred.follow_up_query}'\nreturned {len(passages)} sources\033[0m")
 

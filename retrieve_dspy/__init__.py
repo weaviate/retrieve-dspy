@@ -63,5 +63,6 @@ __all__ = [
     "metrics", 
     "datasets",
     "clients",
+    "benchmark_run",
     "QUIPLER",
 ]

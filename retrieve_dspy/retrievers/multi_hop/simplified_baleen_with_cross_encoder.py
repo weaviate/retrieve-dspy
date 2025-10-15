@@ -122,7 +122,7 @@ async def main():
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY"))
     )
     voyage_client = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
-    retriever = SimplifiedBaleen(
+    retriever = SimplifiedBaleenWithCrossEncoder(
         weaviate_client=weaviate_client,
         collection_name="EnronEmails",
         target_property_name="email_body",
