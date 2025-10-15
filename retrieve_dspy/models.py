@@ -1,18 +1,15 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Literal
+
 import dspy
 
-class Source(BaseModel):
+class ObjectFromDB(BaseModel):
     object_id: str
-
-class SourceWithContentAndVector(Source):
     content: str
-    vector: list[float]
-
-class SearchResult(BaseModel):
-    id: int
-    content: str
-    dataset_id: Optional[str]
+    relevance_rank: Optional[int] = None
+    relevance_score: Optional[float] = None
+    vector: Optional[list[float]] = None
+    source_query: Optional[str] = None
 
 class SearchQueryWithFilter(BaseModel):
     search_query: str
@@ -24,7 +21,7 @@ class Cluster(BaseModel):
     vectors: list[list[float]]
 
 class DSPyAgentRAGResponse(dspy.Prediction):
-    def __init__(self, final_answer: str = "", sources: List[Source] = None, 
+    def __init__(self, final_answer: str = "", sources: List[ObjectFromDB] = None, 
                  searches: Optional[List[str]] = None, aggregations: Optional[List] = None,
                  usage: Optional[Dict[str, Any]] = None, **kwargs):
         super().__init__(**kwargs)
@@ -32,5 +29,21 @@ class DSPyAgentRAGResponse(dspy.Prediction):
         self.final_answer = final_answer
         self.sources = sources or []
         self.searches = searches
-        self.aggregations = aggregations
         self.usage = usage or {}
+
+class RerankerClient(BaseModel):
+    name: Literal["cohere", "voyage"]
+    client: Any
+
+class RerankItem(BaseModel):
+    index: int
+    relevance_score: float
+
+class ListwiseRankedDocument(BaseModel):
+    content: Any
+    original_position: int
+    current_position: Optional[int] = None
+
+class MultiLMConfig(BaseModel):
+    signature_name: str
+    lm: Any

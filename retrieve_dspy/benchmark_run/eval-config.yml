@@ -1,0 +1,54 @@
+# Evaluation Configuration
+dataset:
+  name: "bright/biology"  # Check options in `eval_config.py`
+  collection_name: "BrightBiology"  # Weaviate collection name
+  target_property_name: "content"  # Property to search in
+
+evaluation:
+  num_trials: 1
+  num_samples: 150
+  seed: 42
+  num_threads: 1
+
+retriever:
+  type: "TopDownPartitioningReranker"  # Check options in `eval_config.py`
+
+  # Common parameters
+  retrieved_k: 20
+  verbose: true
+  # verbose_signature: true
+  
+  # parameters for particular retrievers
+  layered_best_match_reranker:
+    return_property_name: "content"
+
+  layered_listwise_reranker:
+    return_property_name: "content"
+  
+  simplified_baleen_with_cross_encoder:
+    max_hops: 2
+  
+  sliding_window_listwise_reranker:
+    window_size: 5
+    stride: 3
+  
+  top_down_partitioning_reranker:
+    window_size: 5
+    budget: 20
+    ranking_depth: 100
+    use_thinking: true
+
+# Metrics to evaluate
+metrics:
+  - name: "success@1"
+    type: "success"
+    k: 1
+  - name: "recall@5" 
+    type: "recall"
+    k: 5
+  - name: "recall@20"
+    type: "recall"
+    k: 20
+  - name: "nDCG@10"
+    type: "nDCG"
+    k: 10

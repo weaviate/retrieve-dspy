@@ -1,27 +1,36 @@
 from .retrievers import (
     MultiQueryWriter,
     MultiQueryWriterWithHint,
-    QueryWriterWithListwiseReranker,
     MultiQueryWriterWithReranker,
-    VanillaRAG,
+    HybridSearch,
+    HyDE_QueryExpander, 
+    LameR_QueryExpander,
+    ThinkQE_QueryExpander,
+    RAGFusion,
     CrossEncoderReranker,
     ListwiseReranker,
-    LayeredReranker,
+    LayeredBestMatchReranker,
+    LayeredListwiseReranker,
     FilteredQueryWriter,
     SummarizedListwiseReranker,
-    LoopingQueryWriter,
     QueryExpander,
     DecomposeAndExpand,
     QueryExpanderWithHint,
     DecomposeAndExpandWithHints,
     QueryExpanderWithReranker,
     BestMatchReranker,
-    QueryDocumentSummarizer
+    SlidingWindowListwiseReranker,
+    TopDownPartitioningReranker,
+    QueryDocumentSummarizer,
+    SimplifiedBaleenWithCrossEncoder,
+    QUIPLER,
 )
 
 from . import utils
 from . import metrics
 from . import datasets
+from . import clients
+from . import benchmark_run
 
 __version__ = "0.1.0"
 
@@ -29,14 +38,17 @@ __all__ = [
     "MultiQueryWriter",
     "MultiQueryWriterWithHint",
     "MultiQueryWriterWithReranker",
-    "QueryWriterWithListwiseReranker",
-    "VanillaRAG",
+    "HybridSearch",
+    "HyDE_QueryExpander",
+    "LameR_QueryExpander",
+    "ThinkQE_QueryExpander",
+    "RAGFusion",
     "FilteredQueryWriter",
     "SummarizedListwiseReranker",
     "CrossEncoderReranker",
     "ListwiseReranker",
-    "LayeredReranker",
-    "LoopingQueryWriter",
+    "LayeredBestMatchReranker",
+    "LayeredListwiseReranker",
     "QueryExpander",
     "DecomposeAndExpand",
     "QueryExpanderWithHint",
@@ -44,7 +56,13 @@ __all__ = [
     "QueryExpanderWithReranker",
     "BestMatchReranker",
     "QueryDocumentSummarizer",
+    "SimplifiedBaleenWithCrossEncoder",
+    "SlidingWindowListwiseReranker",
+    "TopDownPartitioningReranker",
     "utils",
     "metrics", 
     "datasets",
+    "clients",
+    "benchmark_run",
+    "QUIPLER",
 ]

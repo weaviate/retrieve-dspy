@@ -4,67 +4,19 @@ from typing import List, Dict, Optional, Set, Tuple
 
 from datasets import load_dataset
 from dspy import Example
-
-def create_dspy_examples_from_dataset(
-    queries: List[Dict],
-    max_train: int,
-    max_test: int,
-    *,
-    training_samples: Optional[Set[str]] = None,  # exact strings to EXCLUDE from test
-    seed: Optional[int] = None,
-) -> Tuple[List[Example], List[Example]]:
-    """
-    Convert dataset queries to DSPy Examples, sample train/test.
-    Test set will EXCLUDE any question present in `training_samples`.
-
-    Args:
-        queries: List of query dicts with at least "question"
-        max_train: Max number of train examples (0/None means all)
-        max_test: Max number of test examples (0/None means all)
-        training_samples: Set of question strings previously used for training
-                          (these will be EXCLUDED from test sampling)
-        seed: Optional RNG seed for reproducibility
-
-    Returns:
-        (train_examples, test_examples)
-    """
-    if seed is not None:
-        random.seed(seed)
-
-    examples = []
-    for query in queries:
-        q = query["question"]
-        ex = Example().with_inputs("question")
-        ex["question"] = q
-
-        if "dataset_ids" in query:
-            ex.dataset_ids = query["dataset_ids"]
-
-        if "nugget_data" in query:
-            ex.nugget_data = query["nugget_data"]
-
-        examples.append(ex)
-
-    # Train sample (no special filtering beyond size)
-    train_examples = random.sample(examples, min(max_train, len(examples))) if max_train else examples.copy()
-
-    # Candidates for test = everything not selected for train in THIS run
-    remaining_examples = [ex for ex in examples if ex not in train_examples]
-
-    # Further exclude anything in the external `training_samples` ledger from the TEST pool
-    if training_samples:
-        remaining_examples = [ex for ex in remaining_examples if ex["question"] not in training_samples]
-
-    # Test sample from filtered remaining
-    test_examples = random.sample(remaining_examples, min(max_test, len(remaining_examples))) if max_test else remaining_examples
-
-    return train_examples, test_examples
+import ir_datasets
 
 def in_memory_dataset_loader(dataset_name: str):
     if dataset_name == "enron":
         return _in_memory_dataset_loader_enron()
     elif dataset_name == "wixqa":
         return _in_memory_dataset_loader_wixqa()
+    elif dataset_name.startswith("beir/"):
+        return _in_memory_dataset_loader_beir(dataset_name)
+    elif dataset_name.startswith("bright/"):
+        return _in_memory_dataset_loader_bright(dataset_name)
+    elif dataset_name.startswith("lotte/"):
+        return _in_memory_dataset_loader_lotte(dataset_name)
     elif dataset_name == "freshstack-angular":
         return _in_memory_dataset_loader_freshstack(subset="angular")
     elif dataset_name == "freshstack-godot":
@@ -77,6 +29,72 @@ def in_memory_dataset_loader(dataset_name: str):
         return _in_memory_dataset_loader_freshstack(subset="yolo")
     else:
         return None
+    
+def _in_memory_dataset_loader_beir(dataset_name: str):
+    dataset = ir_datasets.load(f"{dataset_name}")
+    print(f"Loading BEIR dataset: {dataset_name}")
+    docs, questions = [], []
+    for doc in dataset.docs_iter():
+        docs.append({
+        "title": getattr(doc, "title", ""),
+        "content": getattr(doc, "text", ""),
+        "doc_id": getattr(doc, "doc_id", None)
+    })
+    qrels = {}
+    for qrel in dataset.qrels_iter():
+        query_id = qrel.query_id
+        if query_id not in qrels:
+            qrels[query_id] = []
+        qrels[query_id].append(qrel.doc_id)
+    for question in dataset.queries_iter():
+        questions.append({
+            "query_id": question.query_id,
+            "question": question.text,
+            "dataset_ids": qrels[question.query_id]
+        })
+    return docs, questions
+
+def _in_memory_dataset_loader_bright(dataset_name: str):
+    all_docs = load_dataset("xlangai/BRIGHT", "documents")
+    split = dataset_name.split("/")[1]
+    print(f"Loading BRIGHT dataset: {dataset_name}")
+    docs, questions = [], []
+    for doc in all_docs[split]:
+        docs.append({
+            "content": doc["content"],
+            "dataset_id": doc["id"]
+        })
+    all_questions = load_dataset("xlangai/BRIGHT", "examples")
+    for question in all_questions[split]:
+        questions.append({
+            "query_id": question["id"],
+            "question": question["query"],
+            "dataset_ids": question["gold_ids"]
+        })
+    return docs, questions
+
+def _in_memory_dataset_loader_lotte(dataset_name: str):
+    dataset = ir_datasets.load(f"{dataset_name}")
+    print(f"Loading LOTTE dataset: {dataset_name}")
+    docs, questions = [], []
+    for doc in dataset.docs_iter():
+        docs.append({
+        "text": getattr(doc, "text", ""),
+        "doc_id": getattr(doc, "doc_id", None)
+    })
+    qrels = {}
+    for qrel in dataset.qrels_iter():
+        query_id = qrel.query_id
+        if query_id not in qrels:
+            qrels[query_id] = []
+        qrels[query_id].append(qrel.doc_id)
+    for question in dataset.queries_iter():
+        questions.append({
+            "query_id": question.query_id,
+            "question": question.text,
+            "dataset_ids": qrels[question.query_id]
+        })
+    return docs, questions
 
 def _in_memory_dataset_loader_enron():
     emails = _load_dataset_from_hf_hub("weaviate/enron-qa-emails-dasovich-j")
@@ -163,34 +181,34 @@ def split_dataset(dataset, train_ratio=0.8, shuffle=True):
     
     return train_data, test_data
 
-def load_queries_in_memory(
-    dataset_name: str,
-    train_samples: int,
-    test_samples: int,
-    *,
-    training_samples: Optional[Set[str]] = None,  # pass your exact-question set here
-    seed: Optional[int] = None,
-):
-    _, queries = in_memory_dataset_loader(dataset_name)
+def prepare_random_subset(
+    queries: List[Dict],
+    num_samples: int,
+    samples_used_in_training: Optional[Set[str]] = None,
+    seed: Optional[int] = 42,
+) -> Tuple[List[Example], List[Example]]:
+    random.seed(seed)
 
-    '''
-    # WHAT!!
-    # THE FIRST K SAMPLES ON ENRONQA SEEM TO BE EASIER THAN RANDOM SAMPLES!!
-    first_k_samples = queries[:test_samples]
-    formatted_samples = []
-    for sample in first_k_samples:
-        formatted_sample = Example().with_inputs("question")
-        formatted_sample["question"] = sample["question"]
-        formatted_sample["dataset_ids"] = sample["dataset_ids"]
-        formatted_samples.append(formatted_sample)
-    '''
+    examples = []
+    for query in queries:
+        q = query["question"]
+        ex = Example().with_inputs("question")
+        ex["question"] = q
 
-    trainset, testset = create_dspy_examples_from_dataset(
-        queries=queries,
-        max_train=train_samples,
-        max_test=test_samples,
-        training_samples=training_samples,
-        seed=seed,
-    )
+        if "dataset_ids" in query:
+            ex.dataset_ids = query["dataset_ids"]
 
-    return trainset, testset
+        if "nugget_data" in query:
+            ex.nugget_data = query["nugget_data"]
+
+        examples.append(ex)
+
+    # Filter any samples_used_in_training from the examples
+    if samples_used_in_training:
+        examples = [ex for ex in examples if ex["question"] not in samples_used_in_training]
+    
+    # Sample the desired number of examples
+    random.shuffle(examples)
+    examples = examples[:num_samples]
+
+    return examples

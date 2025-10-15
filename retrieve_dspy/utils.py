@@ -1,43 +1,10 @@
 import json
 import os
-from typing import Iterable, Set, List, Tuple, Callable, Dict
+from typing import Iterable, Set, List
 
-import numpy as np
 
 import dspy
-from dspy import Example, Prediction
-
-def get_evaluator(
-    testset: list[Example],
-    metric: callable
-):
-    evaluator = dspy.Evaluate(
-        devset=testset,
-        metric=metric, 
-        num_threads=1,
-        display_progress=True,
-        max_errors=1,
-        provide_traceback=True
-    )
-
-    return evaluator
-
-def offline_recall_evaluator(
-    results: List[Tuple[Example, Prediction, float]],
-    metrics: Dict[str, Callable],
-) -> Dict[str, float]:
-    metric_scores = {name: [] for name in metrics.keys()}
-    
-    for example, prediction, original_score in results:
-        for metric_name, metric_func in metrics.items():
-            score = metric_func(example, prediction)
-            metric_scores[metric_name].append(score)
-
-    avg_scores = {}
-    for metric_name, scores in metric_scores.items():
-        avg_scores[metric_name] = np.mean(scores) if scores else 0.0
-    
-    return avg_scores
+from dspy import Example
 
 # Used for saving training samples and ensuring we are not testing with training samples
 
@@ -85,3 +52,13 @@ def load_training_questions(path: str) -> Set[str]:
                 questions.add(line)
 
     return questions
+
+available_lms = (
+    "openai/gpt-4.1-mini",
+    "openai/gpt-5"
+)
+
+def get_lm(requested_lm: str, max_tokens: int = 32000) -> dspy.LM:
+    if requested_lm not in available_lms:
+        raise ValueError(f"Requested LM {requested_lm} not available. Available LMs: {available_lms}")
+    return dspy.LM(requested_lm, cache=False, temperature=1.0, api_key=os.getenv("OPENAI_API_KEY"), max_tokens=max_tokens)
