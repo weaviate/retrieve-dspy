@@ -195,6 +195,7 @@ async def main():
     )
     
     # Example with custom model overrides
+    '''
     cross_encoder_with_overrides = CrossEncoderReranker(
         collection_name="EnronEmails",
         target_property_name="email_body",
@@ -207,6 +208,7 @@ async def main():
             "voyage": "rerank-2.5"
         }
     )
+    '''
     
     # Test forward() method
     print("Testing forward() method:")

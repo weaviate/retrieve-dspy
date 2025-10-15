@@ -203,7 +203,8 @@ async def main():
     )
     print("Testing sync with BestMatch strategy forward")
     test_query = "Where will Governor Gray Davis host a party for the delegates, according to the article “Davis faces dire political consequences if power woes linger?"
-    response = rag_pipeline.forward(test_query)    
+    response = rag_pipeline.forward(test_query)  
+    print(response)  
     #print("Testing async forward")
     #response = await rag_pipeline.aforward("What is the best way to learn Angular?")
     #print(response)
