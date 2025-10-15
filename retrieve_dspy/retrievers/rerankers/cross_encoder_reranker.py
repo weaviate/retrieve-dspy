@@ -13,7 +13,6 @@ from retrieve_dspy.retrievers.common.call_ce_ranker import (
     async_ce_rank,
     reorder,
 )
-from retrieve_dspy.signatures import CrossEncoderReranker
 
 
 class CrossEncoderReranker(BaseRAG):

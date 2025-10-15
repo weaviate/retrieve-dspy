@@ -6,7 +6,7 @@ from retrieve_dspy.models import ObjectFromDB, SearchQueryWithFilter
 
 # Pointwise Rerankers
 
-class CrossEncoderReranker(dspy.Signature):
+class AssessRelevance(dspy.Signature):
     """Assess whether or not the candidate document is relevant to the query."""
 
     query: str = dspy.InputField(desc="The user's question or information need")
@@ -487,12 +487,14 @@ class VerboseSummarizeSearchResults(dspy.Signature):
     search_results: list[ObjectFromDB] = dspy.InputField(desc="A dictionary of search results, with ID as key and text as value.")
     summary: str = dspy.OutputField(desc="A comprehensive summary of the search results with citations to the result IDs, e.g., '...information [1, 2].'")
 
+'''
 class SummarizeSearchResults(dspy.Signature):
     """Summarize search results to extract the most important information related to the question."""
     
     question: str = dspy.InputField()
     search_results: list[ObjectFromDB] = dspy.InputField()
     summary: str = dspy.OutputField() # add citations to the ids in the summary
+'''
 
 class VerboseSummarizeSearchRelevance(dspy.Signature):
     """Analyze and summarize how a search result addresses the given query.

@@ -10,7 +10,7 @@ from retrieve_dspy.database.weaviate_database import (
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 
-from retrieve_dspy.models import DSPyAgentRAGResponse
+from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB
 from retrieve_dspy.signatures import RelevanceRanker, DiversityRanker
 
 class ListwiseReranker(BaseRAG):
@@ -54,7 +54,7 @@ class ListwiseReranker(BaseRAG):
         # Build SearchResult-like structures for the reranker
         search_results = []
         for i, s in enumerate(sources, 1):
-            search_results.append(SearchResult(id=i, initial_rank=i, content=s.content))
+            search_results.append(ObjectFromDB(id=i, initial_rank=i, content=s.content))
 
         rerank_pred = self.reranker(
             query=question,
@@ -103,7 +103,7 @@ class ListwiseReranker(BaseRAG):
         
         search_results = []
         for i, s in enumerate(sources, 1):
-            search_results.append(SearchResult(id=i, initial_rank=i, content=s.content))
+            search_results.append(ObjectFromDB(id=i, initial_rank=i, content=s.content))
 
         rerank_pred = await self.reranker.acall(
             query=question,
