@@ -240,6 +240,7 @@ async def main():
     print("Testing sync with Listwise strategy forward")
     test_query = "How many types of MIDI messages are there?"
     response = rag_pipeline.forward(test_query)    
+    print(response)
     #print("Testing async forward")
     #response = await rag_pipeline.aforward("What is the best way to learn Angular?")
     #print(response)
