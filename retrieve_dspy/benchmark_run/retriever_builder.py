@@ -2,9 +2,7 @@
 Builder patterns for different retriever types.
 """
 import retrieve_dspy
-from retrieve_dspy.clients import get_weaviate_client, get_and_connect_weaviate_async_client, get_voyage_client, get_voyage_async_client
-from retrieve_dspy.models import MultiLMConfig
-from retrieve_dspy.utils import get_lm
+from retrieve_dspy.clients import get_weaviate_client, get_and_connect_weaviate_async_client, get_voyage_client
 from retrieve_dspy.benchmark_run.eval_config import supported_retriever_types
 
 """Factory method for building different types of retrievers."""

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 import weaviate
 
 from retrieve_dspy.retrievers.base_rag import BaseRAG
@@ -188,7 +188,7 @@ class QUIPLER(BaseRAG):
         
         if not all_results:
             if self.verbose:
-                print(f"\033[91m[QUIPLER] All searches failed, using single search fallback\033[0m")
+                print("\033[91m[QUIPLER] All searches failed, using single search fallback\033[0m")
             return self.searcher.forward(
                 question=original_question,
                 weaviate_client=weaviate_client,
@@ -239,7 +239,7 @@ class QUIPLER(BaseRAG):
         
         if successful_searches == 0:
             if self.verbose:
-                print(f"\033[91m[QUIPLER] All parallel searches failed, using single search fallback\033[0m")
+                print("\033[91m[QUIPLER] All parallel searches failed, using single search fallback\033[0m")
             return self.searcher.forward(
                 question=original_question,
                 weaviate_client=weaviate_client,
@@ -328,7 +328,7 @@ class QUIPLER(BaseRAG):
         
         if successful_searches == 0:
             if self.verbose:
-                print(f"\033[91m[QUIPLER] All searches failed, falling back to original question\033[0m")
+                print("\033[91m[QUIPLER] All searches failed, falling back to original question\033[0m")
             # Fallback to single search with original question
             fallback_result = await self.searcher.aforward(
                 question=question,

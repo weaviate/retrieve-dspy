@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import Literal, Optional
+from typing import Optional
 
 import weaviate
 from weaviate.classes.query import Filter, Metrics, MetadataQuery

@@ -14,7 +14,6 @@ from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.database.weaviate_database import weaviate_search_tool
 from retrieve_dspy.signatures import (
     WriteFollowUpQuery,
-    VerboseWriteFollowUpQuery,
     VerboseSummarizeSearchResults,
     SummarizeSearchResults,
 )
@@ -24,7 +23,6 @@ from retrieve_dspy.retrievers.common.deduplicate import deduplicate_and_join
 from retrieve_dspy.retrievers.common.call_ce_ranker import (
     RerankItem,
     ce_rank,
-    async_ce_rank,
     reorder,
 )
 

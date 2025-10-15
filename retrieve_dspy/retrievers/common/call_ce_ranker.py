@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Literal, Optional
 
 from retrieve_dspy.models import RerankerClient  # Pydantic: name: Literal["cohere","voyage"], client: Any

@@ -598,7 +598,7 @@ class TopDownPartitioningReranker(BaseRAG):
         
         if self.verbose:
             print(f"\n\033[92m{'='*60}\033[0m")
-            print(f"\033[92mStarting Top-Down Partitioning Reranking\033[0m")
+            print("\033[92mStarting Top-Down Partitioning Reranking\033[0m")
             print(f"\033[92mTotal documents: {len(documents)}, Ranking depth: {min(self.ranking_depth, len(documents))}\033[0m")
             print(f"\033[92mWindow size: {self.window_size}, Budget: {self.budget}, Pivot position: {self.pivot_position}\033[0m")
             print(f"\033[92mTarget k: {self.target_k}\033[0m")
@@ -640,7 +640,7 @@ class TopDownPartitioningReranker(BaseRAG):
             # Safety check to prevent infinite loops
             if iteration > 10:
                 if self.verbose:
-                    print(f"\n\033[91m⚠ Maximum iterations reached, stopping\033[0m")
+                    print("\n\033[91m⚠ Maximum iterations reached, stopping\033[0m")
                 break
         
         # Now we have a candidate pool. Apply paper's decision rule:
@@ -696,7 +696,7 @@ class TopDownPartitioningReranker(BaseRAG):
         
         if self.verbose:
             print(f"\n\033[92m{'='*60}\033[0m")
-            print(f"\033[92m✅ Reranking complete!\033[0m")
+            print("\033[92m✅ Reranking complete!\033[0m")
             print(f"\033[92mFinal ranking: {len(candidates)} top candidates + {len(all_pivots)} pivots + {len(backfill)} backfill\033[0m")
             print(f"\033[92mTotal inferences: {self.inference_count}\033[0m")
             print(f"\033[92mParallelizable inferences: {self.parallel_inference_count}\033[0m")
@@ -731,7 +731,7 @@ class TopDownPartitioningReranker(BaseRAG):
         
         if self.verbose:
             print(f"\n\033[92m{'='*60}\033[0m")
-            print(f"\033[92m⚡ Starting Top-Down Partitioning Reranking (ASYNC) ⚡\033[0m")
+            print("\033[92m⚡ Starting Top-Down Partitioning Reranking (ASYNC) ⚡\033[0m")
             print(f"\033[92mTotal documents: {len(documents)}, Ranking depth: {min(self.ranking_depth, len(documents))}\033[0m")
             print(f"\033[92mWindow size: {self.window_size}, Budget: {self.budget}, Pivot position: {self.pivot_position}\033[0m")
             print(f"\033[92mTarget k: {self.target_k}\033[0m")
@@ -766,7 +766,7 @@ class TopDownPartitioningReranker(BaseRAG):
             iteration += 1
             if iteration > 10:
                 if self.verbose:
-                    print(f"\n\033[91m⚠ Maximum iterations reached\033[0m")
+                    print("\n\033[91m⚠ Maximum iterations reached\033[0m")
                 break
         
         # Recursive refinement or final ranking
@@ -802,7 +802,7 @@ class TopDownPartitioningReranker(BaseRAG):
         
         if self.verbose:
             print(f"\n\033[92m{'='*60}\033[0m")
-            print(f"\033[92m✅ Async reranking complete!\033[0m")
+            print("\033[92m✅ Async reranking complete!\033[0m")
             print(f"\033[92mFinal: {len(candidates)} candidates + {len(all_pivots)} pivots + {len(backfill)} backfill\033[0m")
             print(f"\033[92mTotal inferences: {self.inference_count}\033[0m")
             print(f"\033[92mParallelizable: {self.parallel_inference_count}\033[0m")
@@ -963,12 +963,12 @@ async def main():
         
         test_sync_response = test_pipeline.forward(test_q, weaviate_client=weaviate_client)
         
-        print(f"\n\033[92mTop 5 reranked results:\033[0m")
+        print("\n\033[92mTop 5 reranked results:\033[0m")
         for i, doc in enumerate(test_sync_response.sources[:5]):
             doc_str = str(doc)[:150] if len(str(doc)) > 150 else str(doc)
             print(f"\033[96m{i+1}.\033[0m {doc_str}...")
         
-        print(f"\n\033[93m📊 Efficiency Metrics:\033[0m")
+        print("\n\033[93m📊 Efficiency Metrics:\033[0m")
         print(f"   • Total inferences: {test_pipeline.inference_count}")
         print(f"   • Parallelizable inferences: {test_pipeline.parallel_inference_count}")
         print(f"   • Potential speedup: {test_pipeline.parallel_inference_count / max(test_pipeline.inference_count, 1):.2f}x")
@@ -979,12 +979,12 @@ async def main():
         
         test_async_response = await test_pipeline.aforward(test_q, weaviate_async_client=weaviate_async_client)
         
-        print(f"\n\033[92mTop 5 reranked results:\033[0m")
+        print("\n\033[92mTop 5 reranked results:\033[0m")
         for i, doc in enumerate(test_async_response.sources[:5]):
             doc_str = str(doc)[:150] if len(str(doc)) > 150 else str(doc)
             print(f"\033[96m{i+1}.\033[0m {doc_str}...")
         
-        print(f"\n\033[93m📊 Efficiency Metrics:\033[0m")
+        print("\n\033[93m📊 Efficiency Metrics:\033[0m")
         print(f"   • Total inferences: {test_pipeline.inference_count}")
         print(f"   • Parallelizable inferences: {test_pipeline.parallel_inference_count}")
         print(f"   • Actual speedup with async: ~{test_pipeline.parallel_inference_count / max(test_pipeline.inference_count, 1):.2f}x")
@@ -999,14 +999,14 @@ async def main():
     print("For ranking to depth 100 with window size 10:")
     print()
     print("Sliding Window (stride=5):")
-    print(f"  • Inferences needed: (100 / 5) - 1 = \033[91m19 inferences\033[0m")
-    print(f"  • Parallelizable: \033[91m0 (sequential dependency)\033[0m")
-    print(f"  • Issues: Redundant re-scoring, bottom-up bias")
+    print("  • Inferences needed: (100 / 5) - 1 = \033[91m19 inferences\033[0m")
+    print("  • Parallelizable: \033[91m0 (sequential dependency)\033[0m")
+    print("  • Issues: Redundant re-scoring, bottom-up bias")
     print()
     print("Top-Down Partitioning:")
-    print(f"  • Inferences needed: ~\033[92m12-13 inferences\033[0m (33% reduction)")
-    print(f"  • Parallelizable: \033[92m~8-10 batches\033[0m")
-    print(f"  • Benefits: No redundant scoring, top-down bias, parallelizable")
+    print("  • Inferences needed: ~\033[92m12-13 inferences\033[0m (33% reduction)")
+    print("  • Parallelizable: \033[92m~8-10 batches\033[0m")
+    print("  • Benefits: No redundant scoring, top-down bias, parallelizable")
     print()
     print("\033[92m✅ Result: Same quality, fewer inferences, better parallelism!\033[0m")
     print()

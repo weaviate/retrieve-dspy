@@ -1,10 +1,7 @@
 import asyncio
-import os
-import re
-from typing import Optional, Any, List, Literal
+from typing import Optional, List, Literal
 
 import dspy
-import voyageai
 import weaviate
 
 from retrieve_dspy.database.weaviate_database import (
@@ -21,7 +18,6 @@ from retrieve_dspy.signatures import (
 from retrieve_dspy.retrievers.common.call_ce_ranker import (
     RerankItem,
     ce_rank,
-    async_ce_rank,
     reorder,
 )
 
@@ -131,7 +127,7 @@ class LayeredBestMatchReranker(BaseRAG):
 
         if self.verbose:
             print("\033[93mSummarized objects...\033[0m")
-            print(f"Here is a sample:")
+            print("Here is a sample:")
             print(f"{objects_with_summarized_content[0].content[:100]}...")
             print(f"{objects_with_summarized_content[0].object_id}")
 

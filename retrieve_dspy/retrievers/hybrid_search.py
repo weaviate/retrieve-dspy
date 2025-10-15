@@ -1,7 +1,6 @@
 import asyncio
 from typing import Optional
 
-import dspy
 import weaviate
 
 from retrieve_dspy.database.weaviate_database import (

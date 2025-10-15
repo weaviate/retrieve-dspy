@@ -1,11 +1,10 @@
 import json
 import os
-from typing import Iterable, Set, List, Tuple, Callable, Dict
+from typing import Iterable, Set, List
 
-import numpy as np
 
 import dspy
-from dspy import Example, Prediction
+from dspy import Example
 
 # Used for saving training samples and ensuring we are not testing with training samples
 

@@ -15,7 +15,6 @@ from retrieve_dspy.retrievers.common.deduplicate import deduplicate_and_join
 from retrieve_dspy.retrievers.common.call_ce_ranker import (
     RerankItem,
     ce_rank,
-    async_ce_rank,
     reorder,
 )
 

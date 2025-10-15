@@ -274,7 +274,7 @@ class SlidingWindowListwiseReranker(BaseRAG):
         reranked_results = self._sliding_window_rerank(question, initial_results)
         
         if self.verbose:
-            print(f"\n\033[92mReranking complete!\033[0m\n")
+            print("\n\033[92mReranking complete!\033[0m\n")
         
         return DSPyAgentRAGResponse(
             final_answer="",
@@ -307,7 +307,7 @@ class SlidingWindowListwiseReranker(BaseRAG):
         reranked_results = await self._asliding_window_rerank(question, initial_results)
         
         if self.verbose:
-            print(f"\n\033[92mReranking complete!\033[0m\n")
+            print("\n\033[92mReranking complete!\033[0m\n")
         
         return DSPyAgentRAGResponse(
             final_answer="",
@@ -346,7 +346,7 @@ async def main():
     
     print("=== Testing Sync Reranking ===")
     test_sync_response = test_pipeline.forward(test_q, weaviate_client=weaviate_client)
-    print(f"\nTop 3 reranked results:")
+    print("\nTop 3 reranked results:")
     for i, doc in enumerate(test_sync_response.sources[:3]):
         print(f"{i+1}. {str(doc)[:100]}...")
 
@@ -354,7 +354,7 @@ async def main():
     
     print("\n\n=== Testing Async Reranking ===")
     test_async_response = await test_pipeline.aforward(test_q, weaviate_async_client=weaviate_async_client)
-    print(f"\nTop 3 reranked results:")
+    print("\nTop 3 reranked results:")
     for i, doc in enumerate(test_async_response.sources[:3]):
         print(f"{i+1}. {str(doc)[:100]}...")
     
