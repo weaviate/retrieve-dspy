@@ -58,6 +58,9 @@ def main():
         print(f"\nRunning trial {trial + 1}/{num_trials}")
         
         # Prepare test set
+
+        # THE BUG IS HERE!!
+        # Separate `dspy.Example()` wrapping with subset sampling
         if eval_config["use_subset"]:
             testset = prepare_random_subset(
                 queries=queries,
@@ -75,14 +78,14 @@ def main():
         )
         
         # Run evaluation
-        dspy_evaluator_kwargs = {
-            "num_threads": eval_config["num_threads"]
-        }
+        if eval_config["use_multi_threads"]:
+            evaluator_result = evaluator(rag_pipeline, num_threads=eval_config["num_threads"])
+        else:
+            evaluator_result = evaluator(rag_pipeline)
         
-        evaluator_result = evaluator(rag_pipeline, **dspy_evaluator_kwargs)
         primary_score = evaluator_result.score
         scores.append(primary_score)
-        all_results = evaluator_result.results
+        all_results = evaluator_result.results   
         
         # Calculate offline metrics
         print("Calculating offline metrics...")

@@ -94,12 +94,13 @@ def print_final_results(scores, offline_scores_across_trials, metrics):
 
 def get_evaluator(
     testset: list[Example],
-    metric: callable
+    metric: callable,
+    num_threads: int = 1
 ):
     evaluator = dspy.Evaluate(
         devset=testset,
         metric=metric, 
-        num_threads=1,
+        num_threads=num_threads,
         display_progress=True,
         max_errors=1,
         provide_traceback=True
