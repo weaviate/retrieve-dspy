@@ -7,12 +7,7 @@ import weaviate
 from retrieve_dspy.database.weaviate_database import weaviate_search_tool, async_weaviate_search_tool
 from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerClient
 from retrieve_dspy.retrievers.base_rag import BaseRAG
-from retrieve_dspy.retrievers.common.call_ce_ranker import (
-    RerankItem,
-    ce_rank,
-    async_ce_rank,
-    reorder,
-)
+from retrieve_dspy.retrievers.common.call_ce_ranker import ce_rank, async_ce_rank, reorder, Provider
 
 
 class CrossEncoderReranker(BaseRAG):
@@ -28,17 +23,10 @@ class CrossEncoderReranker(BaseRAG):
         retrieved_k: Optional[int] = 50,
         reranked_k: Optional[int] = 20,
         model_name_overrides: Optional[Dict[str, str]] = None,
-        rrf_k: Optional[int] = 60, # Used for Mixture of Cross Encoders
+        provider: Optional[Provider] = None,
+        rrf_k: Optional[int] = 60,
         hybrid_weights: Optional[Dict[str, float]] = None,
     ):
-        """
-        Initialize CrossEncoderReranker.
-        
-        Args:
-            model_name_overrides: Optional dict mapping provider names to model names.
-                Example: {"cohere": "rerank-v4.0", "voyage": "rerank-3.0"}
-                If not provided, defaults from call_ce_ranker will be used.
-        """
         super().__init__(
             weaviate_client=weaviate_client,
             collection_name=collection_name,
@@ -51,6 +39,7 @@ class CrossEncoderReranker(BaseRAG):
         self.reranker_clients = reranker_clients
         self.reranked_k = int(reranked_k or 20)
         self.model_name_overrides = model_name_overrides or {}
+        self.provider = provider
         self.rrf_k = int(rrf_k or 60)
         self.hybrid_weights = hybrid_weights
         self.verbose = bool(verbose)
@@ -61,12 +50,10 @@ class CrossEncoderReranker(BaseRAG):
         weaviate_client: Optional[weaviate.WeaviateClient] = None,
         reranker_clients: Optional[List[RerankerClient]] = None,
     ) -> DSPyAgentRAGResponse:
-        if weaviate_client is None:
-            weaviate_client = self.weaviate_client
-        
-        if reranker_clients is None:
-            reranker_clients = self.reranker_clients
+        weaviate_client = weaviate_client or self.weaviate_client
+        reranker_clients = reranker_clients or self.reranker_clients
 
+        # Retrieve
         sources = weaviate_search_tool(
             weaviate_client=weaviate_client,
             query=question,
@@ -77,14 +64,12 @@ class CrossEncoderReranker(BaseRAG):
         )
 
         if self.verbose:
-            print(f"\033[96mInitial retrieval: {len(sources)} documents\033[0m")
-            print(f"Query: '{question}'")
+            print(f"Retrieved {len(sources)} documents")
 
-        docs: List[str] = [s.content for s in sources]
-
+        # Early return if no rerankers
         if not reranker_clients:
             if self.verbose:
-                print("\033[93mNo reranker_clients provided; returning retrieved order\033[0m")
+                print("No rerankers provided, returning retrieval order")
             return DSPyAgentRAGResponse(
                 final_answer="",
                 sources=sources[: self.reranked_k],
@@ -93,20 +78,23 @@ class CrossEncoderReranker(BaseRAG):
                 usage={},
             )
 
-        items: List[RerankItem] = ce_rank(
+        # Rerank
+        docs = [s.content for s in sources]
+        items = ce_rank(
             query=question,
             documents=docs,
             top_k=self.reranked_k,
             clients=reranker_clients,
+            provider=self.provider,
             model_name_overrides=self.model_name_overrides,
             rrf_k=self.rrf_k,
             hybrid_weights=self.hybrid_weights,
             verbose=self.verbose,
         )
 
-        reranked: List[ObjectFromDB] = reorder(items, sources)
+        reranked = reorder(items, sources)
         if self.verbose:
-            print(f"\n\033[96mReranked: Returning {len(reranked)} documents\033[0m")
+            print(f"Reranked: Returning {len(reranked)} documents")
 
         return DSPyAgentRAGResponse(
             final_answer="",
@@ -122,6 +110,9 @@ class CrossEncoderReranker(BaseRAG):
         weaviate_async_client: Optional[weaviate.AsyncWeaviateClient] = None,
         reranker_clients: Optional[List[RerankerClient]] = None,
     ) -> DSPyAgentRAGResponse:
+        reranker_clients = reranker_clients or self.reranker_clients
+
+        # Retrieve
         sources = await async_weaviate_search_tool(
             weaviate_async_client=weaviate_async_client,
             query=question,
@@ -132,14 +123,12 @@ class CrossEncoderReranker(BaseRAG):
         )
 
         if self.verbose:
-            print(f"\033[96mInitial retrieval: {len(sources)} documents\033[0m")
-            print(f"Query: '{question}' (async)")
+            print(f"Retrieved {len(sources)} documents (async)")
 
-        docs: List[str] = [s.content for s in sources]
-
+        # Early return if no rerankers
         if not reranker_clients:
             if self.verbose:
-                print("\033[93mNo reranker_clients provided; returning retrieved order (async)\033[0m")
+                print("No rerankers provided, returning retrieval order (async)")
             return DSPyAgentRAGResponse(
                 final_answer="",
                 sources=sources[: self.reranked_k],
@@ -148,20 +137,23 @@ class CrossEncoderReranker(BaseRAG):
                 usage={},
             )
 
+        # Rerank
+        docs = [s.content for s in sources]
         items = await async_ce_rank(
             query=question,
             documents=docs,
             top_k=self.reranked_k,
             clients=reranker_clients,
+            provider=self.provider,
             model_name_overrides=self.model_name_overrides,
             rrf_k=self.rrf_k,
             hybrid_weights=self.hybrid_weights,
             verbose=self.verbose,
         )
 
-        reranked: List[ObjectFromDB] = reorder(items, sources)
+        reranked = reorder(items, sources)
         if self.verbose:
-            print(f"\n\033[96mReranked: Returning {len(reranked)} documents\033[0m")
+            print(f"Reranked: Returning {len(reranked)} documents (async)")
 
         return DSPyAgentRAGResponse(
             final_answer="",
@@ -170,7 +162,6 @@ class CrossEncoderReranker(BaseRAG):
             aggregations=None,
             usage={},
         )
-
 
 async def main():
     import os
@@ -182,9 +173,7 @@ async def main():
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
     )
     cohere_client = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
-    # voyage_client = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
 
-    # Example with default models
     cross_encoder_reranker = CrossEncoderReranker(
         collection_name="BrightBiology",
         target_property_name="content",
@@ -195,30 +184,14 @@ async def main():
         reranked_k=20,
     )
     
-    # Example with custom model overrides
-    '''
-    cross_encoder_with_overrides = CrossEncoderReranker(
-        collection_name="EnronEmails",
-        target_property_name="email_body",
-        verbose=True,
-        search_only=True,
-        retrieved_k=50,
-        reranked_k=20,
-        model_name_overrides={
-            "cohere": "rerank-v3.5",
-            "voyage": "rerank-2.5"
-        }
-    )
-    '''
-    
     # Test forward() method
     print("Testing forward() method:")
     response = cross_encoder_reranker.forward(
-        question="What are the implications of SBX12?",
+        question="How many cells are in the human body?",
         weaviate_client=weaviate_client,
         reranker_clients=[RerankerClient(name="cohere", client=cohere_client)],
     )
-    print(f"\033[92mSync successfully returned: {len(response.sources)} documents\033[0m")
+    print(f"Sync successfully returned: {len(response.sources)} documents")
 
     weaviate_async_client = weaviate.use_async_with_weaviate_cloud(
         cluster_url=os.getenv("WEAVIATE_URL"),
@@ -226,19 +199,18 @@ async def main():
     )
     await weaviate_async_client.connect()
     cohere_async_client = cohere.AsyncClientV2(api_key=os.getenv("COHERE_API_KEY"))
-    # voyage_async_client = voyageai.AsyncClient(api_key=os.getenv("VOYAGE_API_KEY"))
     
     # Test aforward() method
     print("\nTesting aforward() method:")
     async_response = await cross_encoder_reranker.aforward(
-        question="What are the implications of SBX12?",
+        question="How many cells are in the human body?",
         weaviate_async_client=weaviate_async_client,
-        reranker_clients=[
-            RerankerClient(name="cohere", client=cohere_async_client),
-            # RerankerClient(name="voyage", client=voyage_async_client)
-        ],
+        reranker_clients=[RerankerClient(name="cohere", client=cohere_async_client)],
     )
-    print(f"\033[92mAsync successfully returned: {len(async_response.sources)} documents\033[0m")
+    print(f"Async successfully returned: {len(async_response.sources)} documents")
+    
+    await weaviate_async_client.close()
+    weaviate_client.close()
 
 
 if __name__ == "__main__":
