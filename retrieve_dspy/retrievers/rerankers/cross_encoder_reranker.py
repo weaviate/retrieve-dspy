@@ -3,12 +3,13 @@ from __future__ import annotations
 from typing import Optional, List, Dict
 
 import weaviate
-
+import dspy
+            
 from retrieve_dspy.database.weaviate_database import weaviate_search_tool, async_weaviate_search_tool
 from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerClient
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.retrievers.common.call_ce_ranker import ce_rank, async_ce_rank, reorder, Provider
-
+from retrieve_dspy.signatures import AssessRelevance
 
 class CrossEncoderReranker(BaseRAG):
     def __init__(
@@ -26,6 +27,7 @@ class CrossEncoderReranker(BaseRAG):
         provider: Optional[Provider] = None,
         rrf_k: Optional[int] = 60,
         hybrid_weights: Optional[Dict[str, float]] = None,
+        use_dspy_reranker: Optional[bool] = False,
     ):
         super().__init__(
             weaviate_client=weaviate_client,
@@ -43,6 +45,13 @@ class CrossEncoderReranker(BaseRAG):
         self.rrf_k = int(rrf_k or 60)
         self.hybrid_weights = hybrid_weights
         self.verbose = bool(verbose)
+        
+        # DSPy cross-encoder as internal module
+        self.use_dspy_reranker = use_dspy_reranker
+        if use_dspy_reranker:
+            self.cross_encoder = dspy.Predict(AssessRelevance)
+        else:
+            self.cross_encoder = None
 
     def forward(
         self,
@@ -67,7 +76,7 @@ class CrossEncoderReranker(BaseRAG):
             print(f"Retrieved {len(sources)} documents")
 
         # Early return if no rerankers
-        if not reranker_clients:
+        if not reranker_clients and not self.cross_encoder:
             if self.verbose:
                 print("No rerankers provided, returning retrieval order")
             return DSPyAgentRAGResponse(
@@ -78,13 +87,18 @@ class CrossEncoderReranker(BaseRAG):
                 usage={},
             )
 
+        # Build reranker clients list (include DSPy if enabled)
+        all_clients = list(reranker_clients) if reranker_clients else []
+        if self.cross_encoder:
+            all_clients.append(RerankerClient(name="dspy", client=self.cross_encoder))
+
         # Rerank
         docs = [s.content for s in sources]
         items = ce_rank(
             query=question,
             documents=docs,
             top_k=self.reranked_k,
-            clients=reranker_clients,
+            clients=all_clients,
             provider=self.provider,
             model_name_overrides=self.model_name_overrides,
             rrf_k=self.rrf_k,
@@ -126,7 +140,7 @@ class CrossEncoderReranker(BaseRAG):
             print(f"Retrieved {len(sources)} documents (async)")
 
         # Early return if no rerankers
-        if not reranker_clients:
+        if not reranker_clients and not self.cross_encoder:
             if self.verbose:
                 print("No rerankers provided, returning retrieval order (async)")
             return DSPyAgentRAGResponse(
@@ -137,13 +151,18 @@ class CrossEncoderReranker(BaseRAG):
                 usage={},
             )
 
+        # Build reranker clients list (include DSPy if enabled)
+        all_clients = list(reranker_clients) if reranker_clients else []
+        if self.cross_encoder:
+            all_clients.append(RerankerClient(name="dspy", client=self.cross_encoder))
+
         # Rerank
         docs = [s.content for s in sources]
         items = await async_ce_rank(
             query=question,
             documents=docs,
             top_k=self.reranked_k,
-            clients=reranker_clients,
+            clients=all_clients,
             provider=self.provider,
             model_name_overrides=self.model_name_overrides,
             rrf_k=self.rrf_k,
@@ -169,7 +188,7 @@ async def main():
     import cohere
     import voyageai
     import weaviate
-    
+        
     weaviate_client = weaviate.connect_to_weaviate_cloud(
         cluster_url=os.getenv("WEAVIATE_URL"),
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
@@ -177,22 +196,22 @@ async def main():
     cohere_client = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
     voyage_client = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
 
-    cross_encoder_reranker = CrossEncoderReranker(
-        collection_name="BrightBiology",
-        target_property_name="content",
-        weaviate_client=weaviate_client,
-        verbose=True,
-        search_only=True,
-        retrieved_k=50,
-        reranked_k=20,
-    )
-    
+    test_query = "Why are fearful stimuli more powerful at night? For example, horror movies appear to be scarier when viewed at night than during broad day light. Does light have any role in this phenomenon? Are there changes in hormones at night versus during the day that makes fear stronger?"
+
     # Test 1: Cohere only
     print("=" * 80)
     print("Test 1: Cohere only")
     print("=" * 80)
-    response_cohere = cross_encoder_reranker.forward(
-        question="How many cells are in the human body?",
+    reranker = CrossEncoderReranker(
+        collection_name="BrightBiology",
+        target_property_name="content",
+        weaviate_client=weaviate_client,
+        verbose=True,
+        retrieved_k=50,
+        reranked_k=20,
+    )
+    response_cohere = reranker.forward(
+        question=test_query,
         weaviate_client=weaviate_client,
         reranker_clients=[RerankerClient(name="cohere", client=cohere_client)],
     )
@@ -203,32 +222,53 @@ async def main():
     print("\n" + "=" * 80)
     print("Test 2: Voyage only")
     print("=" * 80)
-    response_voyage = cross_encoder_reranker.forward(
-        question="How many cells are in the human body?",
+    response_voyage = reranker.forward(
+        question=test_query,
         weaviate_client=weaviate_client,
         reranker_clients=[RerankerClient(name="voyage", client=voyage_client)],
     )
     print(f"✓ Voyage returned: {len(response_voyage.sources)} documents")
     print(f"  Top score: {response_voyage.sources[0].relevance_score:.4f}")
     
-    # Test 3: Hybrid mode (both together)
+    # Test 3: DSPy only (internal module)
     print("\n" + "=" * 80)
-    print("Test 3: Hybrid mode (Cohere + Voyage with RRF)")
+    print("Test 3: DSPy LLM-based cross encoder only (internal module)")
     print("=" * 80)
-    response_hybrid = cross_encoder_reranker.forward(
-        question="How many cells are in the human body?",
+    reranker_with_dspy = CrossEncoderReranker(
+        collection_name="BrightBiology",
+        target_property_name="content",
+        weaviate_client=weaviate_client,
+        verbose=True,
+        retrieved_k=50,
+        reranked_k=20,
+        use_dspy_reranker=True,  # Enable internal DSPy cross-encoder
+    )
+    response_dspy = reranker_with_dspy.forward(
+        question=test_query,
+        weaviate_client=weaviate_client,
+    )
+    print(f"✓ DSPy returned: {len(response_dspy.sources)} documents")
+    print(f"  Top score: {response_dspy.sources[0].relevance_score:.4f}")
+    
+    # Test 4: Hybrid mode (all three together)
+    print("\n" + "=" * 80)
+    print("Test 4: Hybrid mode (Cohere + Voyage + DSPy with RRF)")
+    print("=" * 80)
+    response_hybrid = reranker_with_dspy.forward(
+        question=test_query,
         weaviate_client=weaviate_client,
         reranker_clients=[
             RerankerClient(name="cohere", client=cohere_client),
             RerankerClient(name="voyage", client=voyage_client),
         ],
+        # DSPy is automatically included from self.cross_encoder
     )
     print(f"✓ Hybrid returned: {len(response_hybrid.sources)} documents")
     print(f"  Top score: {response_hybrid.sources[0].relevance_score:.4f}")
 
-    # Test 4: Async with all three modes
+    # Test 5: Async with all modes
     print("\n" + "=" * 80)
-    print("Test 4: Async tests")
+    print("Test 5: Async tests")
     print("=" * 80)
     
     weaviate_async_client = weaviate.use_async_with_weaviate_cloud(
@@ -241,8 +281,8 @@ async def main():
     
     # Async Cohere
     print("\n  Async Cohere:")
-    async_response_cohere = await cross_encoder_reranker.aforward(
-        question="How many cells are in the human body?",
+    async_response_cohere = await reranker.aforward(
+        question=test_query,
         weaviate_async_client=weaviate_async_client,
         reranker_clients=[RerankerClient(name="cohere", client=cohere_async_client)],
     )
@@ -250,17 +290,25 @@ async def main():
     
     # Async Voyage
     print("\n  Async Voyage:")
-    async_response_voyage = await cross_encoder_reranker.aforward(
-        question="How many cells are in the human body?",
+    async_response_voyage = await reranker.aforward(
+        question=test_query,
         weaviate_async_client=weaviate_async_client,
         reranker_clients=[RerankerClient(name="voyage", client=voyage_async_client)],
     )
     print(f"  ✓ Async Voyage returned: {len(async_response_voyage.sources)} documents")
     
-    # Async Hybrid
-    print("\n  Async Hybrid:")
-    async_response_hybrid = await cross_encoder_reranker.aforward(
-        question="How many cells are in the human body?",
+    # Async DSPy
+    print("\n  Async DSPy:")
+    async_response_dspy = await reranker_with_dspy.aforward(
+        question=test_query,
+        weaviate_async_client=weaviate_async_client,
+    )
+    print(f"  ✓ Async DSPy returned: {len(async_response_dspy.sources)} documents")
+    
+    # Async Hybrid (all three)
+    print("\n  Async Hybrid (all three):")
+    async_response_hybrid = await reranker_with_dspy.aforward(
+        question=test_query,
         weaviate_async_client=weaviate_async_client,
         reranker_clients=[
             RerankerClient(name="cohere", client=cohere_async_client),

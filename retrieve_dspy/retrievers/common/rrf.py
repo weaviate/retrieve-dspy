@@ -1,12 +1,8 @@
 from typing import List, Dict, Optional
 from collections import defaultdict
-from retrieve_dspy.models import ObjectFromDB
+from retrieve_dspy.models import ObjectFromDB, RerankItem
 
-from typing import Dict, List, Optional
-from retrieve_dspy.models import RerankItem
-
-
-def fuse_rankings_with_rrf(
+def fuse_rrf(
     rankings: Dict[str, List[RerankItem]],
     top_k: int,
     rrf_k: int = 60,
@@ -15,20 +11,20 @@ def fuse_rankings_with_rrf(
     """Fuse multiple rankings using Reciprocal Rank Fusion."""
     weights = weights or {}
     
-    # Handle edge cases
-    cohere_items = rankings.get("cohere", [])
-    voyage_items = rankings.get("voyage", [])
-    if not cohere_items:
-        return voyage_items[:top_k]
-    if not voyage_items:
-        return cohere_items[:top_k]
+    # Filter out empty rankings
+    valid_rankings = {name: items for name, items in rankings.items() if items}
     
-    # Calculate RRF scores
+    # If only one provider has results, return it
+    if len(valid_rankings) == 1:
+        return list(valid_rankings.values())[0][:top_k]
+    
+    if len(valid_rankings) == 0:
+        return []
+    
+    # Calculate RRF scores for all providers
     scores: Dict[int, float] = {}
-    for name, items in rankings.items():
-        if not items:
-            continue
-        w = weights.get(name, 0.5)
+    for name, items in valid_rankings.items():
+        w = weights.get(name, 1.0 / len(valid_rankings))  # Equal weight by default
         for rank, item in enumerate(items):
             scores[item.index] = scores.get(item.index, 0.0) + w / (rrf_k + rank + 1)
     
