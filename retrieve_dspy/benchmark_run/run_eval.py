@@ -1,6 +1,6 @@
 
 from retrieve_dspy.metrics import create_metric
-from retrieve_dspy.datasets.in_memory import prepare_random_subset
+from retrieve_dspy.data_loaders.in_memory import prepare_random_subset
 
 from retriever_builder import build_retriever
 from retrieve_dspy.benchmark_run.eval_utils import (
