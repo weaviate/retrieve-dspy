@@ -4,7 +4,7 @@ from dspy import Example, Prediction
 from typing import List, Tuple, Dict, Callable
 import yaml
 from retrieve_dspy.clients import get_weaviate_client, get_voyage_client
-from retrieve_dspy.datasets.in_memory import in_memory_dataset_loader
+from retrieve_dspy.data_loaders.in_memory import in_memory_dataset_loader
 from retrieve_dspy.metrics import create_metric
 
 
