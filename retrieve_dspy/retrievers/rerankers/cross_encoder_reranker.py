@@ -186,8 +186,9 @@ async def main():
 
     # Example with default models
     cross_encoder_reranker = CrossEncoderReranker(
-        collection_name="EnronEmails",
-        target_property_name="email_body",
+        collection_name="BrightBiology",
+        target_property_name="content",
+        weaviate_client=weaviate_client,
         verbose=True,
         search_only=True,
         retrieved_k=50,
