@@ -58,12 +58,15 @@ def main():
         print(f"\nRunning trial {trial + 1}/{num_trials}")
         
         # Prepare test set
-        testset = prepare_random_subset(
-            queries=queries,
-            num_samples=eval_config["num_samples"],
-            seed=eval_config["seed"],
-            samples_used_in_training=used_qs,
-        )
+        if eval_config["use_subset"]:
+            testset = prepare_random_subset(
+                queries=queries,
+                num_samples=eval_config["num_samples"],
+                seed=eval_config["seed"],
+                samples_used_in_training=used_qs,
+            )
+        else:
+            testset = queries
         
         # Create evaluator
         evaluator = get_evaluator(

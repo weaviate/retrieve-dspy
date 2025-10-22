@@ -7,10 +7,12 @@ dataset:
   target_property_name: "content"
 
 evaluation:
-  num_trials: 1
+  use_multi_threads: false
+  num_threads: 5
+  use_subset: false
   num_samples: 150
+  num_trials: 1
   seed: 42
-  num_threads: 1
 
 retriever:
   type: "CrossEncoderReranker"
