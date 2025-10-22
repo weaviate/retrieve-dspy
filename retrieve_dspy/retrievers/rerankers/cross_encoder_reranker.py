@@ -163,9 +163,11 @@ class CrossEncoderReranker(BaseRAG):
             usage={},
         )
 
+
 async def main():
     import os
     import cohere
+    import voyageai
     import weaviate
     
     weaviate_client = weaviate.connect_to_weaviate_cloud(
@@ -173,6 +175,7 @@ async def main():
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
     )
     cohere_client = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
+    voyage_client = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
 
     cross_encoder_reranker = CrossEncoderReranker(
         collection_name="BrightBiology",
@@ -184,33 +187,94 @@ async def main():
         reranked_k=20,
     )
     
-    # Test forward() method
-    print("Testing forward() method:")
-    response = cross_encoder_reranker.forward(
+    # Test 1: Cohere only
+    print("=" * 80)
+    print("Test 1: Cohere only")
+    print("=" * 80)
+    response_cohere = cross_encoder_reranker.forward(
         question="How many cells are in the human body?",
         weaviate_client=weaviate_client,
         reranker_clients=[RerankerClient(name="cohere", client=cohere_client)],
     )
-    print(f"Sync successfully returned: {len(response.sources)} documents")
+    print(f"✓ Cohere returned: {len(response_cohere.sources)} documents")
+    print(f"  Top score: {response_cohere.sources[0].relevance_score:.4f}")
+    
+    # Test 2: Voyage only
+    print("\n" + "=" * 80)
+    print("Test 2: Voyage only")
+    print("=" * 80)
+    response_voyage = cross_encoder_reranker.forward(
+        question="How many cells are in the human body?",
+        weaviate_client=weaviate_client,
+        reranker_clients=[RerankerClient(name="voyage", client=voyage_client)],
+    )
+    print(f"✓ Voyage returned: {len(response_voyage.sources)} documents")
+    print(f"  Top score: {response_voyage.sources[0].relevance_score:.4f}")
+    
+    # Test 3: Hybrid mode (both together)
+    print("\n" + "=" * 80)
+    print("Test 3: Hybrid mode (Cohere + Voyage with RRF)")
+    print("=" * 80)
+    response_hybrid = cross_encoder_reranker.forward(
+        question="How many cells are in the human body?",
+        weaviate_client=weaviate_client,
+        reranker_clients=[
+            RerankerClient(name="cohere", client=cohere_client),
+            RerankerClient(name="voyage", client=voyage_client),
+        ],
+    )
+    print(f"✓ Hybrid returned: {len(response_hybrid.sources)} documents")
+    print(f"  Top score: {response_hybrid.sources[0].relevance_score:.4f}")
 
+    # Test 4: Async with all three modes
+    print("\n" + "=" * 80)
+    print("Test 4: Async tests")
+    print("=" * 80)
+    
     weaviate_async_client = weaviate.use_async_with_weaviate_cloud(
         cluster_url=os.getenv("WEAVIATE_URL"),
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
     )
     await weaviate_async_client.connect()
     cohere_async_client = cohere.AsyncClientV2(api_key=os.getenv("COHERE_API_KEY"))
+    voyage_async_client = voyageai.AsyncClient(api_key=os.getenv("VOYAGE_API_KEY"))
     
-    # Test aforward() method
-    print("\nTesting aforward() method:")
-    async_response = await cross_encoder_reranker.aforward(
+    # Async Cohere
+    print("\n  Async Cohere:")
+    async_response_cohere = await cross_encoder_reranker.aforward(
         question="How many cells are in the human body?",
         weaviate_async_client=weaviate_async_client,
         reranker_clients=[RerankerClient(name="cohere", client=cohere_async_client)],
     )
-    print(f"Async successfully returned: {len(async_response.sources)} documents")
+    print(f"  ✓ Async Cohere returned: {len(async_response_cohere.sources)} documents")
+    
+    # Async Voyage
+    print("\n  Async Voyage:")
+    async_response_voyage = await cross_encoder_reranker.aforward(
+        question="How many cells are in the human body?",
+        weaviate_async_client=weaviate_async_client,
+        reranker_clients=[RerankerClient(name="voyage", client=voyage_async_client)],
+    )
+    print(f"  ✓ Async Voyage returned: {len(async_response_voyage.sources)} documents")
+    
+    # Async Hybrid
+    print("\n  Async Hybrid:")
+    async_response_hybrid = await cross_encoder_reranker.aforward(
+        question="How many cells are in the human body?",
+        weaviate_async_client=weaviate_async_client,
+        reranker_clients=[
+            RerankerClient(name="cohere", client=cohere_async_client),
+            RerankerClient(name="voyage", client=voyage_async_client),
+        ],
+    )
+    print(f"  ✓ Async Hybrid returned: {len(async_response_hybrid.sources)} documents")
     
     await weaviate_async_client.close()
     weaviate_client.close()
+    
+    print("\n" + "=" * 80)
+    print("✅ ALL TESTS PASSED")
+    print("=" * 80)
 
 
 if __name__ == "__main__":
