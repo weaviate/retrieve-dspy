@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Optional, List, Dict
 
 import weaviate
@@ -121,9 +119,10 @@ class CrossEncoderReranker(BaseRAG):
     async def aforward(
         self,
         question: str,
-        weaviate_async_client: Optional[weaviate.AsyncWeaviateClient] = None,
+        weaviate_async_client: Optional[weaviate.WeaviateAsyncClient] = None,
         reranker_clients: Optional[List[RerankerClient]] = None,
     ) -> DSPyAgentRAGResponse:
+        weaviate_async_client = weaviate_async_client or self.weaviate_async_client
         reranker_clients = reranker_clients or self.reranker_clients
 
         # Retrieve
@@ -188,7 +187,8 @@ async def main():
     import cohere
     import voyageai
     import weaviate
-        
+    import time
+
     weaviate_client = weaviate.connect_to_weaviate_cloud(
         cluster_url=os.getenv("WEAVIATE_URL"),
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
@@ -210,26 +210,32 @@ async def main():
         retrieved_k=50,
         reranked_k=20,
     )
+    start = time.time()
     response_cohere = reranker.forward(
         question=test_query,
         weaviate_client=weaviate_client,
         reranker_clients=[RerankerClient(name="cohere", client=cohere_client)],
     )
+    elapsed = time.time() - start
     print(f"✓ Cohere returned: {len(response_cohere.sources)} documents")
     print(f"  Top score: {response_cohere.sources[0].relevance_score:.4f}")
-    
+    print(f"  Time taken: {elapsed:.2f} seconds")
+
     # Test 2: Voyage only
     print("\n" + "=" * 80)
     print("Test 2: Voyage only")
     print("=" * 80)
+    start = time.time()
     response_voyage = reranker.forward(
         question=test_query,
         weaviate_client=weaviate_client,
         reranker_clients=[RerankerClient(name="voyage", client=voyage_client)],
     )
+    elapsed = time.time() - start
     print(f"✓ Voyage returned: {len(response_voyage.sources)} documents")
     print(f"  Top score: {response_voyage.sources[0].relevance_score:.4f}")
-    
+    print(f"  Time taken: {elapsed:.2f} seconds")
+
     # Test 3: DSPy only (internal module)
     print("\n" + "=" * 80)
     print("Test 3: DSPy LLM-based cross encoder only (internal module)")
@@ -243,17 +249,21 @@ async def main():
         reranked_k=20,
         use_dspy_reranker=True,  # Enable internal DSPy cross-encoder
     )
+    start = time.time()
     response_dspy = reranker_with_dspy.forward(
         question=test_query,
         weaviate_client=weaviate_client,
     )
+    elapsed = time.time() - start
     print(f"✓ DSPy returned: {len(response_dspy.sources)} documents")
     print(f"  Top score: {response_dspy.sources[0].relevance_score:.4f}")
-    
+    print(f"  Time taken: {elapsed:.2f} seconds")
+
     # Test 4: Hybrid mode (all three together)
     print("\n" + "=" * 80)
     print("Test 4: Hybrid mode (Cohere + Voyage + DSPy with RRF)")
     print("=" * 80)
+    start = time.time()
     response_hybrid = reranker_with_dspy.forward(
         question=test_query,
         weaviate_client=weaviate_client,
@@ -263,14 +273,16 @@ async def main():
         ],
         # DSPy is automatically included from self.cross_encoder
     )
+    elapsed = time.time() - start
     print(f"✓ Hybrid returned: {len(response_hybrid.sources)} documents")
     print(f"  Top score: {response_hybrid.sources[0].relevance_score:.4f}")
+    print(f"  Time taken: {elapsed:.2f} seconds")
 
     # Test 5: Async with all modes
     print("\n" + "=" * 80)
     print("Test 5: Async tests")
     print("=" * 80)
-    
+
     weaviate_async_client = weaviate.use_async_with_weaviate_cloud(
         cluster_url=os.getenv("WEAVIATE_URL"),
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
@@ -278,35 +290,45 @@ async def main():
     await weaviate_async_client.connect()
     cohere_async_client = cohere.AsyncClientV2(api_key=os.getenv("COHERE_API_KEY"))
     voyage_async_client = voyageai.AsyncClient(api_key=os.getenv("VOYAGE_API_KEY"))
-    
+
     # Async Cohere
     print("\n  Async Cohere:")
+    start = time.time()
     async_response_cohere = await reranker.aforward(
         question=test_query,
         weaviate_async_client=weaviate_async_client,
         reranker_clients=[RerankerClient(name="cohere", client=cohere_async_client)],
     )
+    elapsed = time.time() - start
     print(f"  ✓ Async Cohere returned: {len(async_response_cohere.sources)} documents")
-    
+    print(f"  Time taken: {elapsed:.2f} seconds")
+
     # Async Voyage
     print("\n  Async Voyage:")
+    start = time.time()
     async_response_voyage = await reranker.aforward(
         question=test_query,
         weaviate_async_client=weaviate_async_client,
         reranker_clients=[RerankerClient(name="voyage", client=voyage_async_client)],
     )
+    elapsed = time.time() - start
     print(f"  ✓ Async Voyage returned: {len(async_response_voyage.sources)} documents")
-    
+    print(f"  Time taken: {elapsed:.2f} seconds")
+
     # Async DSPy
     print("\n  Async DSPy:")
+    start = time.time()
     async_response_dspy = await reranker_with_dspy.aforward(
         question=test_query,
         weaviate_async_client=weaviate_async_client,
     )
+    elapsed = time.time() - start
     print(f"  ✓ Async DSPy returned: {len(async_response_dspy.sources)} documents")
-    
+    print(f"  Time taken: {elapsed:.2f} seconds")
+
     # Async Hybrid (all three)
     print("\n  Async Hybrid (all three):")
+    start = time.time()
     async_response_hybrid = await reranker_with_dspy.aforward(
         question=test_query,
         weaviate_async_client=weaviate_async_client,
@@ -315,11 +337,13 @@ async def main():
             RerankerClient(name="voyage", client=voyage_async_client),
         ],
     )
+    elapsed = time.time() - start
     print(f"  ✓ Async Hybrid returned: {len(async_response_hybrid.sources)} documents")
-    
+    print(f"  Time taken: {elapsed:.2f} seconds")
+
     await weaviate_async_client.close()
     weaviate_client.close()
-    
+
     print("\n" + "=" * 80)
     print("✅ ALL TESTS PASSED")
     print("=" * 80)

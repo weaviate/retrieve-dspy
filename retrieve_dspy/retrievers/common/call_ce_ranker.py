@@ -39,12 +39,52 @@ def make_async_voyage_reranker(client: Any, model: str = "rerank-2.5") -> Callab
 
 
 def make_dspy_reranker(module: Any) -> Callable:
-    """Create sync DSPy reranker (uses dspy.Predict with AssessRelevance signature)."""
+    """Create sync DSPy reranker that runs async predictions concurrently."""
     def _fn(query: str, documents: List[str], top_k: int) -> List[RerankItem]:
-        results = []
-        for idx, doc in enumerate(documents):
-            # Call the module - DSPy modules should be called directly, not via .forward()
-            pred = module(query=query, candidate_document=doc)
+        import asyncio
+        import concurrent.futures
+        
+        async def score_all():
+            async def score_doc(idx: int, doc: str) -> RerankItem:
+                pred = await module.acall(query=query, candidate_document=doc)
+                
+                try:
+                    assessment = pred.relevance_assessment
+                except AttributeError:
+                    try:
+                        assessment = pred.get('relevance_assessment', False)
+                    except (AttributeError, TypeError):
+                        assessment = False
+                
+                score = 1.0 if assessment else 0.0
+                return RerankItem(index=idx, relevance_score=score)
+            
+            tasks = [score_doc(idx, doc) for idx, doc in enumerate(documents)]
+            return await asyncio.gather(*tasks)
+        
+        # Check if we're already in an async context
+        try:
+            asyncio.get_running_loop()
+            # Already in async context - run in thread pool to avoid nested loop
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, score_all())
+                results = future.result()
+        except RuntimeError:
+            # No running loop - safe to use asyncio.run
+            results = asyncio.run(score_all())
+        
+        results = list(results)
+        results.sort(key=lambda x: x.relevance_score, reverse=True)
+        return results[:top_k]
+    return _fn
+
+
+def make_async_dspy_reranker(module: Any) -> Callable:
+    """Create async DSPy reranker that runs predictions concurrently."""
+    async def _fn(query: str, documents: List[str], top_k: int) -> List[RerankItem]:
+        async def score_doc(idx: int, doc: str) -> RerankItem:
+            # Use acall for async execution
+            pred = await module.acall(query=query, candidate_document=doc)
             
             # Extract relevance assessment
             try:
@@ -55,39 +95,6 @@ def make_dspy_reranker(module: Any) -> Callable:
                 except (AttributeError, TypeError):
                     assessment = False
             
-            # Convert boolean to score: True=1.0, False=0.0
-            score = 1.0 if assessment else 0.0
-            results.append(RerankItem(index=idx, relevance_score=score))
-        
-        # Sort by score and return top_k
-        results.sort(key=lambda x: x.relevance_score, reverse=True)
-        return results[:top_k]
-    return _fn
-
-
-def make_async_dspy_reranker(module: Any) -> Callable:
-    """Create async DSPy reranker (uses dspy.Predict with AssessRelevance signature)."""
-    async def _fn(query: str, documents: List[str], top_k: int) -> List[RerankItem]:
-        import asyncio
-        
-        async def score_doc(idx: int, doc: str) -> RerankItem:
-            # Use acall for async execution
-            try:
-                pred = await module.acall(query=query, candidate_document=doc)
-            except AttributeError:
-                # Fallback to sync call in thread
-                pred = await asyncio.to_thread(
-                    module.forward if hasattr(module, 'forward') else module,
-                    query=query,
-                    candidate_document=doc
-                )
-            
-            # Extract relevance assessment
-            try:
-                assessment = pred.relevance_assessment
-            except AttributeError:
-                assessment = pred.get('relevance_assessment', False)
-            
             score = 1.0 if assessment else 0.0
             return RerankItem(index=idx, relevance_score=score)
         
@@ -96,6 +103,7 @@ def make_async_dspy_reranker(module: Any) -> Callable:
         results = await asyncio.gather(*tasks)
         
         # Sort by score and return top_k
+        results = list(results)
         results.sort(key=lambda x: x.relevance_score, reverse=True)
         return results[:top_k]
     return _fn
