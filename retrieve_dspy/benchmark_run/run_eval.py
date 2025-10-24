@@ -1,6 +1,9 @@
 
 from retrieve_dspy.metrics import create_metric
-from retrieve_dspy.data_loaders.in_memory import prepare_random_subset
+from retrieve_dspy.data_loaders.in_memory import (
+    prepare_examples,
+    sample_random_subset,
+)
 
 from retriever_builder import build_retriever
 from retrieve_dspy.benchmark_run.eval_utils import (
@@ -59,21 +62,20 @@ def main():
         
         # Prepare test set
 
-        # THE BUG IS HERE!!
-        # Separate `dspy.Example()` wrapping with subset sampling
+        test_queries = prepare_examples(queries)
         if eval_config["use_subset"]:
-            testset = prepare_random_subset(
-                queries=queries,
+            test_queries = sample_random_subset(
+                examples=test_queries,
                 num_samples=eval_config["num_samples"],
                 seed=eval_config["seed"],
-                samples_used_in_training=used_qs,
+                samples_used_in_training=used_qs
             )
         else:
-            testset = queries
+            test_queries = test_queries
         
         # Create evaluator
         evaluator = get_evaluator(
-            testset=testset,
+            testset=test_queries,
             metric=primary_metric,
         )
         
