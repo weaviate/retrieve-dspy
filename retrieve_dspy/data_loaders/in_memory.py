@@ -181,14 +181,16 @@ def split_dataset(dataset, train_ratio=0.8, shuffle=True):
     
     return train_data, test_data
 
-def prepare_random_subset(
-    queries: List[Dict],
-    num_samples: int,
-    samples_used_in_training: Optional[Set[str]] = None,
-    seed: Optional[int] = 42,
-) -> Tuple[List[Example], List[Example]]:
-    random.seed(seed)
-
+def prepare_examples(queries: List[Dict]) -> List[Example]:
+    """
+    Convert a list of query dictionaries into Example objects.
+    
+    Args:
+        queries: List of dictionaries containing query data
+        
+    Returns:
+        List of Example objects with the query data
+    """
     examples = []
     for query in queries:
         q = query["question"]
@@ -202,13 +204,36 @@ def prepare_random_subset(
             ex.nugget_data = query["nugget_data"]
 
         examples.append(ex)
+    
+    return examples
 
+
+def sample_random_subset(
+    examples: List[Example],
+    num_samples: int,
+    samples_used_in_training: Optional[Set[str]] = None,
+    seed: Optional[int] = 42,
+) -> List[Example]:
+    """
+    Sample a random subset of examples, optionally filtering out training samples.
+    
+    Args:
+        examples: List of Example objects to sample from
+        num_samples: Number of samples to return
+        samples_used_in_training: Optional set of question strings to exclude
+        seed: Random seed for reproducibility
+        
+    Returns:
+        List of sampled Example objects
+    """
+    random.seed(seed)
+    
     # Filter any samples_used_in_training from the examples
     if samples_used_in_training:
         examples = [ex for ex in examples if ex["question"] not in samples_used_in_training]
     
     # Sample the desired number of examples
     random.shuffle(examples)
-    examples = examples[:num_samples]
-
-    return examples
+    sampled_examples = examples[:num_samples]
+    
+    return sampled_examples
