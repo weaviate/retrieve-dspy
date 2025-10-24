@@ -21,7 +21,6 @@ def main():
     config = load_config()
 
     # Build retriever from config
-    print(f"Building retriever with config: {config['retriever']}")
     rag_pipeline = build_retriever(
         retriever_config=config["retriever"],
         use_async=config.get("use_async", False),

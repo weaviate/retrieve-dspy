@@ -32,11 +32,18 @@ class BaseRAG(dspy.Module):
         else:
             self.multi_lm_configs_dict = None
 
+        default_lm = "openai/gpt-5"
+
         lm = dspy.LM(
-            "openai/gpt-4.1-mini",
+            default_lm,
+            temperature=1.0,
+            max_tokens=32000,
             cache=False, 
             api_key=os.getenv("OPENAI_API_KEY"),
         )
+
+        print(f"\033[95mDSPy configured with default LM: {default_lm}\033[0m")
+
         dspy.configure(lm=lm, track_usage=True)
 
     @staticmethod

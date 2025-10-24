@@ -33,8 +33,8 @@ retriever:
   
   # Provider selection - uncomment one or more:
   use_cohere: false         # Fast, specialized reranker
-  use_voyage: true         # Alternative specialized reranker
-  use_dspy_reranker: false # LLM-based cross-encoder (slower, more control)
+  use_voyage: false         # Alternative specialized reranker
+  use_dspy_reranker: true # LLM-based cross-encoder (slower, more control)
   
   # Hybrid mode (automatically enabled if multiple providers are true)
   rrf_k: 60  # RRF constant for fusion

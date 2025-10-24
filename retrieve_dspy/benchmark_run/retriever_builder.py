@@ -21,6 +21,7 @@ def build_retriever(retriever_config, use_async, dataset_config, lm_config=None)
         Configured retriever instance
     """
     retriever_type = retriever_config["type"]
+    print(f"\033[95mBuilding retriever: {retriever_type}\033[0m")
     if retriever_type not in supported_retriever_types:
         raise ValueError(f"Unsupported retriever type: {retriever_type}")
 
