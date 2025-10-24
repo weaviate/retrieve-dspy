@@ -32,7 +32,7 @@ class BaseRAG(dspy.Module):
         else:
             self.multi_lm_configs_dict = None
 
-        default_lm = "openai/gpt-5"
+        default_lm = "openai/gpt-4.1-mini"
 
         lm = dspy.LM(
             default_lm,

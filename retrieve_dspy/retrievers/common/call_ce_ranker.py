@@ -43,42 +43,63 @@ def make_dspy_reranker(module: Any) -> Callable:
     def _fn(query: str, documents: List[str], top_k: int) -> List[RerankItem]:
         import asyncio
         import concurrent.futures
+        import logging
+        
+        logger = logging.getLogger(__name__)
         
         async def score_all():
+            # Reasonable semaphore limit - adjust based on your needs
+            semaphore = asyncio.Semaphore(20)  # Allow 20 concurrent requests
+            
             async def score_doc(idx: int, doc: str) -> RerankItem:
-                pred = await module.acall(query=query, candidate_document=doc)
-                
-                try:
-                    assessment = pred.relevance_assessment
-                except AttributeError:
+                async with semaphore:
                     try:
-                        assessment = pred.get('relevance_assessment', False)
-                    except (AttributeError, TypeError):
-                        assessment = False
-                
-                score = 1.0 if assessment else 0.0
-                return RerankItem(index=idx, relevance_score=score)
+                        pred = await module.acall(query=query, candidate_document=doc)
+                        
+                        try:
+                            assessment = pred.relevance_assessment
+                        except AttributeError:
+                            try:
+                                assessment = pred.get('relevance_assessment', False)
+                            except (AttributeError, TypeError):
+                                assessment = False
+                        
+                        score = 1.0 if assessment else 0.0
+                        return RerankItem(index=idx, relevance_score=score)
+                        
+                    except Exception as e:
+                        # Log once at debug level to avoid spam
+                        if idx == 0 or "Too many open files" not in str(e):
+                            logger.debug(f"Failed to score document {idx}: {str(e)[:100]}")
+                        return RerankItem(index=idx, relevance_score=0.0)
             
             tasks = [score_doc(idx, doc) for idx, doc in enumerate(documents)]
-            return await asyncio.gather(*tasks)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Convert any exceptions to zero-scored items
+            return [r if isinstance(r, RerankItem) else RerankItem(index=i, relevance_score=0.0) 
+                    for i, r in enumerate(results)]
         
-        # Check if we're already in an async context
         try:
-            asyncio.get_running_loop()
-            # Already in async context - run in thread pool to avoid nested loop
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(asyncio.run, score_all())
-                results = future.result()
-        except RuntimeError:
-            # No running loop - safe to use asyncio.run
-            results = asyncio.run(score_all())
-        
-        results = list(results)
-        results.sort(key=lambda x: x.relevance_score, reverse=True)
-        return results[:top_k]
+            try:
+                asyncio.get_running_loop()
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(asyncio.run, score_all())
+                    results = future.result()
+            except RuntimeError:
+                results = asyncio.run(score_all())
+            
+            results = list(results)
+            results.sort(key=lambda x: x.relevance_score, reverse=True)
+            return results[:top_k]
+            
+        except Exception as e:
+            logger.error(f"Critical error in reranker: {str(e)[:200]}")
+            return [RerankItem(index=i, relevance_score=0.0) for i in range(min(top_k, len(documents)))]
+    
     return _fn
 
-
+# FIX ME!
 def make_async_dspy_reranker(module: Any) -> Callable:
     """Create async DSPy reranker that runs predictions concurrently."""
     async def _fn(query: str, documents: List[str], top_k: int) -> List[RerankItem]:
