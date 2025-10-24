@@ -136,14 +136,14 @@ def _build_cross_encoder_reranker(common_params, config):
     if use_cohere:
         try:
             cohere_client = get_cohere_client()
-            reranker_clients.append(RerankerClient(name="cohere", client=cohere_client))
+            reranker_clients.append(cohere_client)
         except Exception as e:
             print(f"Warning: Could not get Cohere client: {e}")
     
     if use_voyage:
         try:
             voyage_client = get_voyage_client()
-            reranker_clients.append(RerankerClient(name="voyage", client=voyage_client))
+            reranker_clients.append(voyage_client)
         except Exception as e:
             print(f"Warning: Could not get Voyage client: {e}")
     
@@ -162,7 +162,7 @@ def _build_cross_encoder_reranker(common_params, config):
         provider_mode = "cohere"
         try:
             cohere_client = get_cohere_client()
-            reranker_clients.append(RerankerClient(name="cohere", client=cohere_client))
+            reranker_clients.append(cohere_client)
         except Exception as e:
             print(f"Warning: Could not get default Cohere client: {e}")
     

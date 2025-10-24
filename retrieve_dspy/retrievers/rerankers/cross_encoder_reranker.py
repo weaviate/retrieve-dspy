@@ -8,6 +8,7 @@ from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerCli
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.retrievers.common.call_ce_ranker import ce_rank, async_ce_rank, reorder, Provider
 from retrieve_dspy.signatures import AssessRelevance
+from retrieve_dspy.retrievers.common.truncate_document import truncate_document
 
 class CrossEncoderReranker(BaseRAG):
     def __init__(
@@ -73,25 +74,13 @@ class CrossEncoderReranker(BaseRAG):
         if self.verbose:
             print(f"Retrieved {len(sources)} documents")
 
-        # Early return if no rerankers
-        if not reranker_clients and not self.cross_encoder:
-            if self.verbose:
-                print("No rerankers provided, returning retrieval order")
-            return DSPyAgentRAGResponse(
-                final_answer="",
-                sources=sources[: self.reranked_k],
-                searches=[question],
-                aggregations=None,
-                usage={},
-            )
-
         # Build reranker clients list (include DSPy if enabled)
         all_clients = list(reranker_clients) if reranker_clients else []
         if self.cross_encoder:
             all_clients.append(RerankerClient(name="dspy", client=self.cross_encoder))
 
         # Rerank
-        docs = [s.content for s in sources]
+        docs = [truncate_document(s.content, 500) for s in sources]
         items = ce_rank(
             query=question,
             documents=docs,
@@ -138,25 +127,13 @@ class CrossEncoderReranker(BaseRAG):
         if self.verbose:
             print(f"Retrieved {len(sources)} documents (async)")
 
-        # Early return if no rerankers
-        if not reranker_clients and not self.cross_encoder:
-            if self.verbose:
-                print("No rerankers provided, returning retrieval order (async)")
-            return DSPyAgentRAGResponse(
-                final_answer="",
-                sources=sources[: self.reranked_k],
-                searches=[question],
-                aggregations=None,
-                usage={},
-            )
-
         # Build reranker clients list (include DSPy if enabled)
         all_clients = list(reranker_clients) if reranker_clients else []
         if self.cross_encoder:
             all_clients.append(RerankerClient(name="dspy", client=self.cross_encoder))
 
         # Rerank
-        docs = [s.content for s in sources]
+        docs = [truncate_document(s.content, 500) for s in sources]
         items = await async_ce_rank(
             query=question,
             documents=docs,
