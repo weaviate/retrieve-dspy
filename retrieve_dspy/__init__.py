@@ -27,7 +27,6 @@ from .retrievers import (
 )
 
 from . import utils
-from . import metrics
 from . import data_loaders
 from . import clients
 from . import benchmark_run
