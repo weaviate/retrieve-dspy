@@ -1,6 +1,6 @@
 import json
 import random
-from typing import List, Dict, Optional, Set, Tuple
+from typing import List, Dict, Optional, Set
 
 from datasets import load_dataset
 from dspy import Example

@@ -4,7 +4,7 @@ import weaviate
 import dspy
             
 from retrieve_dspy.database.weaviate_database import weaviate_search_tool, async_weaviate_search_tool
-from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerClient
+from retrieve_dspy.models import DSPyAgentRAGResponse, RerankerClient
 from retrieve_dspy.retrievers.base_rag import BaseRAG
 from retrieve_dspy.retrievers.common.call_ce_ranker import ce_rank, async_ce_rank, reorder, Provider
 from retrieve_dspy.signatures import AssessRelevance
