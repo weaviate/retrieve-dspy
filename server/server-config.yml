@@ -1,0 +1,22 @@
+# Server Configuration for retrieve-dspy
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+
+# Weaviate Database Configuration
+weaviate:
+  collection_name: "IRPapersText_Default"
+  target_property_name: "content"
+
+# Retriever Configuration
+retriever:
+  # Available retrievers: HybridSearch, CrossEncoderReranker, MultiQueryWriter, etc.
+  name: "HybridSearch"
+  
+  # Common retriever parameters
+  params:
+    retrieved_k: 20
+    verbose: false
+    search_only: true
+
