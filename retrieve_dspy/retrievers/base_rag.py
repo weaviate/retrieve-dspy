@@ -3,6 +3,7 @@ import os
 from typing import Optional
 
 import dspy
+import weaviate
 
 from retrieve_dspy.models import DSPyAgentRAGResponse, MultiLMConfig
 
@@ -10,6 +11,7 @@ class BaseRAG(dspy.Module):
     def __init__(
         self,
         collection_name: str, 
+        weaviate_client: Optional[weaviate.WeaviateClient] = None,
         target_property_name: Optional[str] = "content",
         verbose: Optional[bool] = True,
         search_only: Optional[bool] = True, 
@@ -18,6 +20,7 @@ class BaseRAG(dspy.Module):
         multi_lm_configs: Optional[list[MultiLMConfig]] = None,
     ) -> None:
         self.collection_name = collection_name
+        self.weaviate_client = weaviate_client
         self.target_property_name = target_property_name
         self.verbose = verbose
         self.search_only = search_only
@@ -29,11 +32,18 @@ class BaseRAG(dspy.Module):
         else:
             self.multi_lm_configs_dict = None
 
+        default_lm = "openai/gpt-4.1-mini"
+
         lm = dspy.LM(
-            "openai/gpt-4.1-mini",
+            default_lm,
+            temperature=1.0,
+            max_tokens=32000,
             cache=False, 
             api_key=os.getenv("OPENAI_API_KEY"),
         )
+
+        print(f"\033[95mDSPy configured with default LM: {default_lm}\033[0m")
+
         dspy.configure(lm=lm, track_usage=True)
 
     @staticmethod
@@ -55,7 +65,7 @@ class BaseRAG(dspy.Module):
         self.multi_lm_configs_dict = {config.signature_name: config.lm for config in self.multi_lm_configs}
 
     @abc.abstractmethod
-    def forward(self, question: str) -> DSPyAgentRAGResponse: ...
+    def forward(self, question: str, weaviate_client: Optional[weaviate.WeaviateClient] = None) -> DSPyAgentRAGResponse: ...
     
     @abc.abstractmethod
-    async def aforward(self, question: str) -> DSPyAgentRAGResponse: ...
+    async def aforward(self, question: str, weaviate_async_client: Optional[weaviate.WeaviateAsyncClient] = None) -> DSPyAgentRAGResponse: ...

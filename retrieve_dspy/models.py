@@ -32,7 +32,7 @@ class DSPyAgentRAGResponse(dspy.Prediction):
         self.usage = usage or {}
 
 class RerankerClient(BaseModel):
-    name: Literal["cohere", "voyage"]
+    name: Literal["cohere", "voyage", "dspy"]
     client: Any
 
 class RerankItem(BaseModel):

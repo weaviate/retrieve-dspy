@@ -1,32 +1,66 @@
-# Evaluation Configuration
+# Evaluation Configuration - Flat Design with All Options Visible
+# This makes it easy to ablate and see what's available
+
 dataset:
-  name: "bright/biology"  # Check options in `eval_config.py`
-  collection_name: "BrightBiology"  # Weaviate collection name
-  target_property_name: "content"  # Property to search in
+  name: "bright/biology"
+  collection_name: "BrightBiology"
+  target_property_name: "content"
 
 evaluation:
-  num_trials: 1
+  use_multi_threads: false
+  num_threads: 5
+  use_subset: false
   num_samples: 150
+  num_trials: 1
   seed: 42
-  num_threads: 1
 
 retriever:
-  type: "TopDownPartitioningReranker"  # Check options in `eval_config.py`
-
-  # Common parameters
-  retrieved_k: 20
-  verbose: true
-  # verbose_signature: true
+  type: "CrossEncoderReranker"
   
-  # parameters for particular retrievers
+  # =========================================================================
+  # Common parameters (all retrievers)
+  # =========================================================================
+  retrieved_k: 50
+  verbose: true
+  
+  # =========================================================================
+  # CrossEncoderReranker Configuration
+  # All options shown for easy ablation - comment/uncomment to test
+  # =========================================================================
+  
+  # Basic reranking
+  reranked_k: 20
+  
+  # Provider selection - uncomment one or more:
+  use_cohere: false         # Fast, specialized reranker
+  use_voyage: false         # Alternative specialized reranker
+  use_dspy_reranker: true # LLM-based cross-encoder (slower, more control)
+  
+  # Hybrid mode (automatically enabled if multiple providers are true)
+  rrf_k: 60  # RRF constant for fusion
+  hybrid_weights:
+    cohere: 0.5
+    voyage: 0.3
+    dspy: 0.2
+  
+  # Custom model versions (optional)
+  model_name_overrides:
+    cohere: "rerank-v3.5"
+    voyage: "rerank-2.5"
+  
+  # =========================================================================
+  # Other Retrievers' Configurations
+  # =========================================================================
+  
   layered_best_match_reranker:
     return_property_name: "content"
-
+    reranked_N: 20
+    reranked_M: 5
+  
   layered_listwise_reranker:
     return_property_name: "content"
-  
-  simplified_baleen_with_cross_encoder:
-    max_hops: 2
+    reranked_N: 20
+    reranked_M: 5
   
   sliding_window_listwise_reranker:
     window_size: 5
@@ -43,7 +77,7 @@ metrics:
   - name: "success@1"
     type: "success"
     k: 1
-  - name: "recall@5" 
+  - name: "recall@5"
     type: "recall"
     k: 5
   - name: "recall@20"
@@ -52,3 +86,52 @@ metrics:
   - name: "nDCG@10"
     type: "nDCG"
     k: 10
+
+
+# =============================================================================
+# QUICK ABLATION EXAMPLES - Copy/paste to test different configurations
+# =============================================================================
+
+# Single Provider Examples:
+# -------------------------
+# Cohere only:
+#   use_cohere: true
+#   use_voyage: false
+#   use_dspy_reranker: false
+#
+# Voyage only:
+#   use_cohere: false
+#   use_voyage: true
+#   use_dspy_reranker: false
+#
+# DSPy only:
+#   use_cohere: false
+#   use_voyage: false
+#   use_dspy_reranker: true
+
+# Hybrid Examples:
+# ----------------
+# Cohere + Voyage:
+#   use_cohere: true
+#   use_voyage: true
+#   use_dspy_reranker: false
+#   hybrid_weights:
+#     cohere: 0.5
+#     voyage: 0.5
+#
+# All three:
+#   use_cohere: true
+#   use_voyage: true
+#   use_dspy_reranker: true
+#   hybrid_weights:
+#     cohere: 0.35
+#     voyage: 0.35
+#     dspy: 0.30
+#
+# Cohere + DSPy (fast + reasoning):
+#   use_cohere: true
+#   use_voyage: false
+#   use_dspy_reranker: true
+#   hybrid_weights:
+#     cohere: 0.4
+#     dspy: 0.6

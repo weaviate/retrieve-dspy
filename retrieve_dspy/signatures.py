@@ -11,7 +11,7 @@ class AssessRelevance(dspy.Signature):
 
     query: str = dspy.InputField(desc="The user's question or information need")
     candidate_document: str = dspy.InputField(desc="The candidate document to assess for relevance")
-    is_relevant: bool = dspy.OutputField(desc="Whether or not the candidate document is relevant to the query")
+    relevance_assessment: bool = dspy.OutputField(desc="Whether or not the candidate document is relevant to the query")
 
 # Listwise Rerankers
 

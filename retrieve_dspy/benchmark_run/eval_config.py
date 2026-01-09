@@ -17,6 +17,7 @@ supported_datasets = (
 
 supported_retriever_types = (
     "HybridSearch",
+    "CrossEncoderReranker",
     "HyDE",
     "LameR",
     "ThinkQE",

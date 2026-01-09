@@ -1,6 +1,9 @@
 
 from retrieve_dspy.metrics import create_metric
-from retrieve_dspy.datasets.in_memory import prepare_random_subset
+from retrieve_dspy.data_loaders.in_memory import (
+    prepare_examples,
+    sample_random_subset,
+)
 
 from retriever_builder import build_retriever
 from retrieve_dspy.benchmark_run.eval_utils import (
@@ -18,7 +21,6 @@ def main():
     config = load_config()
 
     # Build retriever from config
-    print(f"Building retriever with config: {config['retriever']}")
     rag_pipeline = build_retriever(
         retriever_config=config["retriever"],
         use_async=config.get("use_async", False),
@@ -58,28 +60,33 @@ def main():
         print(f"\nRunning trial {trial + 1}/{num_trials}")
         
         # Prepare test set
-        testset = prepare_random_subset(
-            queries=queries,
-            num_samples=eval_config["num_samples"],
-            seed=eval_config["seed"],
-            samples_used_in_training=used_qs,
-        )
+
+        test_queries = prepare_examples(queries)
+        if eval_config["use_subset"]:
+            test_queries = sample_random_subset(
+                examples=test_queries,
+                num_samples=eval_config["num_samples"],
+                seed=eval_config["seed"],
+                samples_used_in_training=used_qs
+            )
+        else:
+            test_queries = test_queries
         
         # Create evaluator
         evaluator = get_evaluator(
-            testset=testset,
+            testset=test_queries,
             metric=primary_metric,
         )
         
         # Run evaluation
-        dspy_evaluator_kwargs = {
-            "num_threads": eval_config["num_threads"]
-        }
+        if eval_config["use_multi_threads"]:
+            evaluator_result = evaluator(rag_pipeline, num_threads=eval_config["num_threads"])
+        else:
+            evaluator_result = evaluator(rag_pipeline)
         
-        evaluator_result = evaluator(rag_pipeline, **dspy_evaluator_kwargs)
         primary_score = evaluator_result.score
         scores.append(primary_score)
-        all_results = evaluator_result.results
+        all_results = evaluator_result.results   
         
         # Calculate offline metrics
         print("Calculating offline metrics...")

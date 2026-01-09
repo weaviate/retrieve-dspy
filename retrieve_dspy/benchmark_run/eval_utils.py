@@ -4,12 +4,18 @@ from dspy import Example, Prediction
 from typing import List, Tuple, Dict, Callable
 import yaml
 from retrieve_dspy.clients import get_weaviate_client, get_voyage_client
-from retrieve_dspy.datasets.in_memory import in_memory_dataset_loader
-from retrieve_dspy.metrics import create_metric
+from retrieve_dspy.data_loaders.in_memory import in_memory_dataset_loader
+from retrieve_dspy.benchmark_run.metrics import create_metric
+import os
 
 
-def load_config(config_path="./retrieve_dspy/benchmark_run/eval-config.yml"):
+def load_config(config_path=None):
     """Load configuration from YAML file."""
+    if config_path is None:
+        # Get the directory where this script is located
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(script_dir, "eval-config.yml")
+    
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
@@ -88,12 +94,13 @@ def print_final_results(scores, offline_scores_across_trials, metrics):
 
 def get_evaluator(
     testset: list[Example],
-    metric: callable
+    metric: callable,
+    num_threads: int = 1
 ):
     evaluator = dspy.Evaluate(
         devset=testset,
         metric=metric, 
-        num_threads=1,
+        num_threads=num_threads,
         display_progress=True,
         max_errors=1,
         provide_traceback=True

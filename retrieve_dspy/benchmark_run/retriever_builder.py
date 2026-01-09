@@ -2,7 +2,7 @@
 Builder patterns for different retriever types.
 """
 import retrieve_dspy
-from retrieve_dspy.clients import get_weaviate_client, get_and_connect_weaviate_async_client, get_voyage_client
+from retrieve_dspy.clients import get_weaviate_client, get_and_connect_weaviate_async_client, get_voyage_client, get_cohere_client
 from retrieve_dspy.benchmark_run.eval_config import supported_retriever_types
 
 """Factory method for building different types of retrievers."""
@@ -20,6 +20,7 @@ def build_retriever(retriever_config, use_async, dataset_config, lm_config=None)
         Configured retriever instance
     """
     retriever_type = retriever_config["type"]
+    print(f"\033[95mBuilding retriever: {retriever_type}\033[0m")
     if retriever_type not in supported_retriever_types:
         raise ValueError(f"Unsupported retriever type: {retriever_type}")
 
@@ -40,7 +41,7 @@ def build_retriever(retriever_config, use_async, dataset_config, lm_config=None)
     if "return_property_name" in dataset_config:
         common_params["return_property_name"] = dataset_config["return_property_name"]
 
-    elif retriever_type == "HyDE":
+    if retriever_type == "HyDE":
         return _build_hyde(common_params, retriever_config)
 
     elif retriever_type == "LameR":
@@ -59,8 +60,7 @@ def build_retriever(retriever_config, use_async, dataset_config, lm_config=None)
         return _build_rag_fusion(common_params, retriever_config)
 
     elif retriever_type == "CrossEncoderReranker":
-        voyage_client = get_voyage_client()
-        return _build_cross_encoder_reranker(common_params, retriever_config, voyage_client)
+        return _build_cross_encoder_reranker(common_params, retriever_config)
 
     elif retriever_type == "LayeredBestMatchReranker":
         voyage_client = get_voyage_client()
@@ -113,14 +113,79 @@ def _build_rag_fusion(common_params, config):
     }
     return retrieve_dspy.RAGFusion(**params)
 
-def _build_cross_encoder_reranker(common_params, config, voyage_client):
+def _build_cross_encoder_reranker(common_params, config):
+    """
+    Build CrossEncoderReranker with support for multiple providers.
+    
+    Uses flat boolean flags for clear ablation:
+        use_cohere: true/false
+        use_voyage: true/false
+        use_dspy_reranker: true/false
+        rrf_k: 60
+        hybrid_weights: {...}
+        model_name_overrides: {...}
+    """
+    # Get provider flags (default: cohere only)
+    use_cohere = config.get("use_cohere", True)
+    use_voyage = config.get("use_voyage", False)
+    use_dspy = config.get("use_dspy_reranker", False)
+    
+    # Build reranker clients list
+    reranker_clients = []
+    
+    if use_cohere:
+        try:
+            cohere_client = get_cohere_client()
+            reranker_clients.append(cohere_client)
+        except Exception as e:
+            print(f"Warning: Could not get Cohere client: {e}")
+    
+    if use_voyage:
+        try:
+            voyage_client = get_voyage_client()
+            reranker_clients.append(voyage_client)
+        except Exception as e:
+            print(f"Warning: Could not get Voyage client: {e}")
+    
+    # Determine provider mode
+    active_count = sum([use_cohere, use_voyage, use_dspy])
+    if active_count > 1:
+        provider_mode = "hybrid"
+    elif use_cohere:
+        provider_mode = "cohere"
+    elif use_voyage:
+        provider_mode = "voyage"
+    elif use_dspy:
+        provider_mode = "dspy"
+    else:
+        # No provider specified, default to cohere
+        provider_mode = "cohere"
+        try:
+            cohere_client = get_cohere_client()
+            reranker_clients.append(cohere_client)
+        except Exception as e:
+            print(f"Warning: Could not get default Cohere client: {e}")
+    
+    # Build parameters
     params = {
         **common_params,
-        "reranker_clients": [voyage_client],
+        "reranker_clients": reranker_clients if reranker_clients else None,
         "retrieved_k": config.get("retrieved_k", 50),
         "reranked_k": config.get("reranked_k", 20),
-        "reranker_provider": config.get("reranker_provider", "voyage"),
+        "provider": provider_mode,
+        "use_dspy_reranker": use_dspy,
     }
+    
+    # Optional parameters
+    if "model_name_overrides" in config:
+        params["model_name_overrides"] = config["model_name_overrides"]
+    
+    if "rrf_k" in config:
+        params["rrf_k"] = config["rrf_k"]
+    
+    if "hybrid_weights" in config:
+        params["hybrid_weights"] = config["hybrid_weights"]
+    
     return retrieve_dspy.CrossEncoderReranker(**params)
 
 def _build_layered_best_match_reranker(common_params, config, voyage_client):
