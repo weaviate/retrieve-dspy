@@ -6,7 +6,7 @@ server:
 
 # Weaviate Database Configuration
 weaviate:
-  collection_name: "IRPapersText_Default"
+  collection_name: "BrightBiology_Default"
   target_property_name: "content"
 
 # Retriever Configuration

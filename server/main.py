@@ -36,7 +36,7 @@ class SearchResult(BaseModel):
 
 class SearchResponse(BaseModel):
     query: str
-    results: list[SearchResult]
+    results: list[str]
     retriever: str
     total_results: int
 
@@ -202,15 +202,7 @@ async def search(request: SearchRequest):
             state.retriever.retrieved_k = original_k
         
         # Convert sources to response format
-        results = [
-            SearchResult(
-                object_id=source.object_id,
-                content=source.content,
-                relevance_rank=source.relevance_rank,
-                relevance_score=source.relevance_score,
-            )
-            for source in response.sources
-        ]
+        results= [source.object_id for source in response.sources]
         
         return SearchResponse(
             query=request.query,

@@ -44,10 +44,6 @@ def test_search(query: str, k: int = 5):
         data = response.json()
         print(f"  Retriever: {data['retriever']}")
         print(f"  Total results: {data['total_results']}")
-        print(f"  Results:")
-        for i, result in enumerate(data["results"][:3], 1):
-            content_preview = result["content"][:100] + "..." if len(result["content"]) > 100 else result["content"]
-            print(f"    {i}. [Score: {result['relevance_score']:.4f}] {content_preview}")
     else:
         print(f"  Error: {response.text}")
     
