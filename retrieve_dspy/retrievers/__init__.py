@@ -1,9 +1,10 @@
 from .hybrid_search import HybridSearch
 from .query_writers.multi_query_writer import MultiQueryWriter
+from .query_writers.concatenated_query_searcher import ConcatenatedQuerySearcher
 from .query_writers.query_expander import QueryExpander
 from .query_writers.query_expander_with_hint import QueryExpanderWithHint
 from .query_writers.query_expander_with_reranker import QueryExpanderWithReranker
-from .query_writers.rag_fusion import RAGFusion
+from .query_writers.RAGFusion import RAGFusion
 from .rerankers.cross_encoder_reranker import CrossEncoderReranker
 from .atomics.best_match_reranker import BestMatchReranker
 from .rerankers.listwise_reranker import ListwiseReranker
@@ -36,6 +37,7 @@ __all__ = [
     "ListwiseReranker",
     "BestMatchReranker",
     "MultiQueryWriter",
+    "ConcatenatedQuerySearcher",
     "MultiQueryWriterWithHint",
     "MultiQueryWriterWithReranker",
     "SummarizedListwiseReranker",
@@ -47,6 +49,7 @@ __all__ = [
     "QueryExpanderWithHint",
     "DecomposeAndExpandWithHints",
     "QueryExpanderWithReranker",
+    "RAGFusion",
     "QueryDocumentSummarizer",
     "SimplifiedBaleenWithCrossEncoder",
     "QUIPLER"

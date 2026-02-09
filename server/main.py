@@ -15,7 +15,9 @@ import yaml
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from retrieve_dspy import HybridSearch
+from retrieve_dspy import HybridSearch, RAGFusion, ConcatenatedQuerySearcher
+from retrieve_dspy.retrievers.base_rag import BaseRAG
+from retrieve_dspy.models import RerankerClient
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -72,22 +74,84 @@ def load_config(config_path: Optional[str] = None) -> dict:
 
 class AppState:
     config: dict = {}
-    retriever: Optional[HybridSearch] = None
-    weaviate_client: Optional[weaviate.WeaviateClient] = None
+    retriever: Optional[BaseRAG] = None
+    weaviate_async_client: Optional[weaviate.WeaviateAsyncClient] = None
 
 
 state = AppState()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Reranker Client Factory
+# ─────────────────────────────────────────────────────────────────────────────
+
+def create_dspy_reranker_module(dspy_config: dict):
+    """Create a DSPy reranker module based on configuration.
+    
+    Args:
+        dspy_config: Dictionary with:
+            - signature: "binary" (AssessRelevance) or "numeric" (ScoreRelevance)
+            - verbose: Whether to use verbose signature
+    """
+    import dspy
+    from retrieve_dspy.signatures import (
+        AssessRelevance, 
+        ScoreRelevance, 
+        VerboseScoreRelevance
+    )
+    
+    signature_type = dspy_config.get("signature", "numeric")
+    verbose = dspy_config.get("verbose", True)
+    
+    if signature_type == "numeric":
+        signature = VerboseScoreRelevance if verbose else ScoreRelevance
+    else:  # binary
+        signature = AssessRelevance
+    
+    return dspy.Predict(signature)
+
+
+def create_reranker_clients(reranker_config: dict) -> list[RerankerClient]:
+    """Create reranker clients based on configuration."""
+    clients = []
+    providers = reranker_config.get("providers", [])
+    
+    for provider in providers:
+        if provider == "cohere":
+            import cohere
+            api_key = os.getenv("COHERE_API_KEY")
+            if api_key:
+                clients.append(RerankerClient(name="cohere", client=cohere.Client(api_key)))
+        elif provider == "voyage":
+            import voyageai
+            api_key = os.getenv("VOYAGE_API_KEY")
+            if api_key:
+                clients.append(RerankerClient(name="voyage", client=voyageai.Client(api_key=api_key)))
+        elif provider == "dspy":
+            # Create DSPy LLM-based reranker module
+            dspy_config = reranker_config.get("dspy", {})
+            module = create_dspy_reranker_module(dspy_config)
+            clients.append(RerankerClient(name="dspy", client=module))
+            print(f"   Created DSPy reranker (signature: {dspy_config.get('signature', 'numeric')})")
+    
+    return clients
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Retriever Factory
 # ─────────────────────────────────────────────────────────────────────────────
 
-def create_retriever(config: dict) -> HybridSearch:
+def create_retriever(config: dict) -> BaseRAG:
     """Create a retriever instance based on configuration."""
-    retriever_name = config["retriever"]["name"]
-    retriever_params = config["retriever"].get("params", {})
+    retriever_config = config["retriever"]
     weaviate_config = config["weaviate"]
+    
+    # Get active retriever name and its params
+    retriever_name = retriever_config.get("active") or retriever_config.get("name")
+    retriever_params = retriever_config.get(retriever_name, {}) or retriever_config.get("params", {})
+    
+    print(f"📋 Config loaded: retriever={retriever_name}")
+    print(f"   retriever_params={retriever_params}")
     
     if retriever_name == "HybridSearch":
         return HybridSearch(
@@ -96,13 +160,89 @@ def create_retriever(config: dict) -> HybridSearch:
             retrieved_k=retriever_params.get("retrieved_k", 20),
             verbose=retriever_params.get("verbose", False),
             search_only=retriever_params.get("search_only", True),
+            diversity_weight=retriever_params.get("diversity_weight", 0),
+        )
+    elif retriever_name == "RAGFusion":
+        # Get fusion strategy (with backwards compatibility for use_rrf)
+        fusion_strategy = retriever_params.get("fusion_strategy", "rrf")
+        if fusion_strategy == "rrf" and not retriever_params.get("use_rrf", True):
+            fusion_strategy = "interleave"
+        
+        # Build cross-encoder reranker clients if configured
+        reranker_config = retriever_params.get("cross_encoder", {})
+        reranker_clients = None
+        
+        # CE-Gated requires cross-encoder clients
+        ce_requires_reranker = fusion_strategy == "ce_gated"
+        ce_enabled = reranker_config.get("enabled", False)
+        
+        if ce_enabled or ce_requires_reranker:
+            reranker_clients = create_reranker_clients(reranker_config)
+            
+            if not reranker_clients:
+                providers = reranker_config.get("providers", [])
+                missing_keys = []
+                if "cohere" in providers and not os.getenv("COHERE_API_KEY"):
+                    missing_keys.append("COHERE_API_KEY")
+                if "voyage" in providers and not os.getenv("VOYAGE_API_KEY"):
+                    missing_keys.append("VOYAGE_API_KEY")
+                
+                if ce_requires_reranker:
+                    raise ValueError(
+                        f"CE-Gated pooling requires reranker clients but none could be created. "
+                        f"Missing environment variables: {missing_keys or 'unknown'}. "
+                        f"Configured providers: {providers}"
+                    )
+                else:
+                    print(f"⚠️  Warning: Cross-encoder enabled but no clients created. Missing: {missing_keys}")
+        
+        # CE-Gated pooling config
+        ce_gated_config = retriever_params.get("ce_gated", {})
+        
+        print(f"   fusion_strategy={fusion_strategy}")
+        if fusion_strategy == "ce_gated":
+            print(f"   ce_gated_alpha={ce_gated_config.get('alpha', 0.7)}")
+            print(f"   ce_gated_aggregation={ce_gated_config.get('aggregation', 'max')}")
+            print(f"   reranker_clients={[c.name for c in reranker_clients] if reranker_clients else None}")
+        
+        return RAGFusion(
+            collection_name=weaviate_config["collection_name"],
+            target_property_name=weaviate_config.get("target_property_name", "content"),
+            number_of_queries=retriever_params.get("number_of_queries", 5),
+            retrieved_k=retriever_params.get("retrieved_k", 20),
+            reranked_k=retriever_params.get("reranked_k", 200),
+            rrf_k=retriever_params.get("rrf_k", 60),
+            fusion_strategy=fusion_strategy,
+            # Cross-encoder config (for post-fusion reranking with rrf/interleave)
+            use_cross_encoder=reranker_config.get("enabled", False) and fusion_strategy != "ce_gated",
+            reranker_clients=reranker_clients,
+            reranker_provider=reranker_config.get("provider"),
+            ce_rerank_k=reranker_config.get("top_k"),
+            # CE-Gated pooling config
+            ce_gated_alpha=ce_gated_config.get("alpha", 0.7),
+            ce_gated_aggregation=ce_gated_config.get("aggregation", "max"),
+            verbose=retriever_params.get("verbose", False),
+            verbose_signature=retriever_params.get("verbose_signature", True),
+        )
+    elif retriever_name == "ConcatenatedQuerySearcher":
+        return ConcatenatedQuerySearcher(
+            collection_name=weaviate_config["collection_name"],
+            target_property_name=weaviate_config.get("target_property_name", "content"),
+            retrieved_k=retriever_params.get("retrieved_k", 20),
+            number_of_queries=retriever_params.get("number_of_queries", 5),
+            final_k=retriever_params.get("final_k"),
+            verbose=retriever_params.get("verbose", False),
+            verbose_signature=retriever_params.get("verbose_signature", True),
+            search_only=retriever_params.get("search_only", True),
+            diversity_weight=retriever_params.get("diversity_weight", 0.0),
+            diversity_strategy=retriever_params.get("diversity_strategy", "mmr"),
         )
     else:
-        raise ValueError(f"Unsupported retriever: {retriever_name}. Currently only 'HybridSearch' is supported.")
+        raise ValueError(f"Unsupported retriever: {retriever_name}. Supported: 'HybridSearch', 'RAGFusion', 'ConcatenatedQuerySearcher'.")
 
 
-def get_weaviate_client() -> weaviate.WeaviateClient:
-    """Create and return a Weaviate client."""
+def get_weaviate_async_client() -> weaviate.WeaviateAsyncClient:
+    """Create and return a Weaviate async client (must call connect() before use)."""
     weaviate_url = os.getenv("WEAVIATE_URL")
     weaviate_api_key = os.getenv("WEAVIATE_API_KEY")
     
@@ -111,9 +251,10 @@ def get_weaviate_client() -> weaviate.WeaviateClient:
             "WEAVIATE_URL and WEAVIATE_API_KEY environment variables must be set"
         )
     
-    return weaviate.connect_to_weaviate_cloud(
+    return weaviate.use_async_with_weaviate_cloud(
         cluster_url=weaviate_url,
         auth_credentials=weaviate.auth.AuthApiKey(weaviate_api_key),
+        headers={"X-VoyageAI-API-Key": os.getenv("VOYAGE_API_KEY")},
     )
 
 
@@ -128,16 +269,18 @@ async def lifespan(app: FastAPI):
     config_path = os.getenv("RETRIEVER_CONFIG_PATH")
     state.config = load_config(config_path)
     state.retriever = create_retriever(state.config)
-    state.weaviate_client = get_weaviate_client()
+    state.weaviate_async_client = get_weaviate_async_client()
+    await state.weaviate_async_client.connect()
     
-    print(f"🚀 Server starting with retriever: {state.config['retriever']['name']}")
+    retriever_name = state.config['retriever'].get('active') or state.config['retriever'].get('name')
+    print(f"🚀 Server starting with retriever: {retriever_name}")
     print(f"📦 Collection: {state.config['weaviate']['collection_name']}")
     
     yield
     
     # Shutdown
-    if state.weaviate_client:
-        state.weaviate_client.close()
+    if state.weaviate_async_client:
+        await state.weaviate_async_client.close()
     print("👋 Server shutting down")
 
 
@@ -167,7 +310,7 @@ async def health_check():
     """Health check endpoint."""
     return HealthResponse(
         status="healthy",
-        retriever=state.config.get("retriever", {}).get("name", "unknown"),
+        retriever=state.config.get("retriever", {}).get("active") or state.config.get("retriever", {}).get("name", "unknown"),
         collection=state.config.get("weaviate", {}).get("collection_name", "unknown"),
     )
 
@@ -182,37 +325,24 @@ async def search(request: SearchRequest):
     if state.retriever is None:
         raise HTTPException(status_code=503, detail="Retriever not initialized")
     
-    if state.weaviate_client is None:
+    if state.weaviate_async_client is None:
         raise HTTPException(status_code=503, detail="Weaviate client not initialized")
     
-    try:
-        # Override k if provided in request
-        if request.k is not None:
-            original_k = state.retriever.retrieved_k
-            state.retriever.retrieved_k = request.k
+    # Use aforward for non-blocking async execution
+    response = await state.retriever.aforward(
+        question=request.query,
+        weaviate_async_client=state.weaviate_async_client,
+    )
         
-        # Execute search
-        response = state.retriever.forward(
-            question=request.query,
-            weaviate_client=state.weaviate_client,
-        )
+    # Convert sources to response format
+    results = [source.object_id for source in response.sources]
         
-        # Restore original k
-        if request.k is not None:
-            state.retriever.retrieved_k = original_k
-        
-        # Convert sources to response format
-        results= [source.object_id for source in response.sources]
-        
-        return SearchResponse(
-            query=request.query,
-            results=results,
-            retriever=state.config["retriever"]["name"],
-            total_results=len(results),
-        )
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return SearchResponse(
+        query=request.query,
+        results=results,
+        retriever=state.config["retriever"].get("active") or state.config["retriever"].get("name"),
+        total_results=len(results),
+    )
 
 
 @app.get("/config")
