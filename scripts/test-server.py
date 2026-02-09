@@ -10,7 +10,6 @@ Tests both basic functionality and async concurrency.
 
 import asyncio
 import time
-from typing import Optional
 
 import httpx
 
@@ -98,7 +97,6 @@ async def test_async_concurrency(client: httpx.AsyncClient, num_requests: int = 
     
     # First, measure a single request to get baseline
     print("  Step 1: Measuring single request baseline...")
-    single_start = time.perf_counter()
     _, single_duration, single_success = await single_search_timed(client, queries[0], 0)
     print(f"    Single request took: {single_duration:.2f}s")
     print()
@@ -120,7 +118,7 @@ async def test_async_concurrency(client: httpx.AsyncClient, num_requests: int = 
     concurrent_duration = time.perf_counter() - concurrent_start
     
     # Report individual request timings
-    print(f"    Individual request durations:")
+    print("    Individual request durations:")
     all_success = True
     for req_id, duration, success in sorted(results):
         status = "✓" if success else "✗"
@@ -144,7 +142,7 @@ async def test_async_concurrency(client: httpx.AsyncClient, num_requests: int = 
     if async_working:
         print(f"  \033[92m✓ Async is working! Speedup: {speedup:.1f}x\033[0m")
     elif not all_success:
-        print(f"  \033[91m✗ Some requests failed\033[0m")
+        print("  \033[91m✗ Some requests failed\033[0m")
     else:
         print(f"  \033[93m⚠ Speedup only {speedup:.1f}x - async may not be working correctly\033[0m")
     

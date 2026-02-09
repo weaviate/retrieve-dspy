@@ -22,8 +22,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import dspy
 
-from retrieve_dspy.models import RerankerClient, RerankItem
-from retrieve_dspy.signatures import ScoreRelevance, VerboseScoreRelevance, AssessRelevance
+from retrieve_dspy.models import RerankItem
+from retrieve_dspy.signatures import VerboseScoreRelevance, AssessRelevance
 from retrieve_dspy.retrievers.common.call_ce_ranker import (
     make_cohere_reranker,
     make_voyage_reranker,
