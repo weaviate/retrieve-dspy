@@ -13,6 +13,47 @@ class AssessRelevance(dspy.Signature):
     candidate_document: str = dspy.InputField(desc="The candidate document to assess for relevance")
     relevance_assessment: bool = dspy.OutputField(desc="Whether or not the candidate document is relevant to the query")
 
+
+class ScoreRelevance(dspy.Signature):
+    """Score the relevance of a candidate document to the query on a scale from 0.0 to 1.0.
+    
+    Provide a numeric score that represents how well the document answers or relates to the query:
+    - 1.0: Perfect match - document directly and completely answers the query
+    - 0.7-0.9: Highly relevant - document contains most information needed
+    - 0.4-0.6: Moderately relevant - document partially addresses the query
+    - 0.1-0.3: Marginally relevant - document has tangential connection
+    - 0.0: Not relevant - document does not relate to the query
+    """
+
+    query: str = dspy.InputField(desc="The user's question or information need")
+    candidate_document: str = dspy.InputField(desc="The candidate document to score for relevance")
+    relevance_score: float = dspy.OutputField(desc="Relevance score from 0.0 (not relevant) to 1.0 (perfectly relevant)")
+
+
+class VerboseScoreRelevance(dspy.Signature):
+    """Score the relevance of a candidate document to the query on a scale from 0.0 to 1.0.
+    
+    Your task is to carefully evaluate how well the document addresses the user's information need.
+    
+    Scoring Guidelines:
+    - 1.0: Perfect match - document directly and completely answers the query with high-quality information
+    - 0.8-0.9: Excellent - document contains comprehensive information that addresses most aspects of the query
+    - 0.6-0.7: Good - document provides useful information but may miss some aspects or lack depth
+    - 0.4-0.5: Moderate - document has relevant content but doesn't directly answer the query
+    - 0.2-0.3: Low - document only tangentially relates to the query topic
+    - 0.0-0.1: Irrelevant - document does not address the query's information need
+    
+    Consider these factors when scoring:
+    1. Topical relevance: Does the document discuss the same topic as the query?
+    2. Information completeness: Does it provide the specific information sought?
+    3. Directness: Does it directly answer vs. only provide background?
+    4. Quality: Is the information accurate, specific, and well-explained?
+    """
+
+    query: str = dspy.InputField(desc="The user's question or information need")
+    candidate_document: str = dspy.InputField(desc="The candidate document to score for relevance")
+    relevance_score: float = dspy.OutputField(desc="Relevance score from 0.0 (not relevant) to 1.0 (perfectly relevant)")
+
 # Listwise Rerankers
 
 class ListwiseRanking(dspy.Signature):
@@ -319,19 +360,28 @@ class ExpandQueryWithHint(dspy.Signature):
     expanded_query: str = dspy.OutputField()
 
 class VerboseWriteSearchQueries(dspy.Signature):
-    """Write search queries to gather information from a search engine that will help answer the question.
-Consider both exploration and result diversity to capture multiple interpretations and facets of a query.
+    """
+    You will be given a question and a parameter `number_of_queries`.
+    Your task is to write exactly `number_of_queries` highly detailed search queries to help answer the question.
+    Consider both exploration and result diversity to capture multiple interpretations and facets of a query.
 
-IMPORTANT!! MAKE SURE EACH QUERY IS VERY DETAILED! LONGER, MORE DETAILED QUERIES TEND TO RETURN BETTER SEARCH RESULTS!"""
+    IMPORTANT!! MAKE SURE EACH QUERY IS VERY DETAILED! LONGER, MORE DETAILED QUERIES TEND TO RETURN BETTER SEARCH RESULTS!
+    """
 
-    question: str = dspy.InputField()
-    search_queries: list[str] = dspy.OutputField()
+    question: str = dspy.InputField(desc="The user's original question.")
+    number_of_queries: int = dspy.InputField(desc="The number of distinct, detailed queries to generate.")
+    search_queries: list[str] = dspy.OutputField(desc="A list of detailed search queries, length should be exactly number_of_queries.")
 
 class WriteSearchQueries(dspy.Signature):
-    """Write search queries to gather information from a search engine that will help answer the question."""
+    """
+    You will be given a question and a parameter `number_of_queries`.
+    Write exactly that number of search queries to gather information from a search engine that will help answer the question.
+    Each query should be distinct and relevant.
+    """
 
-    question: str = dspy.InputField()
-    search_queries: list[str] = dspy.OutputField()
+    question: str = dspy.InputField(desc="The user's original question.")
+    number_of_queries: int = dspy.InputField(desc="The number of distinct queries to produce.")
+    search_queries: list[str] = dspy.OutputField(desc="A list of search queries, as specified by number_of_queries.")
 
 class VerboseDecomposeQueryWithHint(dspy.Signature):
     """Your task is to decompose a complex technical problem into atomic sub-queries that collectively cover all essential aspects needed to answer the question.

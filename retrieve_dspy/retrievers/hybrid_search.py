@@ -1,6 +1,8 @@
 import asyncio
 from typing import Optional
 
+import numpy as np
+from pyversity import diversify, Strategy
 import weaviate
 
 from retrieve_dspy.database.weaviate_database import (
@@ -19,22 +21,44 @@ class HybridSearch(BaseRAG):
         verbose: Optional[bool] = False,
         search_only: Optional[bool] = True,
         retrieved_k: Optional[int] = 20,
+        diversity_weight: Optional[float] = 0,
     ):
         super().__init__(collection_name, target_property_name, search_only=search_only, verbose=verbose, retrieved_k=retrieved_k)
         self.weaviate_client = weaviate_client
+        self.diversity_weight = diversity_weight
 
     def forward(self, question: str, weaviate_client: Optional[weaviate.WeaviateClient] = None) -> DSPyAgentRAGResponse:
         if weaviate_client is None:
             if isinstance(self.weaviate_client, weaviate.WeaviateClient):
                 weaviate_client = self.weaviate_client
 
+        if self.diversity_weight > 0:
+            retrieved_k = self.retrieved_k * 2
+        else:
+            retrieved_k = self.retrieved_k
+
         sources = weaviate_search_tool(
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
-            retrieved_k=self.retrieved_k,
+            retrieved_k=retrieved_k,
             weaviate_client=weaviate_client,
+            return_vector=True,
+            return_score=True
         )
+
+        if self.diversity_weight > 0:
+            vectors = np.array([source.vector for source in sources])
+            scores = np.array([source.relevance_score for source in sources])
+            diversified_result = diversify(
+                embeddings=vectors,
+                scores=scores,
+                k=retrieved_k,
+                strategy=Strategy.MMR,
+                diversity=self.diversity_weight,
+            )
+            diversity_ranked_indices = diversified_result.indices
+            sources = [sources[i] for i in diversity_ranked_indices]
 
         if self.verbose:
             print(f"\033[96m Returning {len(sources)} Sources!\033[0m")
@@ -54,13 +78,33 @@ class HybridSearch(BaseRAG):
             if isinstance(self.weaviate_async_client, weaviate.WeaviateAsyncClient):
                 weaviate_async_client = self.weaviate_async_client
 
+        if self.diversity_weight > 0:
+            retrieved_k = self.retrieved_k * 2
+        else:
+            retrieved_k = self.retrieved_k
+
         sources = await async_weaviate_search_tool(
             query=question,
             collection_name=self.collection_name,
             target_property_name=self.target_property_name,
-            retrieved_k=self.retrieved_k,
+            retrieved_k=retrieved_k,
             weaviate_async_client=weaviate_async_client,
+            return_vector=True,
+            return_score=True
         )
+
+        if self.diversity_weight > 0:
+            vectors = np.array([source.vector for source in sources])
+            scores = np.array([source.relevance_score for source in sources])
+            diversified_result = diversify(
+                embeddings=vectors,
+                scores=scores,
+                k=retrieved_k,
+                strategy=Strategy.MMR,
+                diversity=self.diversity_weight,
+            )
+            diversity_ranked_indices = diversified_result.indices
+            sources = [sources[i] for i in diversity_ranked_indices]
 
         if self.verbose:
             print(f"\033[96m Returning {len(sources)} Sources!\033[0m")
@@ -78,20 +122,22 @@ class HybridSearch(BaseRAG):
 async def main():
     import os
     test_pipeline = HybridSearch(
-        collection_name="EnronEmails",
-        target_property_name="email_body",
+        collection_name="FreshstackLangchain_Default",
+        target_property_name="docs_text",
         retrieved_k=5
     )
     test_q = "What are the implications of SBX12?"
     weaviate_client = weaviate.connect_to_weaviate_cloud(
         cluster_url=os.getenv("WEAVIATE_URL"),
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
+        headers={"X-VoyageAI-API-Key": os.getenv("VOYAGE_API_KEY")},
     )
     response = test_pipeline.forward(test_q, weaviate_client=weaviate_client)
     print(response)
     weaviate_async_client = weaviate.use_async_with_weaviate_cloud(
         cluster_url=os.getenv("WEAVIATE_URL"),
         auth_credentials=weaviate.auth.AuthApiKey(os.getenv("WEAVIATE_API_KEY")),
+        headers={"X-VoyageAI-API-Key": os.getenv("VOYAGE_API_KEY")},
     )
     await weaviate_async_client.connect()
     async_response = await test_pipeline.aforward(test_q, weaviate_async_client=weaviate_async_client)

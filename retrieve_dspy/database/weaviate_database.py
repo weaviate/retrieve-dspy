@@ -13,8 +13,9 @@ def weaviate_search_tool(
         target_property_name: str,
         weaviate_client: Optional[weaviate.WeaviateClient] = None,
         return_property_name: Optional[str] = None,
-        retrieved_k: Optional[int] = 5,
+        retrieved_k: Optional[int] = 10,
         return_vector: bool = False,
+        return_score: bool = False,
         tag_filter_value: Optional[str] = None,
 ) -> list[ObjectFromDB]:
     if weaviate_client is None:
@@ -31,7 +32,9 @@ def weaviate_search_tool(
     '''
     search_results = collection.query.hybrid(
         query=query,
-        return_metadata=MetadataQuery(score=True),
+        alpha=1, # pure vector search
+        return_metadata=MetadataQuery(score=return_score),
+        include_vector=return_vector,
         limit=retrieved_k
     )
 
@@ -46,7 +49,7 @@ def weaviate_search_tool(
                 object_id=object_id,
                 content=str(content_value) if content_value is not None else "",
                 relevance_rank=rank,
-                relevance_score=obj.metadata.score,
+                relevance_score=obj.metadata.score if return_score else None,
                 vector=(obj.vector.get("default") if return_vector and getattr(obj, 'vector', None) else None)
             ))
     return objects
@@ -77,7 +80,9 @@ async def async_weaviate_search_tool(
     
     search_results = await collection.query.hybrid(
         query=query,
-        return_metadata=MetadataQuery(score=True),
+        alpha=1, # pure vector search
+        return_metadata=MetadataQuery(score=return_score),
+        include_vector=return_vector,
         limit=retrieved_k
     )
     

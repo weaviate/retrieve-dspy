@@ -15,7 +15,6 @@ class BaseRAG(dspy.Module):
         target_property_name: Optional[str] = "content",
         verbose: Optional[bool] = True,
         search_only: Optional[bool] = True, 
-        retrieved_k: Optional[int] = 5,
         verbose_signature: Optional[bool] = True,
         multi_lm_configs: Optional[list[MultiLMConfig]] = None,
     ) -> None:
@@ -24,7 +23,6 @@ class BaseRAG(dspy.Module):
         self.target_property_name = target_property_name
         self.verbose = verbose
         self.search_only = search_only
-        self.retrieved_k = retrieved_k
         self.verbose_signature = verbose_signature
         self.multi_lm_configs = multi_lm_configs
         if self.multi_lm_configs:

@@ -38,8 +38,13 @@ def make_async_voyage_reranker(client: Any, model: str = "rerank-2.5") -> Callab
     return _fn
 
 
-def make_dspy_reranker(module: Any) -> Callable:
-    """Create sync DSPy reranker that runs async predictions concurrently."""
+def make_dspy_reranker(module: Any, score_type: str = "binary") -> Callable:
+    """Create sync DSPy reranker that runs async predictions concurrently.
+    
+    Args:
+        module: DSPy module/predictor to use for scoring
+        score_type: "binary" for AssessRelevance (0/1), "numeric" for ScoreRelevance (0.0-1.0)
+    """
     def _fn(query: str, documents: List[str], top_k: int) -> List[RerankItem]:
         import asyncio
         import concurrent.futures
@@ -56,15 +61,29 @@ def make_dspy_reranker(module: Any) -> Callable:
                     try:
                         pred = await module.acall(query=query, candidate_document=doc)
                         
-                        try:
-                            assessment = pred.relevance_assessment
-                        except AttributeError:
+                        if score_type == "numeric":
+                            # ScoreRelevance signature - extract numeric score
                             try:
-                                assessment = pred.get('relevance_assessment', False)
-                            except (AttributeError, TypeError):
-                                assessment = False
+                                score = float(pred.relevance_score)
+                                # Clamp to [0, 1]
+                                score = max(0.0, min(1.0, score))
+                            except (AttributeError, ValueError, TypeError):
+                                try:
+                                    score = float(pred.get('relevance_score', 0.0))
+                                    score = max(0.0, min(1.0, score))
+                                except (AttributeError, ValueError, TypeError):
+                                    score = 0.0
+                        else:
+                            # AssessRelevance signature - binary assessment
+                            try:
+                                assessment = pred.relevance_assessment
+                            except AttributeError:
+                                try:
+                                    assessment = pred.get('relevance_assessment', False)
+                                except (AttributeError, TypeError):
+                                    assessment = False
+                            score = 1.0 if assessment else 0.0
                         
-                        score = 1.0 if assessment else 0.0
                         return RerankItem(index=idx, relevance_score=score)
                         
                     except Exception as e:
@@ -99,25 +118,48 @@ def make_dspy_reranker(module: Any) -> Callable:
     
     return _fn
 
-# FIX ME!
-def make_async_dspy_reranker(module: Any) -> Callable:
-    """Create async DSPy reranker that runs predictions concurrently."""
+def make_async_dspy_reranker(module: Any, score_type: str = "binary") -> Callable:
+    """Create async DSPy reranker that runs predictions concurrently.
+    
+    Args:
+        module: DSPy module/predictor to use for scoring
+        score_type: "binary" for AssessRelevance (0/1), "numeric" for ScoreRelevance (0.0-1.0)
+    """
     async def _fn(query: str, documents: List[str], top_k: int) -> List[RerankItem]:
+        semaphore = asyncio.Semaphore(20)  # Limit concurrent requests
+        
         async def score_doc(idx: int, doc: str) -> RerankItem:
-            # Use acall for async execution
-            pred = await module.acall(query=query, candidate_document=doc)
-            
-            # Extract relevance assessment
-            try:
-                assessment = pred.relevance_assessment
-            except AttributeError:
+            async with semaphore:
                 try:
-                    assessment = pred.get('relevance_assessment', False)
-                except (AttributeError, TypeError):
-                    assessment = False
-            
-            score = 1.0 if assessment else 0.0
-            return RerankItem(index=idx, relevance_score=score)
+                    # Use acall for async execution
+                    pred = await module.acall(query=query, candidate_document=doc)
+                    
+                    if score_type == "numeric":
+                        # ScoreRelevance signature - extract numeric score
+                        try:
+                            score = float(pred.relevance_score)
+                            score = max(0.0, min(1.0, score))
+                        except (AttributeError, ValueError, TypeError):
+                            try:
+                                score = float(pred.get('relevance_score', 0.0))
+                                score = max(0.0, min(1.0, score))
+                            except (AttributeError, ValueError, TypeError):
+                                score = 0.0
+                    else:
+                        # AssessRelevance signature - binary assessment
+                        try:
+                            assessment = pred.relevance_assessment
+                        except AttributeError:
+                            try:
+                                assessment = pred.get('relevance_assessment', False)
+                            except (AttributeError, TypeError):
+                                assessment = False
+                        score = 1.0 if assessment else 0.0
+                    
+                    return RerankItem(index=idx, relevance_score=score)
+                    
+                except Exception:
+                    return RerankItem(index=idx, relevance_score=0.0)
         
         # Score all documents concurrently
         tasks = [score_doc(idx, doc) for idx, doc in enumerate(documents)]
@@ -132,6 +174,31 @@ def make_async_dspy_reranker(module: Any) -> Callable:
 
 def _get_model_name(provider: str, overrides: Optional[Dict[str, str]], default: str) -> str:
     return overrides.get(provider, default) if overrides else default
+
+
+def _detect_dspy_score_type(module: Any) -> str:
+    """Detect whether a DSPy module uses binary or numeric scoring based on its signature."""
+    # Check the signature's output fields
+    try:
+        if hasattr(module, 'signature'):
+            sig = module.signature
+            # Check output field names
+            output_fields = getattr(sig, 'output_fields', {})
+            if hasattr(output_fields, 'keys'):
+                field_names = list(output_fields.keys())
+            else:
+                # Try to get field names from the signature class
+                field_names = [f for f in dir(sig) if not f.startswith('_')]
+            
+            if 'relevance_score' in field_names:
+                return "numeric"
+            if 'relevance_assessment' in field_names:
+                return "binary"
+    except Exception:
+        pass
+    
+    # Default to binary for backward compatibility
+    return "binary"
 
 
 def _make_adapters(
@@ -149,7 +216,8 @@ def _make_adapters(
         elif rc.name == "voyage":
             adapters["voyage"] = make_voyage_reranker(rc.client, _get_model_name("voyage", overrides, "rerank-2.5"))
         elif rc.name == "dspy":
-            adapters["dspy"] = make_dspy_reranker(rc.client)
+            score_type = _detect_dspy_score_type(rc.client)
+            adapters["dspy"] = make_dspy_reranker(rc.client, score_type)
         elif callable(rc.client) and not hasattr(rc.client, 'rerank'):
             # Custom callable reranker (already wrapped)
             adapters[rc.name] = rc.client
@@ -168,7 +236,8 @@ def _make_async_adapters(
     
     for rc in clients:
         if rc.name == "dspy" and hasattr(rc.client, 'acall'):
-            adapters["dspy"] = make_async_dspy_reranker(rc.client)
+            score_type = _detect_dspy_score_type(rc.client)
+            adapters["dspy"] = make_async_dspy_reranker(rc.client, score_type)
         elif callable(rc.client) and inspect.iscoroutinefunction(rc.client):
             # Custom async callable reranker (already wrapped)
             adapters[rc.name] = rc.client
