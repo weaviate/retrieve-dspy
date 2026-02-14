@@ -9,12 +9,12 @@ from retrieve_dspy.database.weaviate_database import (
     weaviate_search_tool,
     async_weaviate_search_tool
 )
-from retrieve_dspy.retrievers.base_rag import BaseRAG
+from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 from retrieve_dspy.models import DSPyAgentRAGResponse, ListwiseRankedDocument
 from retrieve_dspy.signatures import ListwiseRanking, VerboseListwiseRanking
 
 
-class SlidingWindowListwiseReranker(BaseRAG):
+class SlidingWindowListwiseReranker(BaseRetriever):
     """
     Listwise reranker using a sliding window approach.
     

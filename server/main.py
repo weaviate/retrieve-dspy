@@ -15,8 +15,8 @@ import yaml
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from retrieve_dspy import HybridSearch, RAGFusion, ConcatenatedQuerySearcher
-from retrieve_dspy.retrievers.base_rag import BaseRAG
+from retrieve_dspy import BaseRetriever, RAGFusion, ConcatenatedQuerySearcher
+from retrieve_dspy.retrievers.embeddings_registry import get_embedding_headers
 from retrieve_dspy.models import RerankerClient
 
 
@@ -74,7 +74,7 @@ def load_config(config_path: Optional[str] = None) -> dict:
 
 class AppState:
     config: dict = {}
-    retriever: Optional[BaseRAG] = None
+    retriever: Optional[BaseRetriever] = None
     weaviate_async_client: Optional[weaviate.WeaviateAsyncClient] = None
 
 
@@ -141,7 +141,7 @@ def create_reranker_clients(reranker_config: dict) -> list[RerankerClient]:
 # Retriever Factory
 # ─────────────────────────────────────────────────────────────────────────────
 
-def create_retriever(config: dict) -> BaseRAG:
+def create_retriever(config: dict) -> BaseRetriever:
     """Create a retriever instance based on configuration."""
     retriever_config = config["retriever"]
     weaviate_config = config["weaviate"]
@@ -149,12 +149,13 @@ def create_retriever(config: dict) -> BaseRAG:
     # Get active retriever name and its params
     retriever_name = retriever_config.get("active") or retriever_config.get("name")
     retriever_params = retriever_config.get(retriever_name, {}) or retriever_config.get("params", {})
-    
+
+
     print(f"📋 Config loaded: retriever={retriever_name}")
     print(f"   retriever_params={retriever_params}")
-    
-    if retriever_name == "HybridSearch":
-        return HybridSearch(
+
+    if retriever_name == "BaseRetriever":
+        return BaseRetriever(
             collection_name=weaviate_config["collection_name"],
             target_property_name=weaviate_config.get("target_property_name", "content"),
             retrieved_k=retriever_params.get("retrieved_k", 20),
@@ -238,23 +239,28 @@ def create_retriever(config: dict) -> BaseRAG:
             diversity_strategy=retriever_params.get("diversity_strategy", "mmr"),
         )
     else:
-        raise ValueError(f"Unsupported retriever: {retriever_name}. Supported: 'HybridSearch', 'RAGFusion', 'ConcatenatedQuerySearcher'.")
+        raise ValueError(f"Unsupported retriever: {retriever_name}. Supported: 'BaseRetriever', 'RAGFusion', 'ConcatenatedQuerySearcher'.")
 
 
-def get_weaviate_async_client() -> weaviate.WeaviateAsyncClient:
+def get_weaviate_async_client(config: dict) -> weaviate.WeaviateAsyncClient:
     """Create and return a Weaviate async client (must call connect() before use)."""
     weaviate_url = os.getenv("WEAVIATE_URL")
     weaviate_api_key = os.getenv("WEAVIATE_API_KEY")
-    
+
     if not weaviate_url or not weaviate_api_key:
         raise ValueError(
             "WEAVIATE_URL and WEAVIATE_API_KEY environment variables must be set"
         )
-    
+
+    embedding_model = config.get("weaviate", {}).get(
+        "embedding_model", "weaviate/Snowflake/snowflake-arctic-embed-l-v2.0"
+    )
+    headers = get_embedding_headers(embedding_model)
+
     return weaviate.use_async_with_weaviate_cloud(
         cluster_url=weaviate_url,
         auth_credentials=weaviate.auth.AuthApiKey(weaviate_api_key),
-        headers={"X-VoyageAI-API-Key": os.getenv("VOYAGE_API_KEY")},
+        headers=headers,
     )
 
 
@@ -269,7 +275,7 @@ async def lifespan(app: FastAPI):
     config_path = os.getenv("RETRIEVER_CONFIG_PATH")
     state.config = load_config(config_path)
     state.retriever = create_retriever(state.config)
-    state.weaviate_async_client = get_weaviate_async_client()
+    state.weaviate_async_client = get_weaviate_async_client(state.config)
     await state.weaviate_async_client.connect()
     
     retriever_name = state.config['retriever'].get('active') or state.config['retriever'].get('name')

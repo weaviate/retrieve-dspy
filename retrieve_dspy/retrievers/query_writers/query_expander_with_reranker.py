@@ -10,12 +10,12 @@ from retrieve_dspy.database.weaviate_database import (
     weaviate_search_tool,
     async_weaviate_search_tool
 )
-from retrieve_dspy.retrievers.base_rag import BaseRAG   
+from retrieve_dspy.retrievers.base_retriever import BaseRetriever   
 from retrieve_dspy.models import DSPyAgentRAGResponse
 from retrieve_dspy.signatures import ExpandQuery
 
 
-class QueryExpanderWithReranker(BaseRAG):
+class QueryExpanderWithReranker(BaseRetriever):
     def __init__(
         self,
         collection_name: str,

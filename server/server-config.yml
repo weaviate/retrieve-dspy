@@ -6,8 +6,9 @@ server:
 
 # Weaviate Database Configuration
 weaviate:
-  collection_name: "FreshstackLangchain_Default"
-  target_property_name: "docs_text"
+  collection_name: "BrightBiology_Default"
+  target_property_name: "content"
+  embedding_model: "weaviate/Snowflake/snowflake-arctic-embed-l-v2.0"  # provider/model-name
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Retriever Configuration
@@ -16,14 +17,14 @@ weaviate:
 # Each retriever's parameters are defined in its own section below.
 
 retriever:
-  active: "ConcatenatedQuerySearcher"  # Options: "HybridSearch", "RAGFusion", "ConcatenatedQuerySearcher"
+  active: "BaseRetriever"  # Options: "BaseRetriever", "RAGFusion", "ConcatenatedQuerySearcher"
 
   # ───────────────────────────────────────────────────────────────────────────
-  # HybridSearch
+  # BaseRetriever
   # ───────────────────────────────────────────────────────────────────────────
   # Simple hybrid (keyword + vector) search with optional diversity reranking.
   
-  HybridSearch:
+  BaseRetriever:
     retrieved_k: 50              # Number of results to return
     verbose: false
     search_only: true            # If false, generates an answer (not implemented)

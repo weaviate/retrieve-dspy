@@ -1,8 +1,8 @@
 from .retrievers import (
+    BaseRetriever,
     MultiQueryWriter,
     MultiQueryWriterWithHint,
     MultiQueryWriterWithReranker,
-    HybridSearch,
     HyDE_QueryExpander, 
     LameR_QueryExpander,
     ThinkQE_QueryExpander,
@@ -35,10 +35,10 @@ from . import benchmark_run
 __version__ = "0.1.0"
 
 __all__ = [
+    "BaseRetriever",
     "MultiQueryWriter",
     "MultiQueryWriterWithHint",
     "MultiQueryWriterWithReranker",
-    "HybridSearch",
     "HyDE_QueryExpander",
     "LameR_QueryExpander",
     "ThinkQE_QueryExpander",

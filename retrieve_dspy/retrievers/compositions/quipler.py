@@ -5,7 +5,7 @@ import concurrent.futures
 from typing import Optional, List
 import weaviate
 
-from retrieve_dspy.retrievers.base_rag import BaseRAG
+from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 from retrieve_dspy.signatures import VerboseWriteSearchQueries, WriteSearchQueries
 from retrieve_dspy.retrievers.common.rrf import reciprocal_rank_fusion
 from retrieve_dspy.retrievers import CrossEncoderReranker
@@ -14,7 +14,7 @@ from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerCli
 import dspy
 
 
-class QUIPLER(BaseRAG):
+class QUIPLER(BaseRetriever):
     def __init__(
         self,
         collection_name: str,

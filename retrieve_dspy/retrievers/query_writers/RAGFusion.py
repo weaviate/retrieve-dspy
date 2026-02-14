@@ -13,7 +13,7 @@ from retrieve_dspy.retrievers.common.call_ce_ranker import (
     _pick_provider,
 )
 from retrieve_dspy.database.weaviate_database import weaviate_search_tool, async_weaviate_search_tool
-from retrieve_dspy.retrievers.base_rag import BaseRAG
+from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerClient, RerankItem
 from retrieve_dspy.signatures import WriteSearchQueries, VerboseWriteSearchQueries
 
@@ -273,7 +273,7 @@ async def async_cross_encoder_gated_pooling(
     return results
 
 
-class RAGFusion(BaseRAG):
+class RAGFusion(BaseRetriever):
     def __init__(
         self,
         collection_name: str,

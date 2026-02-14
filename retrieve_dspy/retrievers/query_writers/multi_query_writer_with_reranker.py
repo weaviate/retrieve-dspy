@@ -11,12 +11,12 @@ from retrieve_dspy.database.weaviate_database import (
     async_weaviate_search_tool
 )
 
-from retrieve_dspy.retrievers.base_rag import BaseRAG
+from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB
 from retrieve_dspy.signatures import WriteSearchQueries
 
 
-class MultiQueryWriterWithReranker(BaseRAG):    
+class MultiQueryWriterWithReranker(BaseRetriever):    
     def __init__(
         self, 
         collection_name: str, 
