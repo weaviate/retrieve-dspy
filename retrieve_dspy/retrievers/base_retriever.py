@@ -42,7 +42,7 @@ class BaseRetriever(dspy.Module):
         else:
             self.multi_lm_configs_dict = None
 
-        default_lm = "openai/gpt-4.1-mini"
+        default_lm = "openai/gpt-5-mini"
 
         lm = dspy.LM(
             default_lm,
