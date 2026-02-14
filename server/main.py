@@ -342,6 +342,8 @@ async def search(request: SearchRequest):
         
     # Convert sources to response format
     results = [source.object_id for source in response.sources]
+
+    print(f"Sending {len(results)} results to the client")
         
     return SearchResponse(
         query=request.query,

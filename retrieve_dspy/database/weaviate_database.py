@@ -32,7 +32,6 @@ def weaviate_search_tool(
     '''
     search_results = collection.query.hybrid(
         query=query,
-        alpha=0.5,
         return_metadata=MetadataQuery(score=return_score),
         include_vector=return_vector,
         limit=retrieved_k
@@ -80,7 +79,6 @@ async def async_weaviate_search_tool(
     
     search_results = await collection.query.hybrid(
         query=query,
-        alpha=0.5,
         return_metadata=MetadataQuery(score=return_score),
         include_vector=return_vector,
         limit=retrieved_k

@@ -25,7 +25,7 @@ retriever:
   # Simple hybrid (keyword + vector) search with optional diversity reranking.
   
   BaseRetriever:
-    retrieved_k: 50              # Number of results to return
+    retrieved_k: 20              # Number of results to return
     verbose: false
     search_only: true            # If false, generates an answer (not implemented)
     diversity_weight: 0          # 0 = no diversity, 0.5 = balanced, 1 = max diversity (uses MMR)
