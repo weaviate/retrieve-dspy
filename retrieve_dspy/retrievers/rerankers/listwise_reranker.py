@@ -8,12 +8,12 @@ from retrieve_dspy.database.weaviate_database import (
     async_weaviate_search_tool
 )
 
-from retrieve_dspy.retrievers.base_rag import BaseRAG
+from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 
 from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB
 from retrieve_dspy.signatures import RelevanceRanker, DiversityRanker
 
-class ListwiseReranker(BaseRAG):
+class ListwiseReranker(BaseRetriever):
     def __init__(
         self, 
         collection_name: str, 

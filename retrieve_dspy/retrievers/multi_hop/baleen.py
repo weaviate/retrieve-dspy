@@ -10,7 +10,7 @@ import dspy
 import voyageai
 import weaviate
 
-from retrieve_dspy.retrievers.base_rag import BaseRAG
+from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 from retrieve_dspy.database.weaviate_database import weaviate_search_tool
 from retrieve_dspy.signatures import (
     WriteFollowUpQuery,
@@ -28,7 +28,7 @@ from retrieve_dspy.retrievers.common.call_ce_ranker import (
 
 RerankProvider = Literal["cohere", "voyage", "hybrid"]
 
-class SimplifiedBaleen(BaseRAG):
+class SimplifiedBaleen(BaseRetriever):
     def __init__(
         self,
         weaviate_client: weaviate.WeaviateClient,

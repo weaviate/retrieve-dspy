@@ -7,7 +7,7 @@ import weaviate
 from retrieve_dspy.database.weaviate_database import (
     weaviate_search_tool
 )
-from retrieve_dspy.retrievers.base_rag import BaseRAG
+from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerClient, MultiLMConfig
 from retrieve_dspy.signatures import (
     VerboseRelevanceRanker,
@@ -23,7 +23,7 @@ from retrieve_dspy.retrievers.common.call_ce_ranker import (
 
 RerankProvider = Literal["voyage", "hybrid"]
 
-class LayeredListwiseReranker(BaseRAG):
+class LayeredListwiseReranker(BaseRetriever):
     def __init__(
         self, 
         weaviate_client: weaviate.WeaviateClient,

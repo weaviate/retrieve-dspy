@@ -78,8 +78,8 @@ def build_retriever(retriever_config, use_async, dataset_config, lm_config=None)
         voyage_client = get_voyage_client()
         return _build_quipler(common_params, retriever_config, voyage_client)
 
-    elif retriever_type == "HybridSearch":
-        return _build_hybrid_search(common_params, retriever_config)
+    elif retriever_type == "BaseRetriever":
+        return _build_base_retriever(common_params, retriever_config)
 
     else:
         raise ValueError(f"Unknown retriever type: {retriever_type}")
@@ -251,17 +251,17 @@ def _build_quipler(common_params, config, voyage_client):
 
     return retrieve_dspy.QUIPLER(**params)
 
-def _build_hybrid_search(common_params, config):
+def _build_base_retriever(common_params, config):
     params = {
         **common_params,
         "retrieved_k": config.get("retrieved_k", 100),
     }
-    print(f"Building HybridSearch with params: {params}")
+    print(f"Building BaseRetriever with params: {params}")
 
     try:
-        retriever = retrieve_dspy.HybridSearch(**params)
-        print(f"Successfully created HybridSearch: {type(retriever)}")
+        retriever = retrieve_dspy.BaseRetriever(**params)
+        print(f"Successfully created BaseRetriever: {type(retriever)}")
         return retriever
     except Exception as e:
-        print(f"Error creating HybridSearch: {e}")
+        print(f"Error creating BaseRetriever: {e}")
         raise

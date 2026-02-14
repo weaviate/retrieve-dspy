@@ -9,12 +9,12 @@ from retrieve_dspy.database.weaviate_database import (
     weaviate_search_tool,
     async_weaviate_search_tool
 )
-from retrieve_dspy.retrievers.base_rag import BaseRAG
+from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 from retrieve_dspy.models import DSPyAgentRAGResponse, ListwiseRankedDocument
 from retrieve_dspy.signatures import ListwiseRanking, VerboseListwiseRanking
 
 
-class TopDownPartitioningReranker(BaseRAG):
+class TopDownPartitioningReranker(BaseRetriever):
     """
     Listwise reranker using top-down partitioning with pivot-based selection.
     Parry et al. 2024: https://arxiv.org/pdf/2405.14589

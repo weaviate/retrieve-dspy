@@ -1,4 +1,4 @@
-from .hybrid_search import HybridSearch
+from .base_retriever import BaseRetriever
 from .query_writers.multi_query_writer import MultiQueryWriter
 from .query_writers.concatenated_query_searcher import ConcatenatedQuerySearcher
 from .query_writers.query_expander import QueryExpander
@@ -26,7 +26,7 @@ from .rerankers.sliding_window_listwise_reranker import SlidingWindowListwiseRer
 from .rerankers.top_down_partitioning_reranker import TopDownPartitioningReranker
 
 __all__ = [
-    "HybridSearch",
+    "BaseRetriever",
     "HyDE_QueryExpander",
     "LameR_QueryExpander",
     "ThinkQE_QueryExpander",

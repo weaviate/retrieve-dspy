@@ -12,7 +12,7 @@ from retrieve_dspy.database.weaviate_database import (
     async_weaviate_search_tool
 )
 
-from retrieve_dspy.retrievers.base_rag import BaseRAG
+from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 
 from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB
 from retrieve_dspy.signatures import WriteSearchQueries, VerboseWriteSearchQueries
@@ -26,7 +26,7 @@ STRATEGY_MAP = {
     "cover": Strategy.COVER,
 }
 
-class ConcatenatedQuerySearcher(BaseRAG):
+class ConcatenatedQuerySearcher(BaseRetriever):
     """
     Writes multiple search queries, concatenates them, and performs a single search.
     Optionally applies pyversity diversity ranking algorithms to the results.
