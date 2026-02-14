@@ -13,7 +13,7 @@ def weaviate_search_tool(
         target_property_name: str,
         weaviate_client: Optional[weaviate.WeaviateClient] = None,
         return_property_name: Optional[str] = None,
-        retrieved_k: Optional[int] = 10,
+        retrieved_k: Optional[int] = 20,
         return_vector: bool = False,
         return_score: bool = False,
         tag_filter_value: Optional[str] = None,
@@ -32,7 +32,7 @@ def weaviate_search_tool(
     '''
     search_results = collection.query.hybrid(
         query=query,
-        alpha=1, # pure vector search
+        alpha=0.5,
         return_metadata=MetadataQuery(score=return_score),
         include_vector=return_vector,
         limit=retrieved_k
@@ -60,7 +60,7 @@ async def async_weaviate_search_tool(
     target_property_name: str,
     weaviate_async_client: Optional[weaviate.WeaviateAsyncClient] = None,
     return_property_name: Optional[str] = None,
-    retrieved_k: Optional[int] = 10,
+    retrieved_k: Optional[int] = 20,
     return_score: bool = False,
     return_vector: bool = False,
     tag_filter_value: Optional[str] = None,
@@ -80,7 +80,7 @@ async def async_weaviate_search_tool(
     
     search_results = await collection.query.hybrid(
         query=query,
-        alpha=1, # pure vector search
+        alpha=0.5,
         return_metadata=MetadataQuery(score=return_score),
         include_vector=return_vector,
         limit=retrieved_k
