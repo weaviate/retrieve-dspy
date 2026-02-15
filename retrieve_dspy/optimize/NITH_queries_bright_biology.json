@@ -1,0 +1,22 @@
+[
+    {
+        "question": "What is the structural range of bacterial glycocalyx, from least to most organized?",
+        "gold_id": "bacterium_infect_another/Bacteria_5_11.txt"
+    },
+    {
+        "question": "How does the morphology of mouse rod cells vary based on their proximity to the outer plexiform synaptic layer?",
+        "gold_id": "stars_disappear_when_look/Rod_cell_1.txt"    
+    },
+    {
+        "question": "What alternative application for measuring faecal indicator bacteria prevalence is suggested beyond traditional contamination monitoring?",
+        "gold_id": "hot_water_bacteria/PMC3037063_21_0.txt"
+    },
+    {
+        "question": "Which type of cataract patients in the study failed to demonstrate both binocular rivalry and depth perception on the Brock string task?",
+        "gold_id": "3D_vision/full_67_1.txt"
+    },
+    {
+        "question": "What example is used in this document to illustrate the distinction between episodic and semantic memory?",
+        "gold_id": "organism_learn/Learning_14_160.txt"
+    }
+]
