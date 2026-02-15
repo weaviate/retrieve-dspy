@@ -17,7 +17,7 @@ def load_nith_bright_biology(split: float = 0.6) -> tuple[list[dspy.Example], li
     Returns:
         (trainset, valset) — lists of dspy.Example with inputs marked.
     """
-    dataset_path = os.path.join(os.path.dirname(__file__), "NITH_queries_bright_biology.json")
+    dataset_path = os.path.join(os.path.dirname(__file__), "bright-biology.json")
     with open(dataset_path) as f:
         raw = json.load(f)
 

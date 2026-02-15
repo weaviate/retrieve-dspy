@@ -46,7 +46,7 @@ print("=" * 60)
 retriever = SearchQueryWriter(
     collection_name="BrightBiology_Default",
     target_property_name="content",
-    retrieved_k=10,
+    retrieved_k=1,
     verbose=False,
 )
 
@@ -93,7 +93,7 @@ optimized = run_gepa(
     retriever=SearchQueryWriter(
         collection_name="BrightBiology_Default",
         target_property_name="content",
-        retrieved_k=10,
+        retrieved_k=1,
         verbose=False,
     ),
     dataset=(trainset, valset),
