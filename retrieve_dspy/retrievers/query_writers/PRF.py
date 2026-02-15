@@ -11,7 +11,7 @@ from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 from retrieve_dspy.models import DSPyAgentRAGResponse
 from retrieve_dspy.signatures import ExpandQueryWithHint
 
-class PRF(BaseRetriever):
+class PRF_QueryExpander(BaseRetriever):
     def __init__(
         self,
         collection_name: str,
@@ -85,7 +85,7 @@ class PRF(BaseRetriever):
         )
     
 async def main():
-    test_pipeline = PRF(
+    test_pipeline = PRF_QueryExpander(
         collection_name="FreshstackLangchain",
         target_property_name="docs_text",
         retrieved_k=5

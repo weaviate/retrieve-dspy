@@ -17,7 +17,7 @@ weaviate:
 # Each retriever's parameters are defined in its own section below.
 
 retriever:
-  active: "BaseRetriever"  # Options: "BaseRetriever", "RAGFusion", "ConcatenatedQuerySearcher"
+  active: "SearchQueryWriter"  # Options: "BaseRetriever", "RAGFusion", "ConcatenatedQuerySearcher", "HyDE_QueryExpander", "PRF_QueryExpander", "SearchQueryWriter"
 
   # ───────────────────────────────────────────────────────────────────────────
   # BaseRetriever
@@ -97,3 +97,36 @@ retriever:
       dspy:
         signature: "numeric"     # "numeric" (0.0-1.0 scores) or "binary" (yes/no)
         verbose: true            # Use verbose signature with detailed instructions
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # HyDE_QueryExpander
+  # ───────────────────────────────────────────────────────────────────────────
+  # Generates a hypothetical passage that answers the question,
+  # then uses that passage as the search query (Hypothetical Document Embeddings).
+
+  HyDE_QueryExpander:
+    retrieved_k: 20
+    verbose: false
+    search_only: true
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # PRF_QueryExpander
+  # ───────────────────────────────────────────────────────────────────────────
+  # Pseudo-Relevance Feedback: performs an initial search, then uses those
+  # results as hints to expand the original query for a second search.
+
+  PRF_QueryExpander:
+    retrieved_k: 20
+    verbose: false
+    search_only: true
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # SearchQueryWriter
+  # ───────────────────────────────────────────────────────────────────────────
+  # Rewrites the user's question into an optimized search query
+  # before executing the search.
+
+  SearchQueryWriter:
+    retrieved_k: 20
+    verbose: false
+    search_only: true

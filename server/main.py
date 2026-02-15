@@ -15,7 +15,14 @@ import yaml
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from retrieve_dspy import BaseRetriever, RAGFusion, ConcatenatedQuerySearcher
+from retrieve_dspy import (
+    BaseRetriever,
+    RAGFusion,
+    ConcatenatedQuerySearcher,
+    HyDE_QueryExpander,
+    PRF_QueryExpander,
+    SearchQueryWriter,
+)
 from retrieve_dspy.retrievers.embeddings_registry import get_embedding_headers
 from retrieve_dspy.models import RerankerClient
 
@@ -238,8 +245,32 @@ def create_retriever(config: dict) -> BaseRetriever:
             diversity_weight=retriever_params.get("diversity_weight", 0.0),
             diversity_strategy=retriever_params.get("diversity_strategy", "mmr"),
         )
+    elif retriever_name == "HyDE_QueryExpander":
+        return HyDE_QueryExpander(
+            collection_name=weaviate_config["collection_name"],
+            target_property_name=weaviate_config.get("target_property_name", "content"),
+            retrieved_k=retriever_params.get("retrieved_k", 20),
+            verbose=retriever_params.get("verbose", False),
+            search_only=retriever_params.get("search_only", True),
+        )
+    elif retriever_name == "PRF_QueryExpander":
+        return PRF_QueryExpander(
+            collection_name=weaviate_config["collection_name"],
+            target_property_name=weaviate_config.get("target_property_name", "content"),
+            retrieved_k=retriever_params.get("retrieved_k", 20),
+            verbose=retriever_params.get("verbose", False),
+            search_only=retriever_params.get("search_only", True),
+        )
+    elif retriever_name == "SearchQueryWriter":
+        return SearchQueryWriter(
+            collection_name=weaviate_config["collection_name"],
+            target_property_name=weaviate_config.get("target_property_name", "content"),
+            retrieved_k=retriever_params.get("retrieved_k", 20),
+            verbose=retriever_params.get("verbose", False),
+            search_only=retriever_params.get("search_only", True),
+        )
     else:
-        raise ValueError(f"Unsupported retriever: {retriever_name}. Supported: 'BaseRetriever', 'RAGFusion', 'ConcatenatedQuerySearcher'.")
+        raise ValueError(f"Unsupported retriever: {retriever_name}. Supported: 'BaseRetriever', 'RAGFusion', 'ConcatenatedQuerySearcher', 'HyDE_QueryExpander', 'PRF_QueryExpander', 'SearchQueryWriter'.")
 
 
 def get_weaviate_async_client(config: dict) -> weaviate.WeaviateAsyncClient:
