@@ -15,91 +15,55 @@ def _lookup_gold_content(gold_id: str) -> str:
 
 
 def _retrieval_metric(gold, pred, trace=None, pred_name=None, pred_trace=None):
-    """Metric that checks if the gold document was retrieved.
-
-    Compares retrieved source contents against the gold document content
-    looked up from Weaviate via gold_id. Returns ScoreWithFeedback so
-    GEPA's reflection LM gets actionable signal about what was retrieved
-    vs what should have been.
-    """
     from dspy.teleprompt.gepa.gepa_utils import ScoreWithFeedback
 
-    gold_id = gold.gold_id
+    gold_id = str(gold.gold_id)
     gold_content = _lookup_gold_content(gold_id)
 
     if not gold_content:
         return ScoreWithFeedback(
             score=0.0,
-            feedback=f"Could not look up gold document '{gold_id}' from Weaviate.",
+            feedback="YOU WROTE THIS QUERY: (no query)\n"
+                     "AND YOU RETURNED THIS: (no results)\n"
+                     "THE TARGET DOCUMENT YOU SHOULD HAVE RETURNED IS THIS: (gold lookup failed)",
         )
 
-    # Get retrieved sources from the prediction
     sources = getattr(pred, "sources", None) or []
     searches = getattr(pred, "searches", None) or []
     search_query = ", ".join(searches) if searches else "(no query)"
 
-    # Check for match — compare retrieved content against gold content
-    gold_lower = gold_content.lower().strip()
-    # Use a meaningful prefix of gold content for matching
-    gold_snippet = gold_content[:200].strip()
+    def snip(text: str, n: int = 1200) -> str:
+        text = (text or "").strip()
+        text = " ".join(text.split())  # collapse whitespace/newlines
+        return text[:n] + ("..." if len(text) > n else "")
 
-    best_overlap = 0.0
-    best_source_snippet = ""
-    found_at_rank = None
+    # Combine retrieved content into a single block (no ranks, no ids)
+    retrieved_texts = []
+    for src in sources[:3]:
+        retrieved_texts.append(snip(getattr(src, "content", "") or "", 900))
+    retrieved_content = "\n\n".join(retrieved_texts) if retrieved_texts else "(no results)"
 
-    for i, source in enumerate(sources):
-        source_content = getattr(source, "content", "") or ""
-        source_lower = source_content.lower().strip()
+    # Internal hit test (kept private; not shown in feedback)
+    # Use a stable snippet of gold content to reduce brittleness vs full-doc containment
+    gold_probe = snip(gold_content, 600).lower()
+    found = False
+    if gold_probe:
+        for src in sources:
+            src_text = snip(getattr(src, "content", "") or "", 1600).lower()
+            if gold_probe in src_text:
+                found = True
+                break
 
-        # Exact or near-exact match (gold content is contained in source or vice versa)
-        if gold_lower in source_lower or source_lower in gold_lower:
-            found_at_rank = i + 1
-            best_overlap = 1.0
-            best_source_snippet = source_content[:200]
-            break
+    score = 1.0 if found else 0.0
 
-        # Token overlap as a softer signal
-        gold_tokens = set(gold_lower.split())
-        source_tokens = set(source_lower.split())
-        if gold_tokens:
-            overlap = len(gold_tokens & source_tokens) / len(gold_tokens)
-            if overlap > best_overlap:
-                best_overlap = overlap
-                best_source_snippet = source_content[:200]
-
-    # Score: 1.0 for exact hit, scaled by rank; partial overlap otherwise
-    if found_at_rank is not None:
-        # Reward finding it, with a small bonus for higher rank
-        score = 1.0
-        feedback = (
-            f"Gold document found at rank {found_at_rank}/{len(sources)}. "
-            f"Search query: '{search_query}'. "
-            f"The query successfully retrieved the target document."
-        )
-    elif best_overlap >= 0.3:
-        score = round(best_overlap * 0.5, 3)  # partial credit, max 0.5
-        feedback = (
-            f"Gold document NOT found in {len(sources)} results. "
-            f"Search query: '{search_query}'. "
-            f"Best partial overlap: {best_overlap:.0%}. "
-            f"Closest retrieved content: '{best_source_snippet}...'. "
-            f"Target content starts with: '{gold_snippet}...'. "
-            f"The search query should use more specific terminology from the "
-            f"target domain to retrieve the correct document."
-        )
-    else:
-        score = 0.0
-        feedback = (
-            f"Gold document NOT found in {len(sources)} results. "
-            f"Search query: '{search_query}'. "
-            f"No meaningful overlap with target content. "
-            f"Target content starts with: '{gold_snippet}...'. "
-            f"The question was: '{gold.question}'. "
-            f"The search query needs to be rewritten to better capture the key "
-            f"concepts and domain-specific terms that would match the target document."
-        )
+    feedback = (
+        f"YOU WROTE THIS QUERY: {search_query}\n"
+        f"AND YOU RETURNED THIS: {retrieved_content}\n"
+        f"THE TARGET DOCUMENT YOU SHOULD HAVE RETURNED IS THIS: {snip(gold_content, 1200)}"
+    )
 
     return ScoreWithFeedback(score=score, feedback=feedback)
+
 
 
 def run_gepa(

@@ -59,31 +59,8 @@ print(f"  Metric score: {score.score}")
 print(f"  Metric feedback: {score.feedback}")
 print()
 
-
 # ---------------------------------------------------------------------------
-# 3. Baseline scores on full dataset
-# ---------------------------------------------------------------------------
-print("=" * 60)
-print("Step 3: Baseline scores on all examples")
-print("=" * 60)
-
-all_examples = trainset + valset
-baseline_scores = []
-for example in all_examples:
-    p = retriever(question=example.question)
-    s = _retrieval_metric(example, p)
-    baseline_scores.append(s.score)
-    hit = "HIT" if s.score == 1.0 else "MISS"
-    print(f"  [{hit}] score={s.score:.2f} | q='{example.question[:60]}...'")
-
-avg_baseline = sum(baseline_scores) / len(baseline_scores)
-print(f"\n  Average baseline score: {avg_baseline:.3f}")
-print(f"  Hits: {sum(1 for s in baseline_scores if s == 1.0)}/{len(baseline_scores)}")
-print()
-
-
-# ---------------------------------------------------------------------------
-# 4. Run GEPA optimization
+# 3. Run GEPA optimization
 # ---------------------------------------------------------------------------
 print("=" * 60)
 print("Step 4: Running GEPA optimization (auto='light')")
@@ -103,7 +80,7 @@ optimized = run_gepa(
 
 
 # ---------------------------------------------------------------------------
-# 5. Compare before vs after
+# 4. Compare before vs after
 # ---------------------------------------------------------------------------
 print()
 print("=" * 60)
@@ -111,7 +88,7 @@ print("Step 5: Optimized scores on all examples")
 print("=" * 60)
 
 optimized_scores = []
-for example in all_examples:
+for example in valset:
     p = optimized(question=example.question)
     s = _retrieval_metric(example, p)
     optimized_scores.append(s.score)
@@ -122,5 +99,4 @@ avg_optimized = sum(optimized_scores) / len(optimized_scores)
 print(f"\n  Average optimized score: {avg_optimized:.3f}")
 print(f"  Hits: {sum(1 for s in optimized_scores if s == 1.0)}/{len(optimized_scores)}")
 
-print(f"\n  Improvement: {avg_baseline:.3f} -> {avg_optimized:.3f}")
 print("\nDone!")
