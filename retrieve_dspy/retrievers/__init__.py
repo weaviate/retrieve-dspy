@@ -2,7 +2,7 @@ from .base_retriever import BaseRetriever
 from .query_writers.multi_query_writer import MultiQueryWriter
 from .query_writers.concatenated_query_searcher import ConcatenatedQuerySearcher
 from .query_writers.query_expander import QueryExpander
-from .query_writers.query_expander_with_hint import QueryExpanderWithHint
+from .query_writers.PRF import PRF_QueryExpander
 from .query_writers.query_expander_with_reranker import QueryExpanderWithReranker
 from .query_writers.RAGFusion import RAGFusion
 from .rerankers.cross_encoder_reranker import CrossEncoderReranker
@@ -22,6 +22,7 @@ from .compositions.quipler import QUIPLER
 from .query_writers.HyDE import HyDE_QueryExpander
 from .query_writers.LameR import LameR_QueryExpander
 from .query_writers.ThinkQE import ThinkQE_QueryExpander
+from .query_writers.search_query_writer import SearchQueryWriter
 from .rerankers.sliding_window_listwise_reranker import SlidingWindowListwiseReranker
 from .rerankers.top_down_partitioning_reranker import TopDownPartitioningReranker
 
@@ -30,6 +31,7 @@ __all__ = [
     "HyDE_QueryExpander",
     "LameR_QueryExpander",
     "ThinkQE_QueryExpander",
+    "SearchQueryWriter",
     "SlidingWindowListwiseReranker",
     "TopDownPartitioningReranker",
     "RAGFusion",
@@ -46,7 +48,7 @@ __all__ = [
     "LayeredBestMatchReranker",
     "LayeredListwiseReranker",
     "DecomposeAndExpand",
-    "QueryExpanderWithHint",
+    "PRF_QueryExpander",
     "DecomposeAndExpandWithHints",
     "QueryExpanderWithReranker",
     "RAGFusion",

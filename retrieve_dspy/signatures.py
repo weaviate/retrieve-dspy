@@ -223,6 +223,20 @@ class DiversityRanker(dspy.Signature):
 
 # ============ Query Writers ============
 
+class WriteSearchQuery(dspy.Signature):
+    """Given a user's question, translate it into a search query optimized for the particular nuances of retrieving relevant information from a search engine.
+    This search engine is built with Hybrid Search combining semantic vector search with BM25 keyword scoring. Please design the search query accordingly."""
+
+    question: str = dspy.InputField(desc="The user's question or information need")
+    search_query: str = dspy.OutputField(desc="A search query optimized for the particular nuances of retrieving relevant information from a search engine.")
+
+class VerboseWriteSearchQuery(dspy.Signature):
+    """Given a user's question, translate it into a search query optimized for the particular nuances of retrieving relevant information from a search engine.
+    This search engine is built with Hybrid Search combining semantic vector search with BM25 keyword scoring. Please design the search query accordingly."""
+
+    question: str = dspy.InputField(desc="The user's question or information need")
+    search_query: str = dspy.OutputField(desc="A search query optimized for the particular nuances of retrieving relevant information from a search engine.")
+
 class HyDE(dspy.Signature):
     """Please write a passage to answer the question."""
 

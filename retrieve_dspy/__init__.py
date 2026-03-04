@@ -13,10 +13,11 @@ from .retrievers import (
     LayeredListwiseReranker,
     ConcatenatedQuerySearcher,
     FilteredQueryWriter,
+    SearchQueryWriter,
     SummarizedListwiseReranker,
     QueryExpander,
     DecomposeAndExpand,
-    QueryExpanderWithHint,
+    PRF_QueryExpander,
     DecomposeAndExpandWithHints,
     QueryExpanderWithReranker,
     BestMatchReranker,
@@ -31,6 +32,8 @@ from . import utils
 from . import data_loaders
 from . import clients
 from . import benchmark_run
+from . import optimize
+from .optimize import run_gepa
 
 __version__ = "0.1.0"
 
@@ -45,6 +48,7 @@ __all__ = [
     "RAGFusion",
     "ConcatenatedQuerySearcher",
     "FilteredQueryWriter",
+    "SearchQueryWriter",
     "SummarizedListwiseReranker",
     "CrossEncoderReranker",
     "ListwiseReranker",
@@ -52,7 +56,7 @@ __all__ = [
     "LayeredListwiseReranker",
     "QueryExpander",
     "DecomposeAndExpand",
-    "QueryExpanderWithHint",
+    "PRF_QueryExpander",
     "DecomposeAndExpandWithHints",
     "QueryExpanderWithReranker",
     "BestMatchReranker",
@@ -61,9 +65,10 @@ __all__ = [
     "SlidingWindowListwiseReranker",
     "TopDownPartitioningReranker",
     "utils",
-    "metrics", 
     "data_loaders",
     "clients",
     "benchmark_run",
+    "optimize",
+    "run_gepa",
     "QUIPLER",
 ]

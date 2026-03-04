@@ -1,0 +1,77 @@
+[
+  {
+    "question": "How does Weaviate implement hybrid search?",
+    "expected_search_query": "Weaviate hybrid search BM25 vector implementation",
+    "relevant_keywords": ["hybrid", "BM25", "vector", "search", "weaviate"]
+  },
+  {
+    "question": "What are the best practices for chunking documents before embedding them?",
+    "expected_search_query": "document chunking strategies embedding best practices",
+    "relevant_keywords": ["chunking", "documents", "embedding", "splitting", "tokens"]
+  },
+  {
+    "question": "How do I set up a multi-tenant Weaviate instance?",
+    "expected_search_query": "Weaviate multi-tenancy setup configuration",
+    "relevant_keywords": ["multi-tenant", "tenancy", "weaviate", "configuration", "isolation"]
+  },
+  {
+    "question": "Can you explain the difference between cosine similarity and dot product for vector search?",
+    "expected_search_query": "cosine similarity vs dot product vector distance metrics",
+    "relevant_keywords": ["cosine", "dot product", "similarity", "distance", "vector"]
+  },
+  {
+    "question": "What is retrieval augmented generation and how does it work?",
+    "expected_search_query": "retrieval augmented generation RAG architecture pipeline",
+    "relevant_keywords": ["RAG", "retrieval", "augmented", "generation", "context"]
+  },
+  {
+    "question": "How do I fine-tune an embedding model for my specific domain?",
+    "expected_search_query": "fine-tune embedding model domain-specific training",
+    "relevant_keywords": ["fine-tune", "embedding", "model", "domain", "training"]
+  },
+  {
+    "question": "What is the role of cross-encoder reranking in a search pipeline?",
+    "expected_search_query": "cross-encoder reranking search pipeline relevance scoring",
+    "relevant_keywords": ["cross-encoder", "reranking", "relevance", "two-stage", "scoring"]
+  },
+  {
+    "question": "How does BM25 keyword search compare to dense vector retrieval?",
+    "expected_search_query": "BM25 keyword search vs dense vector retrieval comparison",
+    "relevant_keywords": ["BM25", "keyword", "dense", "vector", "retrieval", "comparison"]
+  },
+  {
+    "question": "What are inverted indexes and how are they used in search?",
+    "expected_search_query": "inverted index data structure search engine text retrieval",
+    "relevant_keywords": ["inverted", "index", "search", "posting", "terms"]
+  },
+  {
+    "question": "How do I evaluate the quality of a retrieval system?",
+    "expected_search_query": "retrieval system evaluation metrics NDCG recall precision",
+    "relevant_keywords": ["evaluation", "metrics", "NDCG", "recall", "precision", "retrieval"]
+  },
+  {
+    "question": "What is reciprocal rank fusion and when should I use it?",
+    "expected_search_query": "reciprocal rank fusion RRF combining multiple ranked lists",
+    "relevant_keywords": ["reciprocal", "rank", "fusion", "RRF", "combining", "merging"]
+  },
+  {
+    "question": "How does HNSW indexing work for approximate nearest neighbor search?",
+    "expected_search_query": "HNSW hierarchical navigable small world approximate nearest neighbor",
+    "relevant_keywords": ["HNSW", "approximate", "nearest neighbor", "graph", "index"]
+  },
+  {
+    "question": "What is query expansion and how does it improve search results?",
+    "expected_search_query": "query expansion techniques improving search recall relevance",
+    "relevant_keywords": ["query", "expansion", "recall", "synonyms", "relevance"]
+  },
+  {
+    "question": "How do I handle multi-modal data in a vector database?",
+    "expected_search_query": "multi-modal data vector database images text embeddings",
+    "relevant_keywords": ["multi-modal", "images", "text", "embeddings", "vector database"]
+  },
+  {
+    "question": "What is the difference between a bi-encoder and a cross-encoder?",
+    "expected_search_query": "bi-encoder vs cross-encoder architecture comparison retrieval",
+    "relevant_keywords": ["bi-encoder", "cross-encoder", "architecture", "comparison", "embedding"]
+  }
+]
