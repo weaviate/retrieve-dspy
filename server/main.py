@@ -271,6 +271,7 @@ def create_retriever(config: dict) -> BaseRetriever:
             retrieved_k=retriever_params.get("retrieved_k", 20),
             verbose=retriever_params.get("verbose", False),
             search_only=retriever_params.get("search_only", True),
+            search_type=search_type,
         )
     else:
         raise ValueError(f"Unsupported retriever: {retriever_name}. Supported: 'BaseRetriever', 'RAGFusion', 'ConcatenatedQuerySearcher', 'HyDE_QueryExpander', 'PRF_QueryExpander', 'SearchQueryWriter'.")

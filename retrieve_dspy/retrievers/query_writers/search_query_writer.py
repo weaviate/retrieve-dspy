@@ -18,9 +18,10 @@ class SearchQueryWriter(BaseRetriever):
         target_property_name: Optional[str] = "content",
         verbose: Optional[bool] = True,
         search_only: Optional[bool] = True,
-        retrieved_k: Optional[int] = 20
+        retrieved_k: Optional[int] = 20,
+        search_type: str = "hybrid",
     ):
-        super().__init__(collection_name, target_property_name, search_only=search_only, verbose=verbose, retrieved_k=retrieved_k)
+        super().__init__(collection_name, target_property_name, search_only=search_only, verbose=verbose, retrieved_k=retrieved_k, search_type=search_type)
         signature = VerboseWriteSearchQuery if verbose else WriteSearchQuery
         self.write_search_query = dspy.Predict(signature)
 
@@ -36,6 +37,7 @@ class SearchQueryWriter(BaseRetriever):
             target_property_name=self.target_property_name,
             retrieved_k=self.retrieved_k,
             weaviate_client=weaviate_client,
+            search_type=self.search_type,
         )
 
         if self.verbose:
@@ -62,6 +64,7 @@ class SearchQueryWriter(BaseRetriever):
             target_property_name=self.target_property_name,
             retrieved_k=self.retrieved_k,
             weaviate_async_client=weaviate_async_client,
+            search_type=self.search_type,
         )
 
         if self.verbose:
