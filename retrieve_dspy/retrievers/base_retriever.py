@@ -145,7 +145,8 @@ class BaseRetriever(dspy.Module):
             retrieved_k=retrieved_k,
             weaviate_async_client=weaviate_async_client,
             return_vector=True,
-            return_score=True
+            return_score=True,
+            search_type=self.search_type,
         )
 
         if self.diversity_weight > 0:
