@@ -254,6 +254,7 @@ def create_retriever(config: dict) -> BaseRetriever:
             retrieved_k=retriever_params.get("retrieved_k", 20),
             verbose=retriever_params.get("verbose", False),
             search_only=retriever_params.get("search_only", True),
+            search_type=search_type,
         )
     elif retriever_name == "PRF_QueryExpander":
         return PRF_QueryExpander(
