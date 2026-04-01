@@ -26,6 +26,7 @@ class BaseRetriever(dspy.Module):
         embedding_model: Optional[str] = None,
         retrieved_k: Optional[int] = 20,
         diversity_weight: Optional[float] = 0,
+        search_type: str = "hybrid",
     ) -> None:
         self.collection_name = collection_name
         self.weaviate_client = weaviate_client
@@ -37,6 +38,7 @@ class BaseRetriever(dspy.Module):
         self.embedding_model = embedding_model
         self.retrieved_k = retrieved_k
         self.diversity_weight = diversity_weight
+        self.search_type = search_type
         if self.multi_lm_configs:
             self._multi_lm_configs_to_dict()
         else:
