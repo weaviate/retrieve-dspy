@@ -23,14 +23,16 @@ class HyDE_QueryExpander(BaseRetriever):
         weaviate_client: Optional[weaviate.WeaviateClient | weaviate.WeaviateAsyncClient] = None,
         verbose: Optional[bool] = False,
         search_only: Optional[bool] = True,
-        retrieved_k: Optional[int] = 20
+        retrieved_k: Optional[int] = 20,
+        search_type: str = "hybrid",
     ):
         super().__init__(
             collection_name=collection_name,
             target_property_name=target_property_name,
             search_only=search_only,
             verbose=verbose,
-            retrieved_k=retrieved_k
+            retrieved_k=retrieved_k,
+            search_type=search_type,
         )
         self.weaviate_client = weaviate_client
         if self.verbose:
@@ -54,6 +56,7 @@ class HyDE_QueryExpander(BaseRetriever):
             target_property_name=self.target_property_name,
             weaviate_client=weaviate_client,
             retrieved_k=self.retrieved_k,
+            search_type=self.search_type,
         )
 
         return DSPyAgentRAGResponse(
@@ -81,6 +84,7 @@ class HyDE_QueryExpander(BaseRetriever):
             target_property_name=self.target_property_name,
             weaviate_async_client=weaviate_async_client,
             retrieved_k=self.retrieved_k,
+            search_type=self.search_type,
         )
 
         return DSPyAgentRAGResponse(

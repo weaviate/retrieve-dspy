@@ -8,6 +8,7 @@ server:
 weaviate:
   collection_name: "BrightBiology_Default"
   target_property_name: "content"
+  search_type: "bm25"  # Options: "bm25", "vector", "hybrid"
   embedding_model: "weaviate/Snowflake/snowflake-arctic-embed-l-v2.0"  # provider/model-name
 
 # ─────────────────────────────────────────────────────────────────────────────
