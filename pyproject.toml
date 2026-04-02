@@ -25,6 +25,7 @@ dependencies = [
     "tiktoken>=0.7.0",
     "uvicorn>=0.32.0",
     "voyageai>=0.3.4",
+    "wandb>=0.25.1",
     "weaviate-client[agents]>=4.16.4",
 ]
 

@@ -49,7 +49,6 @@ class BaseRetriever(dspy.Module):
         lm = dspy.LM(
             default_lm,
             temperature=1.0,
-            max_tokens=32000,
             cache=False,
             api_key=os.getenv("OPENAI_API_KEY"),
         )
