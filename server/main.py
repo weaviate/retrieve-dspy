@@ -316,7 +316,17 @@ async def lifespan(app: FastAPI):
     retriever_name = state.config['retriever'].get('active') or state.config['retriever'].get('name')
     print(f"🚀 Server starting with retriever: {retriever_name}")
     print(f"📦 Collection: {state.config['weaviate']['collection_name']}")
-    
+
+    # Auto-load optimized program if configured
+    optimized_program_path = state.config.get("retriever", {}).get("optimized_program_path")
+    if optimized_program_path:
+        program_path = Path("optimized-programs") / optimized_program_path
+        if program_path.exists():
+            state.retriever.load(str(program_path))
+            print(f"✅ Loaded optimized program: {program_path}")
+        else:
+            print(f"⚠️  optimized_program_path not found: {program_path}")
+
     yield
     
     # Shutdown

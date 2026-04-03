@@ -1,27 +1,12 @@
 import json
-import os
 
 import dspy
 
 
-def load_nith_bright_biology(split: float = 0.6) -> tuple[list[dspy.Example], list[dspy.Example]]:
-    """Load the NITH Bright Biology dataset and return (trainset, valset).
-
-    Each dspy.Example has:
-        - question (input): the user's natural language question
-        - gold_id (label): the dataset_id of the gold document in Weaviate
-
-    Args:
-        split: fraction of examples to use for training (rest go to validation).
-
-    Returns:
-        (trainset, valset) — lists of dspy.Example with inputs marked.
-    """
-    dataset_path = os.path.join(os.path.dirname(__file__), "bright-biology.json")
-    with open(dataset_path) as f:
+def _load_examples(path: str) -> list[dspy.Example]:
+    with open(path) as f:
         raw = json.load(f)
-
-    examples = [
+    return [
         dspy.Example(
             question=item["question"],
             gold_id=item["gold_id"],
@@ -29,8 +14,20 @@ def load_nith_bright_biology(split: float = 0.6) -> tuple[list[dspy.Example], li
         for item in raw
     ]
 
-    split_idx = int(len(examples) * split)
-    trainset = examples[:split_idx]
-    valset = examples[split_idx:]
 
-    return trainset, valset
+def load_search_dataset(
+    train_path: str,
+    test_path: str,
+) -> tuple[list[dspy.Example], list[dspy.Example]]:
+    """Load train/test sets from JSON files.
+
+    Each JSON file should be a list of objects with "question" and "gold_id" keys.
+
+    Args:
+        train_path: Path to training JSON.
+        test_path: Path to test JSON.
+
+    Returns:
+        (trainset, testset) — lists of dspy.Example with inputs marked.
+    """
+    return _load_examples(train_path), _load_examples(test_path)

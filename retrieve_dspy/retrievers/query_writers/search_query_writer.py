@@ -9,7 +9,7 @@ from retrieve_dspy.database.weaviate_database import (
 )   
 from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 from retrieve_dspy.models import DSPyAgentRAGResponse
-from retrieve_dspy.signatures import WriteSearchQuery, VerboseWriteSearchQuery
+from retrieve_dspy.signatures import WriteSearchQuery
 
 class SearchQueryWriter(BaseRetriever):
     def __init__(
@@ -22,7 +22,7 @@ class SearchQueryWriter(BaseRetriever):
         search_type: str = "hybrid",
     ):
         super().__init__(collection_name, target_property_name, search_only=search_only, verbose=verbose, retrieved_k=retrieved_k, search_type=search_type)
-        signature = VerboseWriteSearchQuery if verbose else WriteSearchQuery
+        signature = WriteSearchQuery if verbose else WriteSearchQuery
         self.write_search_query = dspy.Predict(signature)
 
     def forward(self, question: str, weaviate_client=None) -> DSPyAgentRAGResponse:

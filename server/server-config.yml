@@ -131,3 +131,12 @@ retriever:
     retrieved_k: 20
     verbose: false
     search_only: true
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Optimized Program (optional)
+  # ───────────────────────────────────────────────────────────────────────────
+  # Filename of a saved DSPy program JSON (from dspy.Module.save()) inside
+  # the optimized-programs/ directory. Set to null or omit to skip loading.
+  #
+  optimized_program_path: "search_query_writer_bm25.json"
+  # optimized_program_path: null

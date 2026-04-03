@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from retrieve_dspy import SearchQueryWriter
-from retrieve_dspy.optimize.toy_dataset import load_nith_bright_biology
+from retrieve_dspy.optimize.toy_dataset import load_search_dataset
 from retrieve_dspy.optimize.run_gepa import _retrieval_metric, _lookup_gold_content, run_gepa
 
 
@@ -21,7 +21,10 @@ print("=" * 60)
 print("Step 1: Loading NITH Bright Biology dataset")
 print("=" * 60)
 
-trainset, valset = load_nith_bright_biology()
+trainset, valset = load_search_dataset(
+    train_path="scripts/reasonir_bright_biology_train.json",
+    test_path="scripts/reasonir_bright_biology_test.json",
+)
 print(f"  trainset size: {len(trainset)}")
 print(f"  valset   size: {len(valset)}")
 
