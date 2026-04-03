@@ -17,6 +17,7 @@ def weaviate_search_tool(
         return_vector: bool = False,
         return_score: bool = False,
         tag_filter_value: Optional[str] = None,
+        search_type: str = "hybrid",
 ) -> list[ObjectFromDB]:
     if weaviate_client is None:
         weaviate_client = weaviate.connect_to_weaviate_cloud(
@@ -30,12 +31,27 @@ def weaviate_search_tool(
     if tag_filter_value:
         filter = Filter.by_property("tags").contains_any([tag_filter_value])
     '''
-    search_results = collection.query.hybrid(
-        query=query,
-        return_metadata=MetadataQuery(score=return_score),
-        include_vector=return_vector,
-        limit=retrieved_k
-    )
+    if search_type == "bm25":
+        search_results = collection.query.bm25(
+            query=query,
+            return_metadata=MetadataQuery(score=return_score),
+            include_vector=return_vector,
+            limit=retrieved_k
+        )
+    elif search_type == "vector":
+        search_results = collection.query.near_text(
+            query=query,
+            return_metadata=MetadataQuery(score=return_score),
+            include_vector=return_vector,
+            limit=retrieved_k
+        )
+    else:
+        search_results = collection.query.hybrid(
+            query=query,
+            return_metadata=MetadataQuery(score=return_score),
+            include_vector=return_vector,
+            limit=retrieved_k
+        )
 
     objects: list[ObjectFromDB] = []
     if search_results.objects:
@@ -63,6 +79,7 @@ async def async_weaviate_search_tool(
     return_score: bool = False,
     return_vector: bool = False,
     tag_filter_value: Optional[str] = None,
+    search_type: str = "hybrid",
 ) -> list[ObjectFromDB]:
     if weaviate_async_client is None:
         weaviate_async_client = weaviate.use_async_with_weaviate_cloud(
@@ -76,13 +93,28 @@ async def async_weaviate_search_tool(
     if tag_filter_value:
         filter = Filter.by_property("tags").contains_any([tag_filter_value])
     '''
-    
-    search_results = await collection.query.hybrid(
-        query=query,
-        return_metadata=MetadataQuery(score=return_score),
-        include_vector=return_vector,
-        limit=retrieved_k
-    )
+
+    if search_type == "bm25":
+        search_results = await collection.query.bm25(
+            query=query,
+            return_metadata=MetadataQuery(score=return_score),
+            include_vector=return_vector,
+            limit=retrieved_k
+        )
+    elif search_type == "vector":
+        search_results = await collection.query.near_text(
+            query=query,
+            return_metadata=MetadataQuery(score=return_score),
+            include_vector=return_vector,
+            limit=retrieved_k
+        )
+    else:
+        search_results = await collection.query.hybrid(
+            query=query,
+            return_metadata=MetadataQuery(score=return_score),
+            include_vector=return_vector,
+            limit=retrieved_k
+        )
     
     objects: list[ObjectFromDB] = []
     if search_results.objects:

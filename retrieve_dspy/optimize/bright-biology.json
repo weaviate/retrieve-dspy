@@ -1,0 +1,202 @@
+[
+  {
+    "question": "A new infectious disease is identified in a densely populated urban area, with initial reports suggesting it is caused by a previously unknown strain of bacteria. The disease is spreading rapidly, and local healthcare providers are under pressure to prescribe effective treatments. However, there is concern that overprescription of antibiotics could accelerate the development of antibiotic-resistant strains. What factors should healthcare providers consider when deciding whether to prescribe antibiotics for this new disease, and how might their decisions impact the long-term effectiveness of antibiotic treatments?",
+    "gold_id": "virus_used_as_antibiotics/be-antibiotics-aware.html_6_0.txt"
+  },
+  {
+    "question": "A researcher is studying the structure of a newly discovered cell type and observes that it has a unique membrane composition. The cell's outer membrane is highly permeable, allowing a wide range of substances to enter the cell. However, the cell's internal membranes are highly selective, only allowing specific molecules to pass through. What might be the functional implications of this membrane structure for the cell's overall function and survival?",
+    "gold_id": "cell_membrane_break_apart/cell-membranes-14052567_2_0.txt"
+  },
+  {
+    "question": "A researcher is studying the reproductive cells of a species and observes that the cells have a distinct head, neck, and tail structure. They also notice that these cells are produced in a specific organ of the reproductive system, where one precursor cell can give rise to four of these cells. What can be inferred about the type of reproductive cell being studied and the organ in which it is produced?",
+    "gold_id": "parthenogenesis/difference-between-sperm-and-ovum_11_8.txt"
+  },
+  {
+    "question": "A researcher is studying a community where members claim to share a common ancestry and language, but have distinct cultural practices and traditions. However, upon closer examination, it is discovered that the community's cultural practices and traditions are not uniform and vary significantly across different regions. How might the researcher approach the task of assigning an ethnic designation to this community, considering the complexities of shared attributes and regional variations?",
+    "gold_id": "human_monogamy/Human_4_487.txt"
+  },
+  {
+    "question": "A team of paleoanthropologists discovers a new fossil site in Asia, which they believe may contain remains of an unknown human species. The fossils show a mix of archaic and modern human characteristics. However, the site's geological age suggests that it is younger than the expected time frame for archaic human species. How might the researchers explain the presence of these fossils, considering the possible interactions between archaic and modern humans in the region?",
+    "gold_id": "human_monogamy/Human_7_18.txt"
+  },
+  {
+    "question": "In a hypothetical scenario where a new species of primate is discovered, and it is found to have a genetic similarity of 98% among its members, what implications might this have on the species' adaptability to environmental changes, and how might this compare to the adaptability of humans?",
+    "gold_id": "humans_more_adapted_to_light_mode_or_dark_mode/Human_0_4.txt"
+  },
+  {
+    "question": "In a species of plants that reproduce through a process where mature egg cells are produced by mitotic divisions, what would be the expected genetic relationship between the offspring and their parent, assuming this process occurs without any genetic mutations?",
+    "gold_id": "parthenogenesis/Parthenogenesis_2_0.txt"
+  },
+  {
+    "question": "A researcher is studying the effects of age on learning and memory. She notices that children tend to learn new skills faster than adults, but she wants to understand the underlying neural mechanisms. If she were to design an experiment to investigate this phenomenon, what type of neural activity or process would she most likely focus on, and why?",
+    "gold_id": "organism_learn/Learning_4_209.txt"
+  },
+  {
+    "question": "A local health department has reported a sudden increase in cases of a mysterious respiratory illness in a small town. The illness is highly contagious and has already affected over 10% of the town's population within a week. The town has a population of 50,000 people, and the illness is spreading rapidly among school-aged children. What type of outbreak would this scenario most likely be classified as, and what steps should the health department take to track down the source of the infection?",
+    "gold_id": "bacterium_infect_another/Infection_0_48.txt"
+  },
+  {
+    "question": "A renowned painter, known for her abstract art, is struggling to create a new piece that captures the essence of a recent natural disaster. She has extensive knowledge of color theory and composition, but her initial attempts have been unsuccessful. What approach might she take to overcome her creative block, and how might her specialized knowledge influence the outcome?",
+    "gold_id": "human_monogamy/Human_behavior_4_25.txt"
+  },
+  {
+    "question": "A team of conservationists is tasked with mitigating the impact of a proposed dam on a local ecosystem. The dam is expected to alter the natural flow of the river, potentially disrupting the habitats of several endangered species. Considering the historical effects of industrialization on biodiversity, what strategies might the team employ to minimize the dam's impact on the local wildlife, and how might they balance the needs of the ecosystem with the demands of human development?",
+    "gold_id": "animals_evolve_size/extinction-over-time_4_8.txt"
+  },
+  {
+    "question": "A team of paleoanthropologists discovers a previously unknown human fossil in Eurasia, dated to around 200,000 years ago. The fossil exhibits a mix of archaic and modern human characteristics. Considering the migration patterns of early human species, what are the possible origins of this fossil, and how might it impact our current understanding of human evolution?",
+    "gold_id": "human_monogamy/Human_7_28.txt"
+  },
+  {
+    "question": "A researcher is studying the behavior of a group of animals in response to different sounds. She notices that whenever a particular sound is played, the animals naturally exhibit a specific physical response, such as twitching their ears. However, when a different sound is played, the animals do not exhibit this response. The researcher wants to train the animals to associate the second sound with the physical response. What approach should the researcher take to achieve this, and what type of learning is she attempting to induce in the animals?",
+    "gold_id": "organism_learn/05_Mechanisms_of_Learning.htm_7_56.txt"
+  },
+  {
+    "question": "A team of researchers is working to synthesize a newly discovered organic compound. They have successfully isolated the compound from a plant source, but the process is time-consuming and expensive. The team is considering alternative methods to obtain the compound, including total synthesis. What are the potential benefits and drawbacks of pursuing total synthesis, and how might the team weigh these factors in their decision-making process?",
+    "gold_id": "plant_light_pho/Chlorophyll_1_0.txt"
+  },
+  {
+    "question": "A team of plant geneticists is working on developing a new strain of disease-resistant walnut trees. They are considering using a bacterium to deliver a gene that confers resistance to crown gall disease. However, they are concerned about the potential risks of using this method. If the bacterium used is a Gram-negative, rod-shaped soil bacterium that grows optimally at 28\u00b0C, what are the potential risks of using this method, and how might the team mitigate these risks?",
+    "gold_id": "plant_cancer/Agrobacterium_tumefaciens_0.txt"
+  },
+  {
+    "question": "A region experiences a prolonged period of high temperatures and low humidity, leading to increased evaporation from its numerous lakes and rivers. However, the local water table remains relatively stable, and there's no significant increase in precipitation. What could be a plausible explanation for this phenomenon, considering the balance between evaporation, transpiration, and precipitation in the region's water cycle?",
+    "gold_id": "hot_water_bacteria/Water_4_4.txt"
+  },
+  {
+    "question": "A researcher is studying the reproductive system of a species where the female reproductive cells are significantly smaller than those of humans. The cells are also motile, allowing them to move towards the fertilizing agent. What implications might this have on the fertilization process and the development of the resulting zygote, considering the differences in cell size and motility compared to human ovum?",
+    "gold_id": "parthenogenesis/difference-between-sperm-and-ovum_12_34.txt"
+  },
+  {
+    "question": "A geneticist is studying the reproductive cells of a species and notices that the male reproductive cells have a unique characteristic that allows them to move independently. Meanwhile, the female reproductive cells are much larger and have a more complex structure. What can be inferred about the number of genes present in these reproductive cells compared to the parent cells of this species?",
+    "gold_id": "parthenogenesis/difference-between-sperm-and-ovum_22_0.txt"
+  },
+  {
+    "question": "A small town is experiencing a sudden outbreak of a waterborne illness. The local health department has identified two possible sources of contamination: a nearby industrial plant and a community well. If the town's water treatment facility is not equipped to remove all contaminants, what would be the most effective short-term measure to prevent further spread of the disease, and why?",
+    "gold_id": "bacterium_infect_another/Infection_0_73.txt"
+  },
+  {
+    "question": "In a scenario where a country is transitioning from an authoritarian regime to a democratic system, what role might cognitive flexibility play in shaping citizens' support for the new government, and how could policymakers leverage this factor to promote a smoother transition?",
+    "gold_id": "human_monogamy/Human_4_489.txt"
+  },
+  {
+    "question": "A couple is trying to conceive a child, but they are having trouble due to issues with the male partner's gametes. What are some potential factors that could be contributing to this issue, and how might they impact the fertilization process?",
+    "gold_id": "parthenogenesis/difference-between-sperm-and-ovum_33_0.txt"
+  },
+  {
+    "question": "In a species of plants, the process of pollination is crucial for fertilization to occur. Describe a scenario in which a change in environmental conditions could disrupt this process, and explain the potential consequences for the plant's reproductive cycle.",
+    "gold_id": "parthenogenesis/difference-between-sperm-and-ovum_33_0.txt"
+  },
+  {
+    "question": "A scientist is studying the reproductive habits of a particular animal species and notices that the female's gametes are not being fertilized, despite the presence of a healthy male. What are some possible explanations for this phenomenon, and how might the scientist investigate further?",
+    "gold_id": "parthenogenesis/difference-between-sperm-and-ovum_33_0.txt"
+  },
+  {
+    "question": "A researcher is studying the structure and function of reproductive cells. She observes a cell with a unique, whip-like structure that enables it to move through a fluid environment. The cell also has a specialized compartment containing enzymes that facilitate its penetration into a larger cell. What is the primary function of this cell, and how does its structure contribute to achieving this function?",
+    "gold_id": "parthenogenesis/difference-between-sperm-and-ovum_11_25.txt"
+  },
+  {
+    "question": "A researcher is studying the effects of UV radiation on human skin. She notices that a particular type of UV radiation is more prevalent throughout the year and penetrates deeper into the skin. If the researcher wants to minimize the negative health effects of this type of radiation, what would be a reasonable recommendation for individuals who work outdoors year-round?",
+    "gold_id": "UV_causes_skin_cancer/index.html_7_0.txt"
+  },
+  {
+    "question": "A teacher wants to encourage her students to participate more in class discussions. She has two options: (A) giving a small reward to students who participate, or (B) deducting points from students who don't participate. Which approach is more likely to increase the desired behavior in the long run, and why?",
+    "gold_id": "organism_learn/Learning_13_14.txt"
+  },
+  {
+    "question": "In a species where genetic mutations occur frequently due to environmental stressors, what would be the most likely outcome if gene flow between isolated populations of the species were to suddenly increase?",
+    "gold_id": "evolution_not_make_our_life_longer/Evolution_0_16.txt"
+  },
+  {
+    "question": "A patient presents with symptoms of a respiratory infection, and the doctor needs to decide on the most effective treatment. If the infection is caused by a self-sustaining microorganism that can reproduce independently, what type of medication is likely to be prescribed, and why might it not be effective if the infection is caused by a different type of microorganism that relies on host cells to multiply?",
+    "gold_id": "virus_used_as_antibiotics/3-reasons-why-you-did-not-receive-antibiotics-from-your-provider_5_1.txt"
+  },
+  {
+    "question": "A team of researchers is studying the dispersal patterns of a plant species that originated in a specific region. They notice that the plant's current distribution is widespread across the globe, but its genetic diversity is highest in a particular area. What can be inferred about the relationship between the plant's origin and its current distribution?",
+    "gold_id": "coconut_three_holes/Coconut_4_0.txt"
+  },
+  {
+    "question": "A developer is designing an app to help colorblind users distinguish between different colors in natural images. The app should enhance color contrast without altering the original image's color palette. Which approach would be more effective in achieving this goal: applying a filter that reduces the image's color gamut or implementing a daltonization algorithm, and why?",
+    "gold_id": "evolutionary_advantage_of_red-green_color_blindness/Color_blindness_5_4.txt"
+  },
+  {
+    "question": "A 35-year-old patient, who was involved in a severe car accident, has been in an unresponsive state for three weeks. The patient's eyes are open, and they occasionally make sounds, but there is no indication that they are aware of their surroundings. The patient's family is considering long-term care options. What are the key factors that the family should consider when deciding between a rehabilitation center and a nursing home for the patient's ongoing care?",
+    "gold_id": "shut_down_conciousness/syc20378557_23_0.txt"
+  },
+  {
+    "question": "A wildlife biologist is studying the feeding habits of a newly discovered species of reptile. The species has a diet consisting mainly of tough, fibrous plant material. However, its mouth structure lacks teeth suitable for grinding or crushing. What adaptation might this species have evolved to aid in the digestion of its food, and how would this adaptation function?",
+    "gold_id": "mints_make_your_mouth_feel_cold/Mouth_2_5.txt"
+  },
+  {
+    "question": "A local community is considering reintroducing a previously extinct species of bird to their region. However, the species' original habitat has since been converted into agricultural land, and the community relies heavily on this land for their livelihood. How might the community weigh the cultural value of the bird species against the potential economic costs of reintroduction, and what role might genetic engineering play in this decision-making process?",
+    "gold_id": "animals_evolve_size/extinction-over-time_1_11.txt"
+  },
+  {
+    "question": "A researcher is studying the communication patterns of a newly discovered species of primates. The species uses a combination of vocalizations, body language, and visual displays to convey information. However, the researcher notices that the species can only communicate about immediate events or objects in their surroundings. They cannot discuss abstract concepts or events that occurred in the past or will occur in the future. What fundamental property of human language is this species lacking, and how does this limitation impact their ability to convey complex information?",
+    "gold_id": "human_monogamy/Human_14_79.txt"
+  },
+  {
+    "question": "A new employee, John, is struggling to learn the company's software system. His supervisor, Sarah, decides to provide him with additional training sessions. However, despite the training, John continues to make the same mistakes. Sarah notices that John tends to follow the same steps every time he uses the software, even when those steps are not the most efficient. What cognitive process is likely contributing to John's behavior, and how can Sarah adapt her training approach to help John overcome this obstacle?",
+    "gold_id": "human_monogamy/Human_behavior_13_19.txt"
+  },
+  {
+    "question": "Astronomers are planning to conduct a survey of star populations in a newly discovered galaxy. The galaxy is estimated to be 5% the mass of the Milky Way. If the Milky Way contains hundreds of billions of stars, what can be inferred about the likely number of stars in this new galaxy, and how might this impact the astronomers' survey strategy?",
+    "gold_id": "stars_disappear_when_look/Star_6_0.txt"
+  },
+  {
+    "question": "A researcher is studying the sleep patterns of a species of blind subterranean fish that have non-functional photoreceptors and never surface to the water's surface. If the fish are kept in a controlled environment with no external light cues, what can be predicted about their sleep patterns, and how might this relate to their ability to maintain an endogenous clock?",
+    "gold_id": "accelerate_plants_growth/Circadian_rhythm_4_3.txt"
+  },
+  {
+    "question": "A paleontologist discovers a fossilized skull in a European cave, which is estimated to be around 400,000 years old. The skull exhibits a mix of archaic and modern traits, including a longer head shape and increased robustness. However, the fossil record from the same region shows a significant gap in human habitation during the preceding 50,000 years due to a severe glaciation event. How might this glaciation event have influenced the evolution of the human population in this region, and what implications does this have for our understanding of human adaptation to environmental pressures?",
+    "gold_id": "neanderthals_vitamin_C_diet/Neanderthal_2_3.txt"
+  },
+  {
+    "question": "A team of optometrists is tasked with designing a new corrective lens for patients with a rare vision disorder. The disorder causes severe distortion in the peripheral vision, but the patients have normal central vision. The team has access to various lens materials and shapes but lacks a comprehensive understanding of the underlying optical theory. How might the team approach the design and testing of the corrective lens, and what factors should they consider to ensure the lens effectively addresses the patients' specific vision needs?",
+    "gold_id": "stars_disappear_when_look/Lens_1_5.txt"
+  },
+  {
+    "question": "A 35-year-old marketing executive, who frequently attends networking events in crowded restaurants, reports struggling to follow conversations with colleagues when background noise is present. She mentions that she can hear whispers in a quiet room but often needs to ask people to repeat themselves in noisier environments. What type of hearing loss might she be experiencing, and what are the implications for her daily life?",
+    "gold_id": "adults_lose_hearing/Hearing_3_0.txt"
+  },
+  {
+    "question": "A horticulturist is tasked with mass-producing a new, disease-resistant plant species. The species has a unique genotype that makes it highly desirable for agricultural purposes. However, the plant is prone to viral infections, which can significantly reduce its yield. The horticulturist has a limited number of healthy parent plants available. What method of plant reproduction would be most suitable for the horticulturist to use, and why?",
+    "gold_id": "tree_grow_cut/Meristem_5.txt"
+  },
+  {
+    "question": "In a scenario where a species of bird migrates to a new island, and upon arrival, they interbreed with a closely related species that has been isolated on the island for thousands of years, what would be the most likely outcome in terms of genetic diversity for the resulting population, and how might this impact their adaptability to the island environment?",
+    "gold_id": "evolution_not_make_our_life_longer/Evolution_2_9.txt"
+  },
+  {
+    "question": "A community is planning to implement a new waste management system. Considering the social stigma associated with excrement in urban areas, how might the community balance the need for efficient waste disposal with the desire to minimize the visibility and odor of waste treatment facilities?",
+    "gold_id": "human_monogamy/Human_behavior_29_2.txt"
+  },
+  {
+    "question": "A researcher is studying the sleep patterns of individuals who work night shifts. How might the researcher account for the impact of homeostatic and circadian factors on the sleep-wake cycles of these individuals, and what implications might this have for workplace safety and productivity?",
+    "gold_id": "human_monogamy/Human_behavior_29_2.txt"
+  },
+  {
+    "question": "A public health campaign aims to promote healthy eating habits in a population with limited access to fresh produce. How might the campaign effectively address the tension between the desire for enjoyable food and the need for nutritious food, given that food preparation is often linked to pleasure?",
+    "gold_id": "human_monogamy/Human_behavior_29_2.txt"
+  },
+  {
+    "question": "A teacher wants to encourage her students to participate more in class discussions. She decides to use a reinforcement strategy to increase the desired behavior. If she chooses to give students a small reward, such as a sticker, every time they contribute to the discussion, what type of reinforcement is she using, and how might this approach impact the students' motivation to participate in the long run?",
+    "gold_id": "organism_learn/Learning_13_16.txt"
+  },
+  {
+    "question": "A newly discovered tribe has been living in isolation for centuries, and their diet consists mainly of fish and other seafood. However, due to climate change, their fishing grounds are rapidly depleting. The tribe's leaders are considering adopting a new diet that is more land-based, but they are concerned about potential health risks. What factors should the tribe consider when evaluating the nutritional balance of their new diet, and how might their cultural conventions influence their adaptation to this change?",
+    "gold_id": "humans_more_adapted_to_light_mode_or_dark_mode/Human_5_15.txt"
+  },
+  {
+    "question": "Astronomers are planning to observe a newly discovered star, which is expected to be similar in size to the Sun. However, due to its greater distance from Earth, it appears as a point source in the night sky. If the angular diameter of this star is 0.01 arcseconds, and the Earth's atmosphere causes a 10% increase in the apparent size of celestial objects, what would be the actual angular diameter of the star if it were observed from a space-based telescope, unaffected by the atmosphere?",
+    "gold_id": "stars_disappear_when_look/Star_7_5.txt"
+  },
+  {
+    "question": "A scuba diver is exploring a shipwreck at a depth of 30 meters. The air in their scuba tank is a mixture of oxygen and nitrogen. As they breathe in, the air pressure in their lungs is equal to the surrounding water pressure. However, the partial pressure of oxygen in the air they breathe is lower than at sea level. How might this affect the diver's body, particularly in terms of oxygen delivery to their cells, and what physiological response might occur to compensate for this change?",
+    "gold_id": "breathe_out_of_one_nostril/Breathing_0_0.txt"
+  },
+  {
+    "question": "A chef is planning to cook a meal at a mountain resort located 2,000 meters above sea level. The recipe requires boiling water, but the chef notices that the water is boiling at a lower temperature than expected. If the chef decides to add a solute to the water to raise its boiling point, what type of solute would be more effective in achieving this goal: sucrose (sugar) or salt?",
+    "gold_id": "hot_water_bacteria/Water_0_82.txt"
+  }
+]

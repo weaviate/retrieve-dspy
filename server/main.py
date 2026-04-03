@@ -156,6 +156,7 @@ def create_retriever(config: dict) -> BaseRetriever:
     # Get active retriever name and its params
     retriever_name = retriever_config.get("active") or retriever_config.get("name")
     retriever_params = retriever_config.get(retriever_name, {}) or retriever_config.get("params", {})
+    search_type = weaviate_config.get("search_type", "hybrid")
 
 
     print(f"📋 Config loaded: retriever={retriever_name}")
@@ -169,6 +170,7 @@ def create_retriever(config: dict) -> BaseRetriever:
             verbose=retriever_params.get("verbose", False),
             search_only=retriever_params.get("search_only", True),
             diversity_weight=retriever_params.get("diversity_weight", 0),
+            search_type=search_type,
         )
     elif retriever_name == "RAGFusion":
         # Get fusion strategy (with backwards compatibility for use_rrf)
@@ -252,6 +254,7 @@ def create_retriever(config: dict) -> BaseRetriever:
             retrieved_k=retriever_params.get("retrieved_k", 20),
             verbose=retriever_params.get("verbose", False),
             search_only=retriever_params.get("search_only", True),
+            search_type=search_type,
         )
     elif retriever_name == "PRF_QueryExpander":
         return PRF_QueryExpander(
@@ -268,6 +271,7 @@ def create_retriever(config: dict) -> BaseRetriever:
             retrieved_k=retriever_params.get("retrieved_k", 20),
             verbose=retriever_params.get("verbose", False),
             search_only=retriever_params.get("search_only", True),
+            search_type=search_type,
         )
     else:
         raise ValueError(f"Unsupported retriever: {retriever_name}. Supported: 'BaseRetriever', 'RAGFusion', 'ConcatenatedQuerySearcher', 'HyDE_QueryExpander', 'PRF_QueryExpander', 'SearchQueryWriter'.")

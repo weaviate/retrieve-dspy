@@ -26,6 +26,7 @@ class BaseRetriever(dspy.Module):
         embedding_model: Optional[str] = None,
         retrieved_k: Optional[int] = 20,
         diversity_weight: Optional[float] = 0,
+        search_type: str = "hybrid",
     ) -> None:
         self.collection_name = collection_name
         self.weaviate_client = weaviate_client
@@ -37,17 +38,17 @@ class BaseRetriever(dspy.Module):
         self.embedding_model = embedding_model
         self.retrieved_k = retrieved_k
         self.diversity_weight = diversity_weight
+        self.search_type = search_type
         if self.multi_lm_configs:
             self._multi_lm_configs_to_dict()
         else:
             self.multi_lm_configs_dict = None
 
-        default_lm = "openai/gpt-5-mini"
+        default_lm = "openai/gpt-5.4"
 
         lm = dspy.LM(
             default_lm,
             temperature=1.0,
-            max_tokens=32000,
             cache=False,
             api_key=os.getenv("OPENAI_API_KEY"),
         )
@@ -96,7 +97,8 @@ class BaseRetriever(dspy.Module):
             retrieved_k=retrieved_k,
             weaviate_client=weaviate_client,
             return_vector=True,
-            return_score=True
+            return_score=True,
+            search_type=self.search_type,
         )
 
         if self.diversity_weight > 0:
@@ -142,7 +144,8 @@ class BaseRetriever(dspy.Module):
             retrieved_k=retrieved_k,
             weaviate_async_client=weaviate_async_client,
             return_vector=True,
-            return_score=True
+            return_score=True,
+            search_type=self.search_type,
         )
 
         if self.diversity_weight > 0:
