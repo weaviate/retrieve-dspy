@@ -8,7 +8,7 @@ server:
 weaviate:
   collection_name: "BrightBiology_Default"
   target_property_name: "content"
-  search_type: "bm25"  # Options: "bm25", "vector", "hybrid"
+  search_type: "hybrid"  # Options: "bm25", "vector", "hybrid"
   embedding_model: "weaviate/Snowflake/snowflake-arctic-embed-l-v2.0"  # provider/model-name
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -18,7 +18,7 @@ weaviate:
 # Each retriever's parameters are defined in its own section below.
 
 retriever:
-  active: "SplitQueryRetriever"  # Options: "BaseRetriever", "RAGFusion", "ConcatenatedQuerySearcher", "HyDE_QueryExpander", "PRF_QueryExpander", "SearchQueryWriter", "SplitQueryRetriever"
+  active: "SearchQueryWriter"  # Options: "BaseRetriever", "RAGFusion", "ConcatenatedQuerySearcher", "HyDE_QueryExpander", "PRF_QueryExpander", "SearchQueryWriter", "SplitQueryRetriever", "CrossEncoderReranker"
 
   # ───────────────────────────────────────────────────────────────────────────
   # BaseRetriever
@@ -133,6 +133,19 @@ retriever:
     search_only: true
 
   # ───────────────────────────────────────────────────────────────────────────
+  # CrossEncoderReranker
+  # ───────────────────────────────────────────────────────────────────────────
+  # Hybrid search (no LLM query writer) followed by cross-encoder reranking.
+
+  CrossEncoderReranker:
+    retrieved_k: 50              # Number of results from hybrid search
+    reranked_k: 20               # Final results after CE reranking
+    verbose: true
+    cross_encoder:
+      providers: ["voyage"]
+      provider: "voyage"
+
+  # ───────────────────────────────────────────────────────────────────────────
   # SplitQueryRetriever
   # ───────────────────────────────────────────────────────────────────────────
   # Single LLM inference produces two queries: one optimized for BM25 keyword
@@ -140,14 +153,12 @@ retriever:
   # and optionally reranked with a cross-encoder.
 
   SplitQueryRetriever:
-    retrieved_k: 20              # Results per pathway (BM25 and vector each get k)
-    reranked_k: 20               # Results after RRF fusion
-    rrf_k: 60                    # RRF constant
+    retrieved_k: 25              # Results per pathway (BM25 and vector each get k)
+    reranked_k: 20               # Final results after CE reranking
     verbose: true
 
-    # Cross-encoder reranking (optional, applied after RRF fusion)
+    # Cross-encoder reranking (pools BM25 + vector results, then reranks)
     cross_encoder:
-      enabled: false
       providers: ["voyage"]
       provider: "voyage"
       top_k: 20

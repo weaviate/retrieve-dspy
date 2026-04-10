@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 import dspy
 import weaviate
@@ -9,18 +9,27 @@ from retrieve_dspy.database.weaviate_database import (
     async_weaviate_search_tool,
 )
 from retrieve_dspy.retrievers.base_retriever import BaseRetriever
-from retrieve_dspy.retrievers.common.rrf import reciprocal_rank_fusion
 from retrieve_dspy.retrievers.common.call_ce_ranker import ce_rank, async_ce_rank, reorder
 from retrieve_dspy.retrievers.common.truncate_document import truncate_document
-from retrieve_dspy.models import DSPyAgentRAGResponse, RerankerClient
+from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerClient
 from retrieve_dspy.signatures import WriteBM25SearchQueries, WriteVectorSearchQueries
+
+
+def _dedupe_pool(result_sets: List[List[ObjectFromDB]]) -> List[ObjectFromDB]:
+    """Pool documents from multiple result sets, deduplicating by object_id."""
+    doc_map: Dict[str, ObjectFromDB] = {}
+    for result_set in result_sets:
+        for obj in result_set:
+            if obj.object_id not in doc_map:
+                doc_map[obj.object_id] = obj
+    return list(doc_map.values())
 
 
 class DualInferenceSplitMultiQueryRetriever(BaseRetriever):
     """Retriever that uses two separate LLM inferences to produce lists of
     BM25-optimized queries and vector-optimized queries, retrieves from each
-    pathway independently, then fuses all results with RRF and optional
-    cross-encoder reranking.
+    pathway independently, then pools all results and sends them to the
+    cross-encoder reranker.
 
     Inference 1: WriteBM25SearchQueries → list of BM25 queries
     Inference 2: WriteVectorSearchQueries → list of vector queries
@@ -35,8 +44,6 @@ class DualInferenceSplitMultiQueryRetriever(BaseRetriever):
         target_property_name: str = "content",
         number_of_queries: int = 3,
         retrieved_k: int = 20,
-        rrf_k: int = 60,
-        use_cross_encoder: bool = False,
         reranker_clients: Optional[List[RerankerClient]] = None,
         reranker_provider: Optional[str] = None,
         reranked_k: Optional[int] = None,
@@ -52,8 +59,6 @@ class DualInferenceSplitMultiQueryRetriever(BaseRetriever):
             embedding_model=embedding_model,
         )
         self.number_of_queries = number_of_queries
-        self.rrf_k = rrf_k
-        self.use_cross_encoder = use_cross_encoder
         self.reranker_clients = reranker_clients
         self.reranker_provider = reranker_provider
         self.reranked_k = reranked_k if reranked_k is not None else retrieved_k
@@ -121,31 +126,22 @@ class DualInferenceSplitMultiQueryRetriever(BaseRetriever):
             total = sum(len(rs) for rs in result_sets)
             print(f"\033[96m  Retrieved {total} total docs across {len(result_sets)} queries\033[0m")
 
-        # Fuse with RRF
-        fused = reciprocal_rank_fusion(
-            result_sets=result_sets,
-            k=self.rrf_k,
-            top_k=self.reranked_k,
-        )
-
+        # Pool + dedupe, then CE rerank
+        pooled = _dedupe_pool(result_sets)
         if self.verbose:
-            print(f"\033[96m  Fused to {len(fused)} unique docs (RRF)\033[0m")
-
-        # Optional cross-encoder reranking
-        final_results = fused
-        if self.use_cross_encoder and self.reranker_clients:
-            docs = [truncate_document(s.content, 500) for s in fused]
-            items = ce_rank(
-                query=question,
-                documents=docs,
-                top_k=self.reranked_k,
-                clients=self.reranker_clients,
-                provider=self.reranker_provider,
-                verbose=self.verbose,
-            )
-            final_results = reorder(items, fused)
-            if self.verbose:
-                print(f"\033[96m  Reranked to {len(final_results)} docs\033[0m")
+            print(f"\033[96m  Pooled to {len(pooled)} unique docs\033[0m")
+        docs = [truncate_document(s.content, 500) for s in pooled]
+        items = ce_rank(
+            query=question,
+            documents=docs,
+            top_k=self.reranked_k,
+            clients=self.reranker_clients,
+            provider=self.reranker_provider,
+            verbose=self.verbose,
+        )
+        final_results = reorder(items, pooled)
+        if self.verbose:
+            print(f"\033[96m  Reranked to {len(final_results)} docs\033[0m")
 
         return DSPyAgentRAGResponse(
             final_answer="",
@@ -218,31 +214,22 @@ class DualInferenceSplitMultiQueryRetriever(BaseRetriever):
             total = sum(len(rs) for rs in result_sets)
             print(f"\033[96m  Retrieved {total} total docs across {len(result_sets)} queries\033[0m")
 
-        # Fuse with RRF
-        fused = reciprocal_rank_fusion(
-            result_sets=result_sets,
-            k=self.rrf_k,
-            top_k=self.reranked_k,
-        )
-
+        # Pool + dedupe, then CE rerank
+        pooled = _dedupe_pool(result_sets)
         if self.verbose:
-            print(f"\033[96m  Fused to {len(fused)} unique docs (RRF)\033[0m")
-
-        # Optional cross-encoder reranking
-        final_results = fused
-        if self.use_cross_encoder and self.reranker_clients:
-            docs = [truncate_document(s.content, 500) for s in fused]
-            items = await async_ce_rank(
-                query=question,
-                documents=docs,
-                top_k=self.reranked_k,
-                clients=self.reranker_clients,
-                provider=self.reranker_provider,
-                verbose=self.verbose,
-            )
-            final_results = reorder(items, fused)
-            if self.verbose:
-                print(f"\033[96m  Reranked to {len(final_results)} docs\033[0m")
+            print(f"\033[96m  Pooled to {len(pooled)} unique docs\033[0m")
+        docs = [truncate_document(s.content, 500) for s in pooled]
+        items = await async_ce_rank(
+            query=question,
+            documents=docs,
+            top_k=self.reranked_k,
+            clients=self.reranker_clients,
+            provider=self.reranker_provider,
+            verbose=self.verbose,
+        )
+        final_results = reorder(items, pooled)
+        if self.verbose:
+            print(f"\033[96m  Reranked to {len(final_results)} docs\033[0m")
 
         return DSPyAgentRAGResponse(
             final_answer="",
