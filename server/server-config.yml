@@ -18,7 +18,7 @@ weaviate:
 # Each retriever's parameters are defined in its own section below.
 
 retriever:
-  active: "BaseRetriever"  # Options: "BaseRetriever", "RAGFusion", "ConcatenatedQuerySearcher", "HyDE_QueryExpander", "PRF_QueryExpander", "SearchQueryWriter"
+  active: "SplitQueryRetriever"  # Options: "BaseRetriever", "RAGFusion", "ConcatenatedQuerySearcher", "HyDE_QueryExpander", "PRF_QueryExpander", "SearchQueryWriter", "SplitQueryRetriever"
 
   # ───────────────────────────────────────────────────────────────────────────
   # BaseRetriever
@@ -131,6 +131,26 @@ retriever:
     retrieved_k: 20
     verbose: false
     search_only: true
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # SplitQueryRetriever
+  # ───────────────────────────────────────────────────────────────────────────
+  # Single LLM inference produces two queries: one optimized for BM25 keyword
+  # retrieval and one for dense vector retrieval. Results are fused with RRF
+  # and optionally reranked with a cross-encoder.
+
+  SplitQueryRetriever:
+    retrieved_k: 20              # Results per pathway (BM25 and vector each get k)
+    reranked_k: 20               # Results after RRF fusion
+    rrf_k: 60                    # RRF constant
+    verbose: true
+
+    # Cross-encoder reranking (optional, applied after RRF fusion)
+    cross_encoder:
+      enabled: false
+      providers: ["voyage"]
+      provider: "voyage"
+      top_k: 20
 
   # ───────────────────────────────────────────────────────────────────────────
   # Optimized Program (optional)

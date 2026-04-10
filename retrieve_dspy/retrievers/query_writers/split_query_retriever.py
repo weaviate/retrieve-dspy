@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 import dspy
 import weaviate
@@ -12,14 +12,27 @@ from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 from retrieve_dspy.retrievers.common.rrf import reciprocal_rank_fusion
 from retrieve_dspy.retrievers.common.call_ce_ranker import ce_rank, async_ce_rank, reorder
 from retrieve_dspy.retrievers.common.truncate_document import truncate_document
-from retrieve_dspy.models import DSPyAgentRAGResponse, RerankerClient
+from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerClient
 from retrieve_dspy.signatures import WriteSplitSearchQueries
+
+
+def _dedupe_pool(result_sets: List[List[ObjectFromDB]]) -> List[ObjectFromDB]:
+    """Pool documents from multiple result sets, deduplicating by object_id.
+    Keeps the first occurrence of each document."""
+    doc_map: Dict[str, ObjectFromDB] = {}
+    for result_set in result_sets:
+        for obj in result_set:
+            if obj.object_id not in doc_map:
+                doc_map[obj.object_id] = obj
+    return list(doc_map.values())
 
 
 class SplitQueryRetriever(BaseRetriever):
     """Retriever that writes separate queries for BM25 and vector search in a
-    single LLM inference, retrieves from each pathway independently, then fuses
-    the results with Reciprocal Rank Fusion and optional cross-encoder reranking.
+    single LLM inference, retrieves from each pathway independently, then pools
+    the results and sends them to the cross-encoder reranker.
+
+    When no cross-encoder is configured, falls back to RRF for merging.
 
     This tests the hypothesis that BM25 and dense retrieval benefit from
     different query formulations.
@@ -32,7 +45,7 @@ class SplitQueryRetriever(BaseRetriever):
         target_property_name: str = "content",
         retrieved_k: int = 20,
         rrf_k: int = 60,
-        # Cross-encoder reranking (optional)
+        # Cross-encoder reranking
         use_cross_encoder: bool = False,
         reranker_clients: Optional[List[RerankerClient]] = None,
         reranker_provider: Optional[str] = None,
@@ -100,20 +113,12 @@ class SplitQueryRetriever(BaseRetriever):
             print(f"\033[96m  BM25 returned {len(bm25_results)} docs, "
                   f"Vector returned {len(vector_results)} docs\033[0m")
 
-        # Fuse with RRF
-        fused = reciprocal_rank_fusion(
-            result_sets=[bm25_results, vector_results],
-            k=self.rrf_k,
-            top_k=self.reranked_k,
-        )
-
-        if self.verbose:
-            print(f"\033[96m  Fused to {len(fused)} unique docs (RRF)\033[0m")
-
-        # Optional cross-encoder reranking
-        final_results = fused
+        # Pool + dedupe, then CE rerank. Fall back to RRF if no CE configured.
         if self.use_cross_encoder and self.reranker_clients:
-            docs = [truncate_document(s.content, 500) for s in fused]
+            pooled = _dedupe_pool([bm25_results, vector_results])
+            if self.verbose:
+                print(f"\033[96m  Pooled to {len(pooled)} unique docs\033[0m")
+            docs = [truncate_document(s.content, 500) for s in pooled]
             items = ce_rank(
                 query=question,
                 documents=docs,
@@ -122,9 +127,17 @@ class SplitQueryRetriever(BaseRetriever):
                 provider=self.reranker_provider,
                 verbose=self.verbose,
             )
-            final_results = reorder(items, fused)
+            final_results = reorder(items, pooled)
             if self.verbose:
                 print(f"\033[96m  Reranked to {len(final_results)} docs\033[0m")
+        else:
+            final_results = reciprocal_rank_fusion(
+                result_sets=[bm25_results, vector_results],
+                k=self.rrf_k,
+                top_k=self.reranked_k,
+            )
+            if self.verbose:
+                print(f"\033[96m  Fused to {len(final_results)} unique docs (RRF fallback)\033[0m")
 
         return DSPyAgentRAGResponse(
             final_answer="",
@@ -152,23 +165,24 @@ class SplitQueryRetriever(BaseRetriever):
             print(f"\033[95m  Vector: {vector_query}\033[0m")
 
         # Retrieve from each pathway concurrently
-        bm25_task = async_weaviate_search_tool(
-            query=bm25_query,
-            collection_name=self.collection_name,
-            target_property_name=self.target_property_name,
-            retrieved_k=self.retrieved_k,
-            weaviate_async_client=weaviate_async_client,
-            search_type="bm25",
+        bm25_results, vector_results = await asyncio.gather(
+            async_weaviate_search_tool(
+                query=bm25_query,
+                collection_name=self.collection_name,
+                target_property_name=self.target_property_name,
+                retrieved_k=self.retrieved_k,
+                weaviate_async_client=weaviate_async_client,
+                search_type="bm25",
+            ),
+            async_weaviate_search_tool(
+                query=vector_query,
+                collection_name=self.collection_name,
+                target_property_name=self.target_property_name,
+                retrieved_k=self.retrieved_k,
+                weaviate_async_client=weaviate_async_client,
+                search_type="vector",
+            ),
         )
-        vector_task = async_weaviate_search_tool(
-            query=vector_query,
-            collection_name=self.collection_name,
-            target_property_name=self.target_property_name,
-            retrieved_k=self.retrieved_k,
-            weaviate_async_client=weaviate_async_client,
-            search_type="vector",
-        )
-        bm25_results, vector_results = await asyncio.gather(bm25_task, vector_task)
 
         for obj in bm25_results:
             obj.source_query = bm25_query
@@ -179,20 +193,12 @@ class SplitQueryRetriever(BaseRetriever):
             print(f"\033[96m  BM25 returned {len(bm25_results)} docs, "
                   f"Vector returned {len(vector_results)} docs\033[0m")
 
-        # Fuse with RRF
-        fused = reciprocal_rank_fusion(
-            result_sets=[bm25_results, vector_results],
-            k=self.rrf_k,
-            top_k=self.reranked_k,
-        )
-
-        if self.verbose:
-            print(f"\033[96m  Fused to {len(fused)} unique docs (RRF)\033[0m")
-
-        # Optional cross-encoder reranking
-        final_results = fused
+        # Pool + dedupe, then CE rerank. Fall back to RRF if no CE configured.
         if self.use_cross_encoder and self.reranker_clients:
-            docs = [truncate_document(s.content, 500) for s in fused]
+            pooled = _dedupe_pool([bm25_results, vector_results])
+            if self.verbose:
+                print(f"\033[96m  Pooled to {len(pooled)} unique docs\033[0m")
+            docs = [truncate_document(s.content, 500) for s in pooled]
             items = await async_ce_rank(
                 query=question,
                 documents=docs,
@@ -201,9 +207,17 @@ class SplitQueryRetriever(BaseRetriever):
                 provider=self.reranker_provider,
                 verbose=self.verbose,
             )
-            final_results = reorder(items, fused)
+            final_results = reorder(items, pooled)
             if self.verbose:
                 print(f"\033[96m  Reranked to {len(final_results)} docs\033[0m")
+        else:
+            final_results = reciprocal_rank_fusion(
+                result_sets=[bm25_results, vector_results],
+                k=self.rrf_k,
+                top_k=self.reranked_k,
+            )
+            if self.verbose:
+                print(f"\033[96m  Fused to {len(final_results)} unique docs (RRF fallback)\033[0m")
 
         return DSPyAgentRAGResponse(
             final_answer="",
