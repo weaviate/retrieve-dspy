@@ -248,6 +248,118 @@ class VerboseWriteSearchQuery(dspy.Signature):
     search_query: str = dspy.OutputField(desc="A search query optimized for the particular nuances of retrieving relevant information from a search engine.")
 '''
 
+class WriteVectorSearchQuery(dspy.Signature):
+    """Given a user's question, translate it into a search query optimized
+    for dense vector (semantic) retrieval. Dense retrieval matches by meaning,
+    not exact words — synonyms, paraphrases, and conceptual descriptions
+    all work well. The query should capture the semantic intent of the
+    question in natural language.
+    You have ONE attempt — there is no feedback or refinement loop,
+    so phrase the query to best convey the meaning of the information need."""
+
+    question: str = dspy.InputField(
+        desc="The user's question or information need"
+    )
+    search_query: str = dspy.OutputField(
+        desc="A semantic search query that captures the meaning and intent "
+        "of the question (optimized for dense vector retrieval)"
+    )
+
+
+class WriteSplitSearchQueries(dspy.Signature):
+    """Given a user's question, produce two separate search queries — one optimized
+    for BM25 keyword retrieval and one optimized for dense vector (semantic) retrieval.
+
+    BM25 matches exact terms: the BM25 query should contain words likely to appear
+    verbatim in relevant documents. Synonyms and paraphrases will NOT match.
+
+    Dense vector search matches by meaning: the vector query should capture the
+    semantic intent of the question and may use natural-language phrasing,
+    paraphrases, or conceptual descriptions that convey the same meaning.
+
+    You have ONE attempt — there is no feedback or refinement loop."""
+
+    question: str = dspy.InputField(
+        desc="The user's question or information need"
+    )
+    bm25_search_query: str = dspy.OutputField(
+        desc="A keyword search query using terms likely to appear verbatim "
+        "in relevant documents (optimized for BM25)"
+    )
+    vector_search_query: str = dspy.OutputField(
+        desc="A semantic search query that captures the meaning and intent "
+        "of the question (optimized for dense vector retrieval)"
+    )
+
+
+class WriteSplitSearchQueryLists(dspy.Signature):
+    """Given a user's question, produce two separate lists of search queries — one
+    list optimized for BM25 keyword retrieval and one list optimized for dense vector
+    (semantic) retrieval.
+
+    BM25 matches exact terms: BM25 queries should contain words likely to appear
+    verbatim in relevant documents. Synonyms and paraphrases will NOT match.
+    Each BM25 query should target a different facet or terminology angle.
+
+    Dense vector search matches by meaning: vector queries should capture the
+    semantic intent using natural-language phrasing, paraphrases, or conceptual
+    descriptions. Each vector query should explore a different interpretation
+    or aspect of the information need.
+
+    You have ONE attempt — there is no feedback or refinement loop."""
+
+    question: str = dspy.InputField(
+        desc="The user's question or information need"
+    )
+    number_of_queries: int = dspy.InputField(
+        desc="The number of queries to generate per retrieval pathway"
+    )
+    bm25_search_queries: list[str] = dspy.OutputField(
+        desc="A list of keyword search queries using terms likely to appear "
+        "verbatim in relevant documents (optimized for BM25)"
+    )
+    vector_search_queries: list[str] = dspy.OutputField(
+        desc="A list of semantic search queries that capture meaning and intent "
+        "(optimized for dense vector retrieval)"
+    )
+
+
+class WriteBM25SearchQueries(dspy.Signature):
+    """Given a user's question, write multiple search queries optimized for
+    BM25 keyword retrieval. BM25 matches exact terms — synonyms, paraphrases,
+    and semantic reformulations will NOT match. Each query should target
+    different terminology or facets of the information need while using words
+    that appear verbatim in relevant documents."""
+
+    question: str = dspy.InputField(
+        desc="The user's question or information need"
+    )
+    number_of_queries: int = dspy.InputField(
+        desc="The number of distinct BM25 queries to produce"
+    )
+    search_queries: list[str] = dspy.OutputField(
+        desc="A list of keyword search queries optimized for BM25 retrieval"
+    )
+
+
+class WriteVectorSearchQueries(dspy.Signature):
+    """Given a user's question, write multiple search queries optimized for
+    dense vector (semantic) retrieval. Dense retrieval matches by meaning —
+    synonyms, paraphrases, and conceptual descriptions all work well. Each
+    query should explore a different interpretation, aspect, or phrasing of
+    the information need to maximize recall."""
+
+    question: str = dspy.InputField(
+        desc="The user's question or information need"
+    )
+    number_of_queries: int = dspy.InputField(
+        desc="The number of distinct vector search queries to produce"
+    )
+    search_queries: list[str] = dspy.OutputField(
+        desc="A list of semantic search queries optimized for dense vector retrieval"
+    )
+
+
 class HyDE(dspy.Signature):
     """Please write a passage to answer the question."""
 

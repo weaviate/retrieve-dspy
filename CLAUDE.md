@@ -42,30 +42,51 @@ Baseline: Vanilla Hybrid Search with Relative Score Fusion (RSF), with a single 
 | Hybrid RSF | 50 | | | | |
 | Hybrid RSF | 100 | | | | |
 
-Anoter Baseline: An LLM query writer outputs a single query for Hybrid Search, which is then reranked with a Cross Encoder.
+Another Baseline: An LLM query writer outputs a single query for Hybrid Search, which is then reranked with a Cross Encoder.
 
 If we let each retrieval pathway have its own optimized input, does the fusion result improve?
 
 0-Shot Query for BM25 and Vector Search: Write two separate queries with a single inference (with two outputs, `bm25_query`, `vector_search_query`). Then pool the results and rerank them with the reranker.
 
-Optimized Query Writers:
+### Stage 0 Retriever → Code Mapping
 
-A: Optimize a single hybrid search query
-B: Optimize a single inference that produces two queries
-C: Optimize two separate inferences that produces two queries
+| Experiment | Retriever | Signature(s) |
+|---|---|---|
+| BM25 only (no LLM) | `BaseRetriever(search_type="bm25")` | — |
+| Vector only (no LLM) | `BaseRetriever(search_type="vector")` | — |
+| Hybrid RSF (no LLM) | `BaseRetriever(search_type="hybrid")` | — |
+| BM25 + CE Reranker | `CrossEncoderReranker` with `search_type="bm25"` | — |
+| Vector + CE Reranker | `CrossEncoderReranker` with `search_type="vector"` | — |
+| Hybrid RSF + CE Reranker | `CrossEncoderReranker` with `search_type="hybrid"` | — |
 
-What if this is a list of queries, e.g. `bm25_queries`, `vector_search_queries`?
+### Single-Query Conditions
 
-0-Shot Baselines:
+| Condition | Retriever | Signature(s) | Description |
+|---|---|---|---|
+| A | `SearchQueryWriter(search_type="hybrid")` | `WriteSearchQuery` | Single LLM query → hybrid search |
+| B | `SplitQueryRetriever` | `WriteSplitSearchQueries` | Single inference → `bm25_search_query` + `vector_search_query`, RRF fusion |
+| C | `DualInferenceSplitRetriever` | `WriteSearchQuery` + `WriteVectorSearchQuery` | Two separate inferences → one BM25 query + one vector query, RRF fusion |
 
-A: The Hybrid Search query writer writes a list of hybrid search queries.
-B: The single inference produces two lists of queries
-C: Two separate inferences produce two lists of queries
+All single-query conditions support optional CE reranking post-fusion via `use_cross_encoder=True` + `reranker_clients`.
 
---
+### Multi-Query List Conditions
 
-Optimized Query Writers:
+| Condition | Retriever | Signature(s) | Description |
+|---|---|---|---|
+| A | `RAGFusion(search_type="hybrid")` | `WriteSearchQueries` | N hybrid search queries → RRF fusion |
+| B | `SplitMultiQueryRetriever` | `WriteSplitSearchQueryLists` | Single inference → `bm25_search_queries` + `vector_search_queries` lists, RRF fusion |
+| C | `DualInferenceSplitMultiQueryRetriever` | `WriteBM25SearchQueries` + `WriteVectorSearchQueries` | Two separate inferences → N BM25 queries + N vector queries, RRF fusion |
 
-A: Optimize the Hybrid Search query writer writing a list of hybrid search queries
-B: Optimize the single inference that producs two lists of queries
-C: Optimize the two separate inferences producing two lists of queries
+All multi-query conditions support optional CE reranking post-fusion via `use_cross_encoder=True` + `reranker_clients`.
+
+### Optimization Plan
+
+**0-Shot Baselines** (no DSPy optimization):
+
+Single-query A, B, C and Multi-query A, B, C — run as-is to establish unoptimized performance.
+
+**Optimized Query Writers** (DSPy optimization):
+
+A: Optimize a single hybrid search query (`SearchQueryWriter` / `RAGFusion`)
+B: Optimize a single inference that produces split queries (`SplitQueryRetriever` / `SplitMultiQueryRetriever`)
+C: Optimize two separate inferences independently (`DualInferenceSplitRetriever` / `DualInferenceSplitMultiQueryRetriever`)
