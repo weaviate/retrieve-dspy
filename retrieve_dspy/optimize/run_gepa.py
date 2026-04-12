@@ -1,10 +1,11 @@
 import os
+import math
 from typing import Optional
 from functools import lru_cache
 
 import dspy
 
-from retrieve_dspy.optimize.toy_dataset import load_nith_bright_biology
+from retrieve_dspy.optimize.toy_dataset import load_search_dataset  # noqa: F401
 from retrieve_dspy.optimize.utils import get_content_from_dataset_id
 
 
@@ -14,7 +15,30 @@ def _lookup_gold_content(gold_id: str) -> str:
     return get_content_from_dataset_id(gold_id)
 
 
-def _retrieval_metric(gold, pred, trace=None, pred_name=None, pred_trace=None, k=5):
+def _tokenize(text: str) -> set[str]:
+    """Extract lowercased word tokens (3+ chars) for BM25 term overlap analysis."""
+    return {w for w in text.lower().split() if len(w) >= 3}
+
+
+def _term_overlap_report(query_terms: set[str], target_terms: set[str],
+                         other_terms: set[str], other_label: str) -> str:
+    """Build a concise BM25 term overlap diagnostic."""
+    query_target = sorted(query_terms & target_terms)
+    query_other = sorted(query_terms & other_terms - target_terms)
+    target_missed = sorted(target_terms - query_terms)
+    lines = []
+    lines.append(f"  Query terms matching target: {query_target[:15] or '(none)'}")
+    if query_other:
+        lines.append(f"  Query terms matching {other_label} but NOT target: {query_other[:15]}")
+    if target_missed:
+        lines.append(f"  Key target terms your query missed: {target_missed[:20]}")
+    return "\n".join(lines)
+
+
+_FEEDBACK_TOP_K = 5  # max retrieved docs to show in feedback (controls token budget)
+
+
+def _retrieval_metric(gold, pred, trace=None, pred_name=None, pred_trace=None, k=10):
     from dspy.teleprompt.gepa.gepa_utils import ScoreWithFeedback
 
     gold_id = str(gold.gold_id)
@@ -35,67 +59,94 @@ def _retrieval_metric(gold, pred, trace=None, pred_name=None, pred_trace=None, k
         text = " ".join(text.split())
         return text[:n] + ("..." if len(text) > n else "")
 
-    # --- Recall@K hit test with graded scoring ---
-    gold_probe = snip(gold_content, 600).lower()
+    # --- nDCG@K scoring (single relevant document) ---
+    # Primary: match on document ID (robust to whitespace/encoding differences).
+    # Fallback: substring match on content (for sources without dataset_id).
     found_at_rank = None
-    if gold_probe:
-        for rank, src in enumerate(sources[:k], start=1):
-            src_text = snip(getattr(src, "content", "") or "", 1600).lower()
-            if gold_probe in src_text:
-                found_at_rank = rank
-                break
+    for rank, src in enumerate(sources[:k], start=1):
+        src_id = str(getattr(src, "object_id", "") or "")
+        if src_id and src_id == gold_id:
+            found_at_rank = rank
+            break
 
-    # Linear decay: rank 1 = 1.0, rank 2 = 0.8, rank 3 = 0.6, rank 4 = 0.4, rank 5 = 0.2
+    if found_at_rank is None:
+        gold_probe = snip(gold_content, 600).lower()
+        if gold_probe:
+            for rank, src in enumerate(sources[:k], start=1):
+                src_text = snip(getattr(src, "content", "") or "", 1600).lower()
+                if gold_probe in src_text:
+                    found_at_rank = rank
+                    break
+
+    # nDCG with a single relevant document:
+    #   DCG  = 1 / log2(1 + found_at_rank)
+    #   IDCG = 1 / log2(1 + 1) = 1.0   (ideal is rank 1)
+    #   nDCG = DCG / IDCG = 1 / log2(1 + found_at_rank)
     if found_at_rank is not None:
-        score = (k - found_at_rank + 1) / k
+        score = 1.0 / math.log2(1 + found_at_rank)
     else:
         score = 0.0
 
     # --- Build actionable feedback ---
     question = str(gold.question)
     gold_snippet = snip(gold_content, 800)
+    query_terms = _tokenize(search_query)
+    target_terms = _tokenize(gold_content)
 
     if found_at_rank is not None:
         feedback = (
             f"{'PERFECT' if found_at_rank == 1 else 'PARTIAL'}: "
             f"The target document was retrieved at rank {found_at_rank} of {k} "
-            f"(score: {score:.1f}).\n"
+            f"(nDCG@{k}: {score:.3f}).\n"
             f"QUERY USED: {search_query}\n"
             f"TARGET DOCUMENT: {gold_snippet}"
         )
         if found_at_rank > 1:
-            # Show what outranked the target so reflection can diagnose
             outranking = []
             for r, src in enumerate(sources[:found_at_rank - 1], start=1):
                 content = snip(getattr(src, "content", "") or "", 400)
                 outranking.append(f"  Rank {r}: {content}")
             outranking_block = "\n".join(outranking)
+            # Combine all outranking doc terms for overlap analysis
+            outranking_terms = set()
+            for src in sources[:found_at_rank - 1]:
+                outranking_terms |= _tokenize(getattr(src, "content", "") or "")
+            overlap = _term_overlap_report(
+                query_terms, target_terms, outranking_terms, "outranking docs"
+            )
             feedback += (
                 f"\nDOCUMENTS THAT OUTRANKED THE TARGET:\n{outranking_block}\n"
+                f"BM25 TERM ANALYSIS:\n{overlap}\n"
                 f"DIAGNOSIS: The target was retrieved but not at rank 1. "
-                f"Your query may be partially matching irrelevant documents. "
-                f"Try adding more specific terms from the target document or "
-                f"removing broad terms that attract the outranking documents."
+                f"Your query shares terms with the outranking documents that are "
+                f"absent from the target. Remove or replace those terms and add "
+                f"verbatim terms from the target document to push it to rank 1."
             )
     else:
         retrieved_summaries = []
-        for rank, src in enumerate(sources[:k], start=1):
+        top_retrieved_terms = set()
+        show_k = min(_FEEDBACK_TOP_K, len(sources))
+        for rank, src in enumerate(sources[:show_k], start=1):
             content = snip(getattr(src, "content", "") or "", 400)
             retrieved_summaries.append(f"  Rank {rank}: {content}")
+            top_retrieved_terms |= _tokenize(getattr(src, "content", "") or "")
         retrieved_block = "\n".join(retrieved_summaries) if retrieved_summaries else "  (no results returned)"
+        overlap = _term_overlap_report(
+            query_terms, target_terms, top_retrieved_terms, "retrieved docs"
+        )
 
         feedback = (
             f"FAILURE: The target document was NOT in the top {k} results "
-            f"(score: 0.0).\n"
+            f"(nDCG@{k}: 0.0).\n"
             f"QUESTION: {question}\n"
             f"QUERY USED: {search_query}\n"
-            f"WHAT YOU RETRIEVED (top {k}):\n{retrieved_block}\n"
+            f"WHAT YOU RETRIEVED (top {show_k}):\n{retrieved_block}\n"
             f"TARGET DOCUMENT (what you should have retrieved): {gold_snippet}\n"
-            f"DIAGNOSIS: Compare the target document against your query. "
-            f"Your query may be missing key terms from the target, using synonyms "
-            f"that BM25 cannot match, or focusing on the wrong aspect of the question. "
-            f"BM25 matches exact keywords — your query must contain terms that appear "
-            f"verbatim in the target document."
+            f"BM25 TERM ANALYSIS:\n{overlap}\n"
+            f"DIAGNOSIS: BM25 matches exact keywords. Your query must contain "
+            f"terms that appear verbatim in the target document. See the term "
+            f"analysis above — add missed target terms and remove terms that "
+            f"only match irrelevant documents."
         )
 
     return ScoreWithFeedback(score=score, feedback=feedback)
@@ -113,6 +164,8 @@ def run_gepa(
     seed: int = 42,
     use_wandb: bool = False,
     wandb_init_kwargs: Optional[dict] = None,
+    train_size: Optional[int] = None,
+    val_size: Optional[int] = None,
 ):
     """Run GEPA optimization on a retrieve-dspy retriever.
 
@@ -128,6 +181,8 @@ def run_gepa(
         num_threads: Number of parallel threads for evaluation.
         track_stats: Whether to track detailed optimization results.
         seed: Random seed for reproducibility.
+        train_size: If set, truncate the trainset to this many examples.
+        val_size: If set, truncate the valset to this many examples.
 
     Returns:
         The optimized retriever module.
@@ -141,13 +196,18 @@ def run_gepa(
             collection_name="BrightBiology_Default",
             retrieved_k=10,
         )
-        optimized = run_gepa(retriever=retriever)
+        optimized = run_gepa(retriever=retriever, train_size=20, val_size=10)
     """
     # --- dataset ---
     if dataset is None:
-        trainset, valset = load_nith_bright_biology()
+        raise ValueError("dataset is required — pass a (trainset, valset) tuple from load_search_dataset().")
     else:
         trainset, valset = dataset
+
+    if train_size is not None:
+        trainset = trainset[:train_size]
+    if val_size is not None:
+        valset = valset[:val_size]
 
     # --- metric ---
     if metric is None:
@@ -156,7 +216,7 @@ def run_gepa(
     # --- reflection LM ---
     if reflection_lm is None:
         reflection_lm = dspy.LM(
-            "openai/gpt-4o",
+            "openai/gpt-5.4",
             temperature=1.0,
             max_tokens=8000,
             api_key=os.getenv("OPENAI_API_KEY"),
@@ -183,7 +243,7 @@ def run_gepa(
     # --- report results ---
     if track_stats and hasattr(optimized_retriever, "detailed_results"):
         details = optimized_retriever.detailed_results
-        print(f"\n\033[92m=== GEPA Optimization Complete ===\033[0m")
+        print("\n\033[92m=== GEPA Optimization Complete ===\033[0m")
         print(f"  Total metric calls: {details.total_metric_calls}")
         print(f"  Best candidate index: {details.best_idx}")
         print(f"  Validation scores: {details.val_aggregate_scores}")

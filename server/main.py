@@ -19,9 +19,11 @@ from retrieve_dspy import (
     BaseRetriever,
     RAGFusion,
     ConcatenatedQuerySearcher,
+    CrossEncoderReranker,
     HyDE_QueryExpander,
     PRF_QueryExpander,
     SearchQueryWriter,
+    SplitQueryRetriever,
 )
 from retrieve_dspy.retrievers.embeddings_registry import get_embedding_headers
 from retrieve_dspy.models import RerankerClient
@@ -273,8 +275,35 @@ def create_retriever(config: dict) -> BaseRetriever:
             search_only=retriever_params.get("search_only", True),
             search_type=search_type,
         )
+    elif retriever_name == "CrossEncoderReranker":
+        reranker_config = retriever_params.get("cross_encoder", {})
+        reranker_clients = create_reranker_clients(reranker_config)
+
+        return CrossEncoderReranker(
+            collection_name=weaviate_config["collection_name"],
+            target_property_name=weaviate_config.get("target_property_name", "content"),
+            retrieved_k=retriever_params.get("retrieved_k", 50),
+            reranked_k=retriever_params.get("reranked_k", 20),
+            reranker_clients=reranker_clients,
+            provider=reranker_config.get("provider"),
+            verbose=retriever_params.get("verbose", False),
+        )
+    elif retriever_name == "SplitQueryRetriever":
+        reranker_config = retriever_params.get("cross_encoder", {})
+        reranker_clients = create_reranker_clients(reranker_config)
+
+        return SplitQueryRetriever(
+            collection_name=weaviate_config["collection_name"],
+            target_property_name=weaviate_config.get("target_property_name", "content"),
+            retrieved_k=retriever_params.get("retrieved_k", 20),
+            reranker_clients=reranker_clients,
+            reranker_provider=reranker_config.get("provider"),
+            reranked_k=retriever_params.get("reranked_k"),
+            verbose=retriever_params.get("verbose", False),
+            embedding_model=weaviate_config.get("embedding_model"),
+        )
     else:
-        raise ValueError(f"Unsupported retriever: {retriever_name}. Supported: 'BaseRetriever', 'RAGFusion', 'ConcatenatedQuerySearcher', 'HyDE_QueryExpander', 'PRF_QueryExpander', 'SearchQueryWriter'.")
+        raise ValueError(f"Unsupported retriever: {retriever_name}. Supported: 'BaseRetriever', 'RAGFusion', 'ConcatenatedQuerySearcher', 'CrossEncoderReranker', 'HyDE_QueryExpander', 'PRF_QueryExpander', 'SearchQueryWriter', 'SplitQueryRetriever'.")
 
 
 def get_weaviate_async_client(config: dict) -> weaviate.WeaviateAsyncClient:
@@ -316,7 +345,17 @@ async def lifespan(app: FastAPI):
     retriever_name = state.config['retriever'].get('active') or state.config['retriever'].get('name')
     print(f"🚀 Server starting with retriever: {retriever_name}")
     print(f"📦 Collection: {state.config['weaviate']['collection_name']}")
-    
+
+    # Auto-load optimized program if configured
+    optimized_program_path = state.config.get("retriever", {}).get("optimized_program_path")
+    if optimized_program_path:
+        program_path = Path("optimized-programs") / optimized_program_path
+        if program_path.exists():
+            state.retriever.load(str(program_path))
+            print(f"✅ Loaded optimized program: {program_path}")
+        else:
+            print(f"⚠️  optimized_program_path not found: {program_path}")
+
     yield
     
     # Shutdown

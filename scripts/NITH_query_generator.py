@@ -185,7 +185,7 @@ def main():
         for style in QUESTION_STYLES
     }
 
-    print(f"\033[95m=== NITH Query Generator ===\033[0m")
+    print("\033[95m=== NITH Query Generator ===\033[0m")
     print(f"Collection: {COLLECTION_NAME}")
     print(f"Min tokens: {MIN_TOKENS}")
     print(f"Questions per doc: {QUESTIONS_PER_DOC}")
@@ -222,7 +222,7 @@ def main():
                     print(f"  \033[91mError generating question (style: {style[:40]}...): {e}\033[0m")
 
             if not question_style_pairs:
-                print(f"  No questions generated, skipping.")
+                print("  No questions generated, skipping.")
                 continue
 
             total_questions_generated += len(question_style_pairs)
@@ -321,7 +321,7 @@ def main():
         saved_paths.append((mix_name, mix_path, len(mix_questions), mix_counts))
 
     # --- Final report ---
-    print(f"\n\033[95m=== Generation Complete ===\033[0m")
+    print("\n\033[95m=== Generation Complete ===\033[0m")
     print(f"  Total documents scanned:    {total_docs}")
     print(f"  Skipped (< {MIN_TOKENS} tokens):      {skipped_short}")
     print(f"  Eligible documents:         {total_docs - skipped_short}")
@@ -333,7 +333,7 @@ def main():
         easy_pct = difficulty_counts["easy"] / total_questions_generated * 100
         print(f"\n  Baseline retrieval rate (top-5): {easy_pct:.1f}%")
 
-    print(f"\n  \033[95mQuestion style → difficulty breakdown:\033[0m")
+    print("\n  \033[95mQuestion style → difficulty breakdown:\033[0m")
     for i, style in enumerate(QUESTION_STYLES):
         style_label = style[:70]
         counts = style_difficulty_counts[style]
@@ -347,7 +347,7 @@ def main():
         print(f"    Style {i+1}: {style_label}...")
         print(f"             {dist}  (n={style_total})")
 
-    print(f"\n  \033[95mSaved datasets (easy_medium_hard_extreme %):\033[0m")
+    print("\n  \033[95mSaved datasets (easy_medium_hard_extreme %):\033[0m")
     print(f"    {'full':.<20} {full_output_path}  ({len(all_questions)} questions)")
     for mix_name, mix_path, count, mix_counts in saved_paths:
         dist = " | ".join(f"{d}={mix_counts[d]}" for d in DIFFS)

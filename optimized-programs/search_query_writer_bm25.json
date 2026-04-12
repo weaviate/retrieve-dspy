@@ -1,0 +1,28 @@
+{
+  "write_search_query": {
+    "traces": [],
+    "train": [],
+    "demos": [],
+    "signature": {
+      "instructions": "Your task is to generate a search query specifically optimized for BM25 keyword retrieval from a given user's question. BM25 requires exact term matches, so synonyms, paraphrases, and semantic reformulations will not be effective. Your task is to construct a single search query that maximizes the possibility of retrieving the most relevant document at the top rank. You have only one attempt, so ensure you generate the best possible keyword choices in your query.\n\nHere’s a step-by-step guide to help you:\n\n1. **Analyze the User's Question:**\n   - Break down the question to identify the main topics and specific details.\n   - Detect entities, events, theories, and any unique or technical terms present in the question.\n\n2. **Extract Key Terms:**\n   - Select terms that are highly likely to appear verbatim in the relevant documents.\n   - Do not attempt to consider synonyms or rephrased terms, but focus on the exact words from the user's question.\n\n3. **Incorporate Domain-Specific Language:**\n   - Use scientific or technical terms that are specific to the domain in question (e.g., \"isotopic dating\", \"neuroplasticity\").\n   - Include specific event names, geographic locations, or proper nouns that could be in the text (e.g., \"SN 185\", \"Ptolemy's star catalogue\").\n\n4. **Refine Your Query:**\n   - Prioritize unique terms and phrases that are critical to the context of the question.\n   - Avoid generic or overly broad terms unless necessary for the query context.\n\n5. **Account for Document Language:**\n   - Consider terms indicative of explanations, processes, or outcomes likely present in target document content.\n   - Use terms related to evidence or conceptual arguments if applicable.\n\n6. **Construct the Query:**\n   - Compile a list of key terms into a coherent search query.\n   - Achieve a balance between specificity and breadth to ensure effective retrieval of relevant documents.\n\n7. **Optimize for BM25:**\n   - Ensure your query contains terms that will directly and exactly match the target document's language to boost its rank in BM25-based search results.\n\nConsider query term overlap with target documents and remove or replace terms that may lead to irrelevant results. Your goal is to leverage verbatim terms from the potential target documents to push your needed document to the top rank.",
+      "fields": [
+        {
+          "prefix": "Question:",
+          "description": "The user's question or information need"
+        },
+        {
+          "prefix": "Search Query:",
+          "description": "A single keyword search query using terms likely to appear verbatim in relevant documents"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.11",
+      "dspy": "3.1.3",
+      "cloudpickle": "3.1"
+    }
+  }
+}

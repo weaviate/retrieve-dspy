@@ -26,6 +26,10 @@ from .retrievers import (
     QueryDocumentSummarizer,
     SimplifiedBaleenWithCrossEncoder,
     QUIPLER,
+    SplitQueryRetriever,
+    DualInferenceSplitRetriever,
+    SplitMultiQueryRetriever,
+    DualInferenceSplitMultiQueryRetriever,
 )
 
 from . import utils
@@ -71,4 +75,8 @@ __all__ = [
     "optimize",
     "run_gepa",
     "QUIPLER",
+    "SplitQueryRetriever",
+    "DualInferenceSplitRetriever",
+    "SplitMultiQueryRetriever",
+    "DualInferenceSplitMultiQueryRetriever",
 ]

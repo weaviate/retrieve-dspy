@@ -8,7 +8,7 @@ server:
 weaviate:
   collection_name: "BrightBiology_Default"
   target_property_name: "content"
-  search_type: "bm25"  # Options: "bm25", "vector", "hybrid"
+  search_type: "hybrid"  # Options: "bm25", "vector", "hybrid"
   embedding_model: "weaviate/Snowflake/snowflake-arctic-embed-l-v2.0"  # provider/model-name
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -18,7 +18,7 @@ weaviate:
 # Each retriever's parameters are defined in its own section below.
 
 retriever:
-  active: "SearchQueryWriter"  # Options: "BaseRetriever", "RAGFusion", "ConcatenatedQuerySearcher", "HyDE_QueryExpander", "PRF_QueryExpander", "SearchQueryWriter"
+  active: "SearchQueryWriter"  # Options: "BaseRetriever", "RAGFusion", "ConcatenatedQuerySearcher", "HyDE_QueryExpander", "PRF_QueryExpander", "SearchQueryWriter", "SplitQueryRetriever", "CrossEncoderReranker"
 
   # ───────────────────────────────────────────────────────────────────────────
   # BaseRetriever
@@ -131,3 +131,43 @@ retriever:
     retrieved_k: 20
     verbose: false
     search_only: true
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # CrossEncoderReranker
+  # ───────────────────────────────────────────────────────────────────────────
+  # Hybrid search (no LLM query writer) followed by cross-encoder reranking.
+
+  CrossEncoderReranker:
+    retrieved_k: 50              # Number of results from hybrid search
+    reranked_k: 20               # Final results after CE reranking
+    verbose: true
+    cross_encoder:
+      providers: ["voyage"]
+      provider: "voyage"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # SplitQueryRetriever
+  # ───────────────────────────────────────────────────────────────────────────
+  # Single LLM inference produces two queries: one optimized for BM25 keyword
+  # retrieval and one for dense vector retrieval. Results are fused with RRF
+  # and optionally reranked with a cross-encoder.
+
+  SplitQueryRetriever:
+    retrieved_k: 25              # Results per pathway (BM25 and vector each get k)
+    reranked_k: 20               # Final results after CE reranking
+    verbose: true
+
+    # Cross-encoder reranking (pools BM25 + vector results, then reranks)
+    cross_encoder:
+      providers: ["voyage"]
+      provider: "voyage"
+      top_k: 20
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Optimized Program (optional)
+  # ───────────────────────────────────────────────────────────────────────────
+  # Filename of a saved DSPy program JSON (from dspy.Module.save()) inside
+  # the optimized-programs/ directory. Set to null or omit to skip loading.
+  #
+  # optimized_program_path: "search_query_writer_bm25.json"
+  optimized_program_path: null
