@@ -10,6 +10,8 @@ from retrieve_dspy.database.weaviate_database import (
 )
 from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 from retrieve_dspy.retrievers.common.call_ce_ranker import ce_rank, async_ce_rank, reorder
+from retrieve_dspy.retrievers.common.rrf import reciprocal_rank_fusion
+from retrieve_dspy.retrievers.common.dedup_log import log_dedup
 from retrieve_dspy.retrievers.common.truncate_document import truncate_document
 from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerClient
 from retrieve_dspy.signatures import WriteSplitSearchQueries
@@ -41,6 +43,7 @@ class SplitQueryRetriever(BaseRetriever):
         weaviate_client: Optional[weaviate.WeaviateClient] = None,
         target_property_name: str = "content",
         retrieved_k: int = 20,
+        use_cross_encoder: bool = True,
         reranker_clients: Optional[List[RerankerClient]] = None,
         reranker_provider: Optional[str] = None,
         reranked_k: Optional[int] = None,
@@ -55,6 +58,7 @@ class SplitQueryRetriever(BaseRetriever):
             retrieved_k=retrieved_k,
             embedding_model=embedding_model,
         )
+        self.use_cross_encoder = use_cross_encoder
         self.reranker_clients = reranker_clients
         self.reranker_provider = reranker_provider
         self.reranked_k = reranked_k if reranked_k is not None else retrieved_k
@@ -105,22 +109,40 @@ class SplitQueryRetriever(BaseRetriever):
             print(f"\033[96m  BM25 returned {len(bm25_results)} docs, "
                   f"Vector returned {len(vector_results)} docs\033[0m")
 
-        # Pool + dedupe, then CE rerank
-        pooled = _dedupe_pool([bm25_results, vector_results])
-        if self.verbose:
-            print(f"\033[96m  Pooled to {len(pooled)} unique docs\033[0m")
-        docs = [truncate_document(s.content, 500) for s in pooled]
-        items = ce_rank(
-            query=question,
-            documents=docs,
-            top_k=self.reranked_k,
-            clients=self.reranker_clients,
-            provider=self.reranker_provider,
-            verbose=self.verbose,
+        if self.use_cross_encoder and self.reranker_clients:
+            # Pool + dedupe, then CE rerank
+            pooled = _dedupe_pool([bm25_results, vector_results])
+            if self.verbose:
+                print(f"\033[96m  Pooled to {len(pooled)} unique docs\033[0m")
+            docs = [truncate_document(s.content, 500) for s in pooled]
+            items = ce_rank(
+                query=question,
+                documents=docs,
+                top_k=self.reranked_k,
+                clients=self.reranker_clients,
+                provider=self.reranker_provider,
+                verbose=self.verbose,
+            )
+            final_results = reorder(items, pooled)
+            if self.verbose:
+                print(f"\033[96m  Reranked to {len(final_results)} docs\033[0m")
+        else:
+            # RRF fusion only (no reranker)
+            final_results = reciprocal_rank_fusion(
+                [bm25_results, vector_results],
+                top_k=self.reranked_k,
+            )
+            if self.verbose:
+                print(f"\033[96m  RRF fused to {len(final_results)} docs\033[0m")
+
+        log_dedup(
+            retriever="SplitQueryRetriever",
+            question=question,
+            bm25_results=bm25_results,
+            vector_results=vector_results,
+            fused_count=len(final_results),
+            retrieved_k=self.retrieved_k,
         )
-        final_results = reorder(items, pooled)
-        if self.verbose:
-            print(f"\033[96m  Reranked to {len(final_results)} docs\033[0m")
 
         return DSPyAgentRAGResponse(
             final_answer="",
@@ -176,22 +198,40 @@ class SplitQueryRetriever(BaseRetriever):
             print(f"\033[96m  BM25 returned {len(bm25_results)} docs, "
                   f"Vector returned {len(vector_results)} docs\033[0m")
 
-        # Pool + dedupe, then CE rerank
-        pooled = _dedupe_pool([bm25_results, vector_results])
-        if self.verbose:
-            print(f"\033[96m  Pooled to {len(pooled)} unique docs\033[0m")
-        docs = [truncate_document(s.content, 500) for s in pooled]
-        items = await async_ce_rank(
-            query=question,
-            documents=docs,
-            top_k=self.reranked_k,
-            clients=self.reranker_clients,
-            provider=self.reranker_provider,
-            verbose=self.verbose,
+        if self.use_cross_encoder and self.reranker_clients:
+            # Pool + dedupe, then CE rerank
+            pooled = _dedupe_pool([bm25_results, vector_results])
+            if self.verbose:
+                print(f"\033[96m  Pooled to {len(pooled)} unique docs\033[0m")
+            docs = [truncate_document(s.content, 500) for s in pooled]
+            items = await async_ce_rank(
+                query=question,
+                documents=docs,
+                top_k=self.reranked_k,
+                clients=self.reranker_clients,
+                provider=self.reranker_provider,
+                verbose=self.verbose,
+            )
+            final_results = reorder(items, pooled)
+            if self.verbose:
+                print(f"\033[96m  Reranked to {len(final_results)} docs\033[0m")
+        else:
+            # RRF fusion only (no reranker)
+            final_results = reciprocal_rank_fusion(
+                [bm25_results, vector_results],
+                top_k=self.reranked_k,
+            )
+            if self.verbose:
+                print(f"\033[96m  RRF fused to {len(final_results)} docs\033[0m")
+
+        log_dedup(
+            retriever="SplitQueryRetriever",
+            question=question,
+            bm25_results=bm25_results,
+            vector_results=vector_results,
+            fused_count=len(final_results),
+            retrieved_k=self.retrieved_k,
         )
-        final_results = reorder(items, pooled)
-        if self.verbose:
-            print(f"\033[96m  Reranked to {len(final_results)} docs\033[0m")
 
         return DSPyAgentRAGResponse(
             final_answer="",
