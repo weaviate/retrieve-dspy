@@ -1,5 +1,3 @@
-# Server Configuration for retrieve-dspy
-
 server:
   host: "0.0.0.0"
   port: 8000
@@ -18,15 +16,15 @@ weaviate:
 # Each retriever's parameters are defined in its own section below.
 
 retriever:
-  active: "SearchQueryWriter"  # Options: "BaseRetriever", "RAGFusion", "ConcatenatedQuerySearcher", "HyDE_QueryExpander", "PRF_QueryExpander", "SearchQueryWriter", "SplitQueryRetriever", "CrossEncoderReranker"
+  active: "SplitQueryRetriever"  # Options: "BaseRetriever", "RAGFusion", "ConcatenatedQuerySearcher", "HyDE_QueryExpander", "PRF_QueryExpander", "SearchQueryWriter", "SplitQueryRetriever", "DualInferenceSplitRetriever", "CrossEncoderReranker"
 
   # ───────────────────────────────────────────────────────────────────────────
   # BaseRetriever
   # ───────────────────────────────────────────────────────────────────────────
   # Simple hybrid (keyword + vector) search with optional diversity reranking.
-  
+
   BaseRetriever:
-    retrieved_k: 20              # Number of results to return
+    retrieved_k: 100             # Number of results to return
     verbose: false
     search_only: true            # If false, generates an answer (not implemented)
     diversity_weight: 0          # 0 = no diversity, 0.5 = balanced, 1 = max diversity (uses MMR)
@@ -36,7 +34,7 @@ retriever:
   # ───────────────────────────────────────────────────────────────────────────
   # Generates multiple search queries, concatenates them into a single query,
   # then applies pyversity diversity ranking algorithms to the results.
-  
+
   ConcatenatedQuerySearcher:
     number_of_queries: 5         # Number of search queries to generate and concatenate
     retrieved_k: 100             # Number of results to retrieve initially
@@ -44,13 +42,13 @@ retriever:
     verbose: true
     verbose_signature: true      # Use verbose query generation prompts (more detailed)
     search_only: true
-    
+
     # ─────────────────────────────────────────────────────────────────────────
     # Diversity Ranking (powered by pyversity)
     # ─────────────────────────────────────────────────────────────────────────
     # Set diversity_weight > 0 to enable diversity ranking
     diversity_weight: 0        # 0.0 = pure relevance, 1.0 = pure diversity
-    
+
     # Diversity strategy options:
     #   - "mmr": Maximal Marginal Relevance - balances relevance and diversity
     #   - "msd": Max Sum of Distances - maximizes diversity by selecting distant points
@@ -63,36 +61,36 @@ retriever:
   # ───────────────────────────────────────────────────────────────────────────
   # Generates multiple query variations, retrieves results for each,
   # then fuses them using the selected fusion strategy.
-  
+
   RAGFusion:
     number_of_queries: 5         # Number of query variations to generate
     retrieved_k: 10              # Results per query variation (5 queries × 10 results = 50 total)
     reranked_k: 50               # Results after fusion
     verbose: true
     verbose_signature: true      # Use verbose query generation prompts
-    
+
     # ─────────────────────────────────────────────────────────────────────────
     # Fusion Strategy: "rrf", "interleave", or "ce_gated"
     # ─────────────────────────────────────────────────────────────────────────
     fusion_strategy: "ce_gated"  # Options: "rrf", "interleave", "ce_gated"
-    
+
     # RRF settings (for fusion_strategy: "rrf")
     rrf_k: 60                    # RRF constant (higher = more weight to lower ranks)
-    
+
     # CE-Gated Pooling settings (for fusion_strategy: "ce_gated")
     # Uses cross-encoder to score docs against original + sub-queries
     # Final score = α × s₀(d) + (1-α) × s_sub(d)
     ce_gated:
       alpha: 0.7                 # Weight for original query relevance (0-1)
       aggregation: "max"         # How to aggregate sub-query scores: "max" or "mean"
-    
+
     # Cross-encoder configuration (required for ce_gated, optional for rrf/interleave)
     cross_encoder:
       enabled: true              # Set to true to enable cross-encoder reranking
       providers: ["dspy"]        # Available: "cohere", "voyage", "dspy" (LLM-based)
       provider: "dspy"           # Auto-select, or force: "cohere", "voyage", "dspy", "hybrid"
       top_k: 50                  # Final results after CE reranking (for post-fusion reranking)
-      
+
       # DSPy LLM reranker settings (when providers includes "dspy")
       # Uses the configured dspy.lm to score relevance
       dspy:
@@ -122,15 +120,39 @@ retriever:
     search_only: true
 
   # ───────────────────────────────────────────────────────────────────────────
-  # SearchQueryWriter
+  # SearchQueryWriter  (Stage 1 — Condition A)
   # ───────────────────────────────────────────────────────────────────────────
-  # Rewrites the user's question into an optimized search query
-  # before executing the search.
+  # Rewrites the user's question into a single optimized search query,
+  # then runs hybrid RSF search. No reranker.
 
   SearchQueryWriter:
-    retrieved_k: 20
-    verbose: false
+    retrieved_k: 100             # k=100 for Stage 1
+    verbose: true
     search_only: true
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # SplitQueryRetriever  (Stage 1 — Condition B)
+  # ───────────────────────────────────────────────────────────────────────────
+  # Single LLM inference produces two queries: one for BM25, one for vector.
+  # Results are fused with RRF. No cross-encoder for Stage 1.
+
+  SplitQueryRetriever:
+    retrieved_k: 100              # Results per pathway (BM25 and vector each get k)
+    reranked_k: 200               # Max results after RRF (up to 2*k unique docs)
+    verbose: true
+    # No cross_encoder section = RRF-only mode
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # DualInferenceSplitRetriever  (Stage 1 — Condition C)
+  # ───────────────────────────────────────────────────────────────────────────
+  # Two separate LLM inferences: one WriteSearchQuery (BM25), one
+  # WriteVectorSearchQuery (vector). Results fused with RRF. No CE for Stage 1.
+
+  DualInferenceSplitRetriever:
+    retrieved_k: 100             # Results per pathway (BM25 and vector each get k)
+    reranked_k: 200              # Max results after RRF (up to 2*k unique docs)
+    verbose: true
+    # No cross_encoder section = RRF-only mode
 
   # ───────────────────────────────────────────────────────────────────────────
   # CrossEncoderReranker
@@ -144,24 +166,6 @@ retriever:
     cross_encoder:
       providers: ["voyage"]
       provider: "voyage"
-
-  # ───────────────────────────────────────────────────────────────────────────
-  # SplitQueryRetriever
-  # ───────────────────────────────────────────────────────────────────────────
-  # Single LLM inference produces two queries: one optimized for BM25 keyword
-  # retrieval and one for dense vector retrieval. Results are fused with RRF
-  # and optionally reranked with a cross-encoder.
-
-  SplitQueryRetriever:
-    retrieved_k: 25              # Results per pathway (BM25 and vector each get k)
-    reranked_k: 20               # Final results after CE reranking
-    verbose: true
-
-    # Cross-encoder reranking (pools BM25 + vector results, then reranks)
-    cross_encoder:
-      providers: ["voyage"]
-      provider: "voyage"
-      top_k: 20
 
   # ───────────────────────────────────────────────────────────────────────────
   # Optimized Program (optional)

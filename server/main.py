@@ -20,6 +20,7 @@ from retrieve_dspy import (
     RAGFusion,
     ConcatenatedQuerySearcher,
     CrossEncoderReranker,
+    DualInferenceSplitRetriever,
     HyDE_QueryExpander,
     PRF_QueryExpander,
     SearchQueryWriter,
@@ -290,12 +291,30 @@ def create_retriever(config: dict) -> BaseRetriever:
         )
     elif retriever_name == "SplitQueryRetriever":
         reranker_config = retriever_params.get("cross_encoder", {})
-        reranker_clients = create_reranker_clients(reranker_config)
+        use_cross_encoder = bool(reranker_config)
+        reranker_clients = create_reranker_clients(reranker_config) if use_cross_encoder else None
 
         return SplitQueryRetriever(
             collection_name=weaviate_config["collection_name"],
             target_property_name=weaviate_config.get("target_property_name", "content"),
             retrieved_k=retriever_params.get("retrieved_k", 20),
+            use_cross_encoder=use_cross_encoder,
+            reranker_clients=reranker_clients,
+            reranker_provider=reranker_config.get("provider"),
+            reranked_k=retriever_params.get("reranked_k"),
+            verbose=retriever_params.get("verbose", False),
+            embedding_model=weaviate_config.get("embedding_model"),
+        )
+    elif retriever_name == "DualInferenceSplitRetriever":
+        reranker_config = retriever_params.get("cross_encoder", {})
+        use_cross_encoder = bool(reranker_config)
+        reranker_clients = create_reranker_clients(reranker_config) if use_cross_encoder else None
+
+        return DualInferenceSplitRetriever(
+            collection_name=weaviate_config["collection_name"],
+            target_property_name=weaviate_config.get("target_property_name", "content"),
+            retrieved_k=retriever_params.get("retrieved_k", 20),
+            use_cross_encoder=use_cross_encoder,
             reranker_clients=reranker_clients,
             reranker_provider=reranker_config.get("provider"),
             reranked_k=retriever_params.get("reranked_k"),
@@ -303,7 +322,7 @@ def create_retriever(config: dict) -> BaseRetriever:
             embedding_model=weaviate_config.get("embedding_model"),
         )
     else:
-        raise ValueError(f"Unsupported retriever: {retriever_name}. Supported: 'BaseRetriever', 'RAGFusion', 'ConcatenatedQuerySearcher', 'CrossEncoderReranker', 'HyDE_QueryExpander', 'PRF_QueryExpander', 'SearchQueryWriter', 'SplitQueryRetriever'.")
+        raise ValueError(f"Unsupported retriever: {retriever_name}. Supported: 'BaseRetriever', 'RAGFusion', 'ConcatenatedQuerySearcher', 'CrossEncoderReranker', 'DualInferenceSplitRetriever', 'HyDE_QueryExpander', 'PRF_QueryExpander', 'SearchQueryWriter', 'SplitQueryRetriever'.")
 
 
 def get_weaviate_async_client(config: dict) -> weaviate.WeaviateAsyncClient:
