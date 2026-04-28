@@ -304,6 +304,7 @@ def create_retriever(config: dict) -> BaseRetriever:
             reranked_k=retriever_params.get("reranked_k"),
             verbose=retriever_params.get("verbose", False),
             embedding_model=weaviate_config.get("embedding_model"),
+            pathway_only=retriever_params.get("pathway_only"),
         )
     elif retriever_name == "DualInferenceSplitRetriever":
         reranker_config = retriever_params.get("cross_encoder", {})
@@ -320,6 +321,7 @@ def create_retriever(config: dict) -> BaseRetriever:
             reranked_k=retriever_params.get("reranked_k"),
             verbose=retriever_params.get("verbose", False),
             embedding_model=weaviate_config.get("embedding_model"),
+            pathway_only=retriever_params.get("pathway_only"),
         )
     else:
         raise ValueError(f"Unsupported retriever: {retriever_name}. Supported: 'BaseRetriever', 'RAGFusion', 'ConcatenatedQuerySearcher', 'CrossEncoderReranker', 'DualInferenceSplitRetriever', 'HyDE_QueryExpander', 'PRF_QueryExpander', 'SearchQueryWriter', 'SplitQueryRetriever'.")

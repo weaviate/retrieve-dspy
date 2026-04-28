@@ -50,6 +50,7 @@ class DualInferenceSplitRetriever(BaseRetriever):
         reranked_k: Optional[int] = None,
         verbose: bool = False,
         embedding_model: Optional[str] = None,
+        pathway_only: Optional[str] = None,
     ):
         super().__init__(
             collection_name=collection_name,
@@ -63,6 +64,7 @@ class DualInferenceSplitRetriever(BaseRetriever):
         self.reranker_clients = reranker_clients
         self.reranker_provider = reranker_provider
         self.reranked_k = reranked_k if reranked_k is not None else retrieved_k
+        self.pathway_only = pathway_only
 
         # Two separate predictors — independently optimizable
         self.write_bm25_query = dspy.Predict(WriteSearchQuery)
@@ -110,6 +112,28 @@ class DualInferenceSplitRetriever(BaseRetriever):
         if self.verbose:
             print(f"\033[96m  BM25 returned {len(bm25_results)} docs, "
                   f"Vector returned {len(vector_results)} docs\033[0m")
+
+        # Per-pathway isolation: return only one pathway's results
+        if self.pathway_only == "bm25":
+            if self.verbose:
+                print(f"\033[96m  pathway_only=bm25 → returning {len(bm25_results)} BM25 docs\033[0m")
+            return DSPyAgentRAGResponse(
+                final_answer="",
+                sources=bm25_results,
+                searches=[bm25_query],
+                aggregations=None,
+                usage={},
+            )
+        elif self.pathway_only == "vector":
+            if self.verbose:
+                print(f"\033[96m  pathway_only=vector → returning {len(vector_results)} vector docs\033[0m")
+            return DSPyAgentRAGResponse(
+                final_answer="",
+                sources=vector_results,
+                searches=[vector_query],
+                aggregations=None,
+                usage={},
+            )
 
         if self.use_cross_encoder and self.reranker_clients:
             # Pool + dedupe, then CE rerank
@@ -202,6 +226,28 @@ class DualInferenceSplitRetriever(BaseRetriever):
         if self.verbose:
             print(f"\033[96m  BM25 returned {len(bm25_results)} docs, "
                   f"Vector returned {len(vector_results)} docs\033[0m")
+
+        # Per-pathway isolation: return only one pathway's results
+        if self.pathway_only == "bm25":
+            if self.verbose:
+                print(f"\033[96m  pathway_only=bm25 → returning {len(bm25_results)} BM25 docs\033[0m")
+            return DSPyAgentRAGResponse(
+                final_answer="",
+                sources=bm25_results,
+                searches=[bm25_query],
+                aggregations=None,
+                usage={},
+            )
+        elif self.pathway_only == "vector":
+            if self.verbose:
+                print(f"\033[96m  pathway_only=vector → returning {len(vector_results)} vector docs\033[0m")
+            return DSPyAgentRAGResponse(
+                final_answer="",
+                sources=vector_results,
+                searches=[vector_query],
+                aggregations=None,
+                usage={},
+            )
 
         if self.use_cross_encoder and self.reranker_clients:
             # Pool + dedupe, then CE rerank
