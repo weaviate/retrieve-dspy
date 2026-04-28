@@ -44,12 +44,13 @@ class BaseRetriever(dspy.Module):
         else:
             self.multi_lm_configs_dict = None
 
-        default_lm = "gpt-5.4"
+        default_lm = "openai/gpt-5.4"
 
-        lm = dspy.OpenAI(
-            model=default_lm,
+        lm = dspy.LM(
+            default_lm,
             temperature=0.0,
             max_tokens=20000,
+            cache=False,
             api_key=os.getenv("OPENAI_API_KEY"),
         )
 
