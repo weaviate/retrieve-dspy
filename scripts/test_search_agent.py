@@ -3,7 +3,9 @@ Test script: run a retrieve-dspy retriever through
 query_agent_benchmarking.run_search_eval() using the SearchAgent protocol.
 """
 
+import json
 import os
+from datetime import datetime
 from typing import Optional
 
 import weaviate
@@ -59,17 +61,22 @@ def main():
 
     agent = RetrieveDSPySearchAgent(retriever)
 
-    results_dir = os.path.join(os.path.dirname(__file__), "..", "results")
-    os.makedirs(results_dir, exist_ok=True)
-
-    run_search_eval(
+    metrics = run_search_eval(
         search_dataset="bright/biology",
         search_agent=agent,
         agent_name="BM25",
-        output_path=os.path.join(results_dir, "bm25_bright_biology"),
         use_async=True,
         num_trials=1,
     )
+
+    results_dir = os.path.join(os.path.dirname(__file__), "..", "results")
+    os.makedirs(results_dir, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    out_path = os.path.join(results_dir, f"bm25_bright_biology_{timestamp}.json")
+    with open(out_path, "w") as f:
+        json.dump(metrics, f, indent=2)
+    print(f"\nResults saved to {out_path}")
 
 
 if __name__ == "__main__":
