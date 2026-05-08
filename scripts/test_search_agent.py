@@ -59,10 +59,14 @@ def main():
 
     agent = RetrieveDSPySearchAgent(retriever)
 
+    results_dir = os.path.join(os.path.dirname(__file__), "..", "results")
+    os.makedirs(results_dir, exist_ok=True)
+
     run_search_eval(
         search_dataset="bright/biology",
         search_agent=agent,
         agent_name="BM25",
+        output_path=os.path.join(results_dir, "bm25_bright_biology"),
         use_async=True,
         num_trials=1,
     )
