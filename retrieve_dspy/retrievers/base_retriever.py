@@ -27,6 +27,7 @@ class BaseRetriever(dspy.Module):
         retrieved_k: Optional[int] = 20,
         diversity_weight: Optional[float] = 0,
         search_type: str = "hybrid",
+        hybrid_alpha: Optional[float] = None,
     ) -> None:
         self.collection_name = collection_name
         self.weaviate_client = weaviate_client
@@ -39,6 +40,7 @@ class BaseRetriever(dspy.Module):
         self.retrieved_k = retrieved_k
         self.diversity_weight = diversity_weight
         self.search_type = search_type
+        self.hybrid_alpha = hybrid_alpha
         if self.multi_lm_configs:
             self._multi_lm_configs_to_dict()
         else:
@@ -98,6 +100,7 @@ class BaseRetriever(dspy.Module):
             return_vector=True,
             return_score=True,
             search_type=self.search_type,
+            hybrid_alpha=self.hybrid_alpha,
         )
 
         if self.diversity_weight > 0:
@@ -145,6 +148,7 @@ class BaseRetriever(dspy.Module):
             return_vector=True,
             return_score=True,
             search_type=self.search_type,
+            hybrid_alpha=self.hybrid_alpha,
         )
 
         if self.diversity_weight > 0:

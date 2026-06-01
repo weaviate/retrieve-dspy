@@ -18,6 +18,7 @@ def weaviate_search_tool(
         return_score: bool = False,
         tag_filter_value: Optional[str] = None,
         search_type: str = "hybrid",
+        hybrid_alpha: Optional[float] = None,
 ) -> list[ObjectFromDB]:
     if weaviate_client is None:
         weaviate_client = weaviate.connect_to_weaviate_cloud(
@@ -41,17 +42,20 @@ def weaviate_search_tool(
     elif search_type == "vector":
         search_results = collection.query.near_text(
             query=query,
-            return_metadata=MetadataQuery(score=return_score),
+            return_metadata=MetadataQuery(distance=return_score),
             include_vector=return_vector,
             limit=retrieved_k
         )
     else:
-        search_results = collection.query.hybrid(
+        hybrid_kwargs = dict(
             query=query,
             return_metadata=MetadataQuery(score=return_score),
             include_vector=return_vector,
-            limit=retrieved_k
+            limit=retrieved_k,
         )
+        if hybrid_alpha is not None:
+            hybrid_kwargs["alpha"] = hybrid_alpha
+        search_results = collection.query.hybrid(**hybrid_kwargs)
 
     objects: list[ObjectFromDB] = []
     if search_results.objects:
@@ -60,11 +64,22 @@ def weaviate_search_tool(
             content_value = None
             if obj.properties and target_property_name in obj.properties:
                 content_value = obj.properties[target_property_name]
+
+            # Extract score: BM25 returns score (higher=better),
+            # vector returns distance (lower=better, convert to similarity)
+            if return_score:
+                if search_type == "vector":
+                    score = 1.0 - obj.metadata.distance if obj.metadata.distance is not None else None
+                else:
+                    score = obj.metadata.score
+            else:
+                score = None
+
             objects.append(ObjectFromDB(
                 object_id=object_id,
                 content=str(content_value) if content_value is not None else "",
                 relevance_rank=rank,
-                relevance_score=obj.metadata.score if return_score else None,
+                relevance_score=score,
                 vector=(obj.vector.get("default") if return_vector and getattr(obj, 'vector', None) else None)
             ))
     return objects
@@ -80,6 +95,7 @@ async def async_weaviate_search_tool(
     return_vector: bool = False,
     tag_filter_value: Optional[str] = None,
     search_type: str = "hybrid",
+    hybrid_alpha: Optional[float] = None,
 ) -> list[ObjectFromDB]:
     if weaviate_async_client is None:
         weaviate_async_client = weaviate.use_async_with_weaviate_cloud(
@@ -104,18 +120,21 @@ async def async_weaviate_search_tool(
     elif search_type == "vector":
         search_results = await collection.query.near_text(
             query=query,
-            return_metadata=MetadataQuery(score=return_score),
+            return_metadata=MetadataQuery(distance=return_score),
             include_vector=return_vector,
             limit=retrieved_k
         )
     else:
-        search_results = await collection.query.hybrid(
+        hybrid_kwargs = dict(
             query=query,
             return_metadata=MetadataQuery(score=return_score),
             include_vector=return_vector,
-            limit=retrieved_k
+            limit=retrieved_k,
         )
-    
+        if hybrid_alpha is not None:
+            hybrid_kwargs["alpha"] = hybrid_alpha
+        search_results = await collection.query.hybrid(**hybrid_kwargs)
+
     objects: list[ObjectFromDB] = []
     if search_results.objects:
         for rank, obj in enumerate(search_results.objects, start=1):
@@ -123,11 +142,20 @@ async def async_weaviate_search_tool(
             content_value = None
             if obj.properties and target_property_name in obj.properties:
                 content_value = obj.properties[target_property_name]
+
+            if return_score:
+                if search_type == "vector":
+                    score = 1.0 - obj.metadata.distance if obj.metadata.distance is not None else None
+                else:
+                    score = obj.metadata.score
+            else:
+                score = None
+
             objects.append(ObjectFromDB(
                 object_id=object_id,
                 content=str(content_value) if content_value is not None else "",
                 relevance_rank=rank,
-                relevance_score=obj.metadata.score,
+                relevance_score=score,
                 vector=(obj.vector.get("default") if return_vector and getattr(obj, 'vector', None) else None)
             ))
     return objects

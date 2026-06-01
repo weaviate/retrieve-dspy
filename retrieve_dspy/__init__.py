@@ -28,6 +28,7 @@ from .retrievers import (
     QUIPLER,
     SplitQueryRetriever,
     DualInferenceSplitRetriever,
+    SharedQuerySplitRetriever,
     SplitMultiQueryRetriever,
     DualInferenceSplitMultiQueryRetriever,
 )
@@ -77,6 +78,7 @@ __all__ = [
     "QUIPLER",
     "SplitQueryRetriever",
     "DualInferenceSplitRetriever",
+    "SharedQuerySplitRetriever",
     "SplitMultiQueryRetriever",
     "DualInferenceSplitMultiQueryRetriever",
 ]
