@@ -10,7 +10,6 @@ from retrieve_dspy.database.weaviate_database import (
 )
 from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 from retrieve_dspy.retrievers.common.call_ce_ranker import ce_rank, async_ce_rank, reorder
-from retrieve_dspy.retrievers.common.rrf import reciprocal_rank_fusion
 from retrieve_dspy.retrievers.common.rsf import relative_score_fusion
 from retrieve_dspy.retrievers.common.dedup_log import log_dedup
 from retrieve_dspy.retrievers.common.truncate_document import truncate_document

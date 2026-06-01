@@ -13,7 +13,7 @@ pathways, rather than writing a separate query per pathway.
 """
 
 import asyncio
-from typing import Optional, List
+from typing import Optional
 
 import dspy
 import weaviate
