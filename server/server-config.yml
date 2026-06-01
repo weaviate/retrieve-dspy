@@ -6,7 +6,7 @@ server:
 weaviate:
   collection_name: "BrightBiology_Default"
   target_property_name: "content"
-  search_type: "hybrid"  # Options: "bm25", "vector", "hybrid"
+  search_type: "vector"  # Options: "bm25", "vector", "hybrid"
   embedding_model: "weaviate/Snowflake/snowflake-arctic-embed-l-v2.0"  # provider/model-name
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -16,7 +16,7 @@ weaviate:
 # Each retriever's parameters are defined in its own section below.
 
 retriever:
-  active: "SplitQueryRetriever"  # Options: "BaseRetriever", "RAGFusion", "ConcatenatedQuerySearcher", "HyDE_QueryExpander", "PRF_QueryExpander", "SearchQueryWriter", "SplitQueryRetriever", "DualInferenceSplitRetriever", "CrossEncoderReranker"
+  active: "DualInferenceSplitRetriever"  # Options: "BaseRetriever", "RAGFusion", "ConcatenatedQuerySearcher", "HyDE_QueryExpander", "PRF_QueryExpander", "SearchQueryWriter", "SplitQueryRetriever", "DualInferenceSplitRetriever", "CrossEncoderReranker"
 
   # ───────────────────────────────────────────────────────────────────────────
   # BaseRetriever
@@ -24,7 +24,7 @@ retriever:
   # Simple hybrid (keyword + vector) search with optional diversity reranking.
 
   BaseRetriever:
-    retrieved_k: 100             # Number of results to return
+    retrieved_k: 50             # Number of results to return
     verbose: false
     search_only: true            # If false, generates an answer (not implemented)
     diversity_weight: 0          # 0 = no diversity, 0.5 = balanced, 1 = max diversity (uses MMR)
@@ -140,6 +140,8 @@ retriever:
     retrieved_k: 100              # Results per pathway (BM25 and vector each get k)
     reranked_k: 200               # Max results after RRF (up to 2*k unique docs)
     verbose: true
+    # pathway_only: "bm25"       # Uncomment to return only BM25 pathway results
+    pathway_only: "vector"
     # No cross_encoder section = RRF-only mode
 
   # ───────────────────────────────────────────────────────────────────────────
@@ -149,9 +151,11 @@ retriever:
   # WriteVectorSearchQuery (vector). Results fused with RRF. No CE for Stage 1.
 
   DualInferenceSplitRetriever:
-    retrieved_k: 100             # Results per pathway (BM25 and vector each get k)
+    retrieved_k: 100              # Results per pathway (BM25 and vector each get k)
     reranked_k: 200              # Max results after RRF (up to 2*k unique docs)
     verbose: true
+    # pathway_only: "bm25"       # Uncomment to return only BM25 pathway results
+    pathway_only: "vector"
     # No cross_encoder section = RRF-only mode
 
   # ───────────────────────────────────────────────────────────────────────────

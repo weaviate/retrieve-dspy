@@ -223,7 +223,7 @@ class DiversityRanker(dspy.Signature):
 
 # ============ Query Writers ============
 
-class WriteSearchQuery(dspy.Signature):
+class WriteBM25SearchQuery(dspy.Signature):
     """Given a user's question, translate it into a search query optimized
     for BM25 keyword retrieval. BM25 matches exact terms — synonyms,
     paraphrases, and semantic reformulations will NOT match. The query
@@ -239,14 +239,103 @@ class WriteSearchQuery(dspy.Signature):
         "verbatim in relevant documents"
     )
 
-'''
-class VerboseWriteSearchQuery(dspy.Signature):
-    """Given a user's question, translate it into a search query optimized for the particular nuances of retrieving relevant information from a search engine.
-    This search engine is built with Hybrid Search combining semantic vector search with BM25 keyword scoring. Please design the search query accordingly."""
+class VerboseWriteBM25SearchQuery(dspy.Signature):
+    """Given a user's question, translate it into a search query optimized for
+    BM25 keyword retrieval.
 
-    question: str = dspy.InputField(desc="The user's question or information need")
-    search_query: str = dspy.OutputField(desc="A search query optimized for the particular nuances of retrieving relevant information from a search engine.")
-'''
+    BM25 (Best Matching 25) is a bag-of-words ranking function that scores
+    documents based on exact term matching. It rewards:
+    - Rare, discriminative terms (high inverse document frequency)
+    - Terms that appear frequently in the relevant document
+    - Precise technical vocabulary and domain-specific jargon
+
+    BM25 does NOT understand semantics. Synonyms, paraphrases, and
+    conceptual descriptions will NOT match. Only exact lexical overlap counts.
+
+    Strategy for writing an effective BM25 query:
+    1. Extract the key entities, technical terms, and domain-specific words
+       from the question. These are your highest-value terms.
+    2. Think about what words would literally appear in the text of a
+       relevant document — not in the question, but in the ANSWER passage.
+    3. Include alternate spellings, abbreviations, and expanded forms
+       (e.g., both "DNA" and "deoxyribonucleic acid").
+    4. Add related technical terms that a relevant document would use
+       even if the user didn't mention them.
+    5. DO NOT write natural language sentences — write a flat list of
+       high-value keywords and short phrases separated by spaces.
+    6. Avoid stop words (the, is, a, how, what, why) — they waste
+       matching capacity on non-discriminative terms.
+
+    You have ONE attempt — there is no feedback or refinement loop."""
+
+    question: str = dspy.InputField(
+        desc="The user's question or information need"
+    )
+    search_query: str = dspy.OutputField(
+        desc="A flat keyword query of technical terms, domain vocabulary, "
+        "and specific phrases likely to appear verbatim in relevant documents. "
+        "No sentences — just high-value search terms."
+    )
+
+
+# Backwards compatibility alias
+WriteSearchQuery = WriteBM25SearchQuery
+
+
+class VerboseWriteHybridSearchQuery(dspy.Signature):
+    """Given a user's question, translate it into a search query optimized for
+    hybrid retrieval that combines BM25 keyword scoring with dense vector
+    (semantic) search.
+
+    Hybrid search runs TWO retrieval systems on the SAME query:
+    1. BM25: matches exact keywords — rewards specific, rare terms that
+       appear verbatim in the target document.
+    2. Dense vector search: matches by semantic similarity of embeddings —
+       rewards natural-language queries that capture the full meaning.
+
+    A good hybrid query must serve BOTH systems simultaneously:
+    - Include specific domain terms, technical vocabulary, and key entities
+      so BM25 can find exact matches (e.g., "osmotic pressure plasmolysis").
+    - Include natural-language phrasing that describes the information need
+      so the embedding model can capture semantic intent (e.g., "mechanism
+      by which yeast cells release water when mixed with sugar").
+    - Structure: start with a clear natural-language description of what
+      you need, then append additional specific keywords and technical terms.
+
+    You have ONE attempt — there is no feedback or refinement loop."""
+
+    question: str = dspy.InputField(
+        desc="The user's question or information need"
+    )
+    search_query: str = dspy.OutputField(
+        desc="A query that combines a natural-language description of the "
+        "information need with specific keywords and technical terms, "
+        "serving both BM25 exact matching and vector semantic similarity"
+    )
+
+
+class WriteHybridSearchQuery(dspy.Signature):
+    """Given a user's question, translate it into a search query optimized
+    for hybrid retrieval that combines BM25 keyword scoring with dense
+    vector (semantic) search.
+
+    The query should balance two retrieval signals:
+    - BM25 rewards exact keyword matches — include specific terms likely
+      to appear verbatim in relevant documents.
+    - Dense vector search rewards semantic similarity — include natural
+      language that captures the meaning and intent of the question.
+
+    A good hybrid query blends precise keywords with clear semantic
+    phrasing so that both retrieval pathways contribute relevant results.
+    You have ONE attempt — there is no feedback or refinement loop."""
+
+    question: str = dspy.InputField(
+        desc="The user's question or information need"
+    )
+    search_query: str = dspy.OutputField(
+        desc="A search query that balances keyword terms for BM25 with "
+        "natural-language phrasing for dense vector retrieval"
+    )
 
 class WriteVectorSearchQuery(dspy.Signature):
     """Given a user's question, translate it into a search query optimized
@@ -263,6 +352,44 @@ class WriteVectorSearchQuery(dspy.Signature):
     search_query: str = dspy.OutputField(
         desc="A semantic search query that captures the meaning and intent "
         "of the question (optimized for dense vector retrieval)"
+    )
+
+
+class VerboseWriteVectorSearchQuery(dspy.Signature):
+    """Given a user's question, translate it into a search query optimized
+    for dense vector (semantic) retrieval.
+
+    Dense vector retrieval uses a neural embedding model to encode queries
+    and documents into high-dimensional vectors. Retrieval is based on
+    cosine similarity between these vectors — it matches by MEANING,
+    not by exact words. This means:
+    - Synonyms, paraphrases, and reformulations all work well
+    - Conceptual descriptions can match even if no words overlap
+    - The embedding model encodes sentence-level meaning
+
+    Strategy for writing an effective vector search query:
+    1. Write a clear, detailed NATURAL LANGUAGE description of exactly what
+       information you need. Complete sentences work better than fragments.
+    2. Describe the ANSWER you're looking for, not just the question.
+       Think: "what would a relevant passage say?" and describe that.
+    3. Include context, background, and the "why" behind the question —
+       this helps the embedding model disambiguate the intent.
+    4. Cover multiple facets: if the question has several aspects, mention
+       them all so the embedding captures the full semantic scope.
+    5. Use conceptual language and explanatory phrasing rather than
+       keyword lists — embeddings encode meaning, not term frequency.
+    6. DO NOT write keyword lists — that is the wrong format for
+       dense retrieval and will produce a poor embedding.
+
+    You have ONE attempt — there is no feedback or refinement loop."""
+
+    question: str = dspy.InputField(
+        desc="The user's question or information need"
+    )
+    search_query: str = dspy.OutputField(
+        desc="A detailed natural-language description of the information need, "
+        "written as complete sentences that capture the full semantic intent. "
+        "Describe the answer you are looking for, not just the question."
     )
 
 
@@ -289,6 +416,50 @@ class WriteSplitSearchQueries(dspy.Signature):
     vector_search_query: str = dspy.OutputField(
         desc="A semantic search query that captures the meaning and intent "
         "of the question (optimized for dense vector retrieval)"
+    )
+
+
+class VerboseWriteSplitSearchQueries(dspy.Signature):
+    """Given a user's question, produce two MAXIMALLY DIFFERENT search queries —
+    one optimized for BM25 keyword retrieval and one optimized for dense vector
+    (semantic) retrieval.
+
+    These two queries will be sent to completely different retrieval systems.
+    The value of writing separate queries comes from exploiting each system's
+    strengths — so the two queries should look VERY different from each other.
+
+    BM25 QUERY GUIDELINES:
+    BM25 is a bag-of-words model that only counts exact term matches.
+    - Write a FLAT LIST of keywords, not a sentence.
+    - Extract the most specific, discriminative terms from the question.
+    - Think: what exact words would appear in the TEXT of a relevant document?
+    - Include technical terms, domain jargon, entity names, abbreviations.
+    - Include alternate forms and related terminology the document might use.
+    - Avoid stop words and common words — they don't help BM25 discriminate.
+
+    VECTOR QUERY GUIDELINES:
+    Dense vector search encodes queries into embeddings and matches by meaning.
+    - Write a COMPLETE NATURAL-LANGUAGE DESCRIPTION, not keywords.
+    - Describe the answer you're looking for as if explaining it to someone.
+    - Include context, background, and reasoning — embeddings capture meaning.
+    - Cover all facets of the information need in flowing prose.
+    - Paraphrases and conceptual descriptions work BETTER than exact terms.
+    - DO NOT repeat the BM25 keyword list — that wastes the vector pathway.
+
+    You have ONE attempt — there is no feedback or refinement loop."""
+
+    question: str = dspy.InputField(
+        desc="The user's question or information need"
+    )
+    bm25_search_query: str = dspy.OutputField(
+        desc="A flat keyword list of technical terms, domain vocabulary, "
+        "entity names, and specific phrases likely to appear verbatim in "
+        "relevant documents. No sentences."
+    )
+    vector_search_query: str = dspy.OutputField(
+        desc="A detailed natural-language description of the information need "
+        "written as complete sentences. Describe what a relevant answer passage "
+        "would explain. DO NOT repeat the BM25 keywords."
     )
 
 

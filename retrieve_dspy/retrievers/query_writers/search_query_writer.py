@@ -9,7 +9,7 @@ from retrieve_dspy.database.weaviate_database import (
 )   
 from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 from retrieve_dspy.models import DSPyAgentRAGResponse
-from retrieve_dspy.signatures import WriteSearchQuery
+from retrieve_dspy.signatures import WriteHybridSearchQuery, VerboseWriteHybridSearchQuery
 
 class SearchQueryWriter(BaseRetriever):
     def __init__(
@@ -20,9 +20,10 @@ class SearchQueryWriter(BaseRetriever):
         search_only: Optional[bool] = True,
         retrieved_k: Optional[int] = 20,
         search_type: str = "hybrid",
+        hybrid_alpha: Optional[float] = None,
     ):
-        super().__init__(collection_name, target_property_name, search_only=search_only, verbose=verbose, retrieved_k=retrieved_k, search_type=search_type)
-        signature = WriteSearchQuery if verbose else WriteSearchQuery
+        super().__init__(collection_name, target_property_name=target_property_name, search_only=search_only, verbose=verbose, retrieved_k=retrieved_k, search_type=search_type, hybrid_alpha=hybrid_alpha)
+        signature = VerboseWriteHybridSearchQuery if self.verbose else WriteHybridSearchQuery
         self.write_search_query = dspy.Predict(signature)
 
     def forward(self, question: str, weaviate_client=None) -> DSPyAgentRAGResponse:
@@ -38,6 +39,7 @@ class SearchQueryWriter(BaseRetriever):
             retrieved_k=self.retrieved_k,
             weaviate_client=weaviate_client,
             search_type=self.search_type,
+            hybrid_alpha=self.hybrid_alpha,
         )
 
         if self.verbose:
@@ -65,6 +67,7 @@ class SearchQueryWriter(BaseRetriever):
             retrieved_k=self.retrieved_k,
             weaviate_async_client=weaviate_async_client,
             search_type=self.search_type,
+            hybrid_alpha=self.hybrid_alpha,
         )
 
         if self.verbose:

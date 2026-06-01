@@ -27,6 +27,9 @@ def log_dedup(
     overlap = len(bm25_ids & vector_ids)
     unique_total = len(bm25_ids | vector_ids)
 
+    bm25_rank1 = bm25_results[0].object_id if bm25_results else None
+    vector_rank1 = vector_results[0].object_id if vector_results else None
+
     entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "retriever": retriever,
@@ -36,6 +39,9 @@ def log_dedup(
         "unique_total": unique_total,
         "fused_returned": fused_count,
         "overlap": overlap,
+        "bm25_rank1": bm25_rank1,
+        "vector_rank1": vector_rank1,
+        "rank1_agree": bm25_rank1 == vector_rank1 and bm25_rank1 is not None,
         "question": question[:200],
     }
     with open(LOG_PATH, "a") as f:

@@ -25,6 +25,7 @@ from .query_writers.ThinkQE import ThinkQE_QueryExpander
 from .query_writers.search_query_writer import SearchQueryWriter
 from .query_writers.split_query_retriever import SplitQueryRetriever
 from .query_writers.dual_inference_split_retriever import DualInferenceSplitRetriever
+from .query_writers.shared_query_split_retriever import SharedQuerySplitRetriever
 from .query_writers.split_multi_query_retriever import SplitMultiQueryRetriever
 from .query_writers.dual_inference_split_multi_query_retriever import DualInferenceSplitMultiQueryRetriever
 from .rerankers.sliding_window_listwise_reranker import SlidingWindowListwiseReranker
@@ -61,6 +62,7 @@ __all__ = [
     "QUIPLER",
     "SplitQueryRetriever",
     "DualInferenceSplitRetriever",
+    "SharedQuerySplitRetriever",
     "SplitMultiQueryRetriever",
     "DualInferenceSplitMultiQueryRetriever",
 ]

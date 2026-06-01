@@ -10,11 +10,11 @@ from retrieve_dspy.database.weaviate_database import (
 )
 from retrieve_dspy.retrievers.base_retriever import BaseRetriever
 from retrieve_dspy.retrievers.common.call_ce_ranker import ce_rank, async_ce_rank, reorder
-from retrieve_dspy.retrievers.common.rrf import reciprocal_rank_fusion
+from retrieve_dspy.retrievers.common.rsf import relative_score_fusion
 from retrieve_dspy.retrievers.common.dedup_log import log_dedup
 from retrieve_dspy.retrievers.common.truncate_document import truncate_document
 from retrieve_dspy.models import DSPyAgentRAGResponse, ObjectFromDB, RerankerClient
-from retrieve_dspy.signatures import WriteSplitSearchQueries
+from retrieve_dspy.signatures import WriteSplitSearchQueries, VerboseWriteSplitSearchQueries
 
 
 def _dedupe_pool(result_sets: List[List[ObjectFromDB]]) -> List[ObjectFromDB]:
@@ -49,6 +49,8 @@ class SplitQueryRetriever(BaseRetriever):
         reranked_k: Optional[int] = None,
         verbose: bool = False,
         embedding_model: Optional[str] = None,
+        pathway_only: Optional[str] = None,
+        rsf_alpha: float = 0.5,
     ):
         super().__init__(
             collection_name=collection_name,
@@ -62,8 +64,13 @@ class SplitQueryRetriever(BaseRetriever):
         self.reranker_clients = reranker_clients
         self.reranker_provider = reranker_provider
         self.reranked_k = reranked_k if reranked_k is not None else retrieved_k
+        self.pathway_only = pathway_only
+        self.rsf_alpha = rsf_alpha
 
-        self.write_split_queries = dspy.Predict(WriteSplitSearchQueries)
+        signature = VerboseWriteSplitSearchQueries if self.verbose else WriteSplitSearchQueries
+        self.write_split_queries = dspy.Predict(signature)
+
+        self.pathway_results_log = []
 
     def forward(
         self,
@@ -82,7 +89,7 @@ class SplitQueryRetriever(BaseRetriever):
             print(f"\033[95m  BM25:   {bm25_query}\033[0m")
             print(f"\033[95m  Vector: {vector_query}\033[0m")
 
-        # Retrieve from each pathway
+        # Retrieve from each pathway (with scores for RSF)
         bm25_results = weaviate_search_tool(
             query=bm25_query,
             collection_name=self.collection_name,
@@ -90,6 +97,7 @@ class SplitQueryRetriever(BaseRetriever):
             retrieved_k=self.retrieved_k,
             weaviate_client=weaviate_client,
             search_type="bm25",
+            return_score=True,
         )
         for obj in bm25_results:
             obj.source_query = bm25_query
@@ -101,13 +109,43 @@ class SplitQueryRetriever(BaseRetriever):
             retrieved_k=self.retrieved_k,
             weaviate_client=weaviate_client,
             search_type="vector",
+            return_score=True,
         )
         for obj in vector_results:
             obj.source_query = vector_query
 
+        # Log for external per-pathway analysis (append-only, async-safe)
+        self.pathway_results_log.append({
+            "question": question,
+            "bm25_ids": [s.object_id for s in bm25_results],
+            "vector_ids": [s.object_id for s in vector_results],
+        })
+
         if self.verbose:
             print(f"\033[96m  BM25 returned {len(bm25_results)} docs, "
                   f"Vector returned {len(vector_results)} docs\033[0m")
+
+        # Per-pathway isolation: return only one pathway's results
+        if self.pathway_only == "bm25":
+            if self.verbose:
+                print(f"\033[96m  pathway_only=bm25 → returning {len(bm25_results)} BM25 docs\033[0m")
+            return DSPyAgentRAGResponse(
+                final_answer="",
+                sources=bm25_results,
+                searches=[bm25_query],
+                aggregations=None,
+                usage={},
+            )
+        elif self.pathway_only == "vector":
+            if self.verbose:
+                print(f"\033[96m  pathway_only=vector → returning {len(vector_results)} vector docs\033[0m")
+            return DSPyAgentRAGResponse(
+                final_answer="",
+                sources=vector_results,
+                searches=[vector_query],
+                aggregations=None,
+                usage={},
+            )
 
         if self.use_cross_encoder and self.reranker_clients:
             # Pool + dedupe, then CE rerank
@@ -127,13 +165,15 @@ class SplitQueryRetriever(BaseRetriever):
             if self.verbose:
                 print(f"\033[96m  Reranked to {len(final_results)} docs\033[0m")
         else:
-            # RRF fusion only (no reranker)
-            final_results = reciprocal_rank_fusion(
-                [bm25_results, vector_results],
+            # RSF fusion (no reranker)
+            final_results = relative_score_fusion(
+                bm25_results=bm25_results,
+                vector_results=vector_results,
+                alpha=self.rsf_alpha,
                 top_k=self.reranked_k,
             )
             if self.verbose:
-                print(f"\033[96m  RRF fused to {len(final_results)} docs\033[0m")
+                print(f"\033[96m  RSF fused to {len(final_results)} docs (alpha={self.rsf_alpha})\033[0m")
 
         log_dedup(
             retriever="SplitQueryRetriever",
@@ -169,7 +209,7 @@ class SplitQueryRetriever(BaseRetriever):
             print(f"\033[95m  BM25:   {bm25_query}\033[0m")
             print(f"\033[95m  Vector: {vector_query}\033[0m")
 
-        # Retrieve from each pathway concurrently
+        # Retrieve from each pathway concurrently (with scores for RSF)
         bm25_results, vector_results = await asyncio.gather(
             async_weaviate_search_tool(
                 query=bm25_query,
@@ -178,6 +218,7 @@ class SplitQueryRetriever(BaseRetriever):
                 retrieved_k=self.retrieved_k,
                 weaviate_async_client=weaviate_async_client,
                 search_type="bm25",
+                return_score=True,
             ),
             async_weaviate_search_tool(
                 query=vector_query,
@@ -186,6 +227,7 @@ class SplitQueryRetriever(BaseRetriever):
                 retrieved_k=self.retrieved_k,
                 weaviate_async_client=weaviate_async_client,
                 search_type="vector",
+                return_score=True,
             ),
         )
 
@@ -194,9 +236,38 @@ class SplitQueryRetriever(BaseRetriever):
         for obj in vector_results:
             obj.source_query = vector_query
 
+        # Log for external per-pathway analysis (append-only, async-safe)
+        self.pathway_results_log.append({
+            "question": question,
+            "bm25_ids": [s.object_id for s in bm25_results],
+            "vector_ids": [s.object_id for s in vector_results],
+        })
+
         if self.verbose:
             print(f"\033[96m  BM25 returned {len(bm25_results)} docs, "
                   f"Vector returned {len(vector_results)} docs\033[0m")
+
+        # Per-pathway isolation: return only one pathway's results
+        if self.pathway_only == "bm25":
+            if self.verbose:
+                print(f"\033[96m  pathway_only=bm25 → returning {len(bm25_results)} BM25 docs\033[0m")
+            return DSPyAgentRAGResponse(
+                final_answer="",
+                sources=bm25_results,
+                searches=[bm25_query],
+                aggregations=None,
+                usage={},
+            )
+        elif self.pathway_only == "vector":
+            if self.verbose:
+                print(f"\033[96m  pathway_only=vector → returning {len(vector_results)} vector docs\033[0m")
+            return DSPyAgentRAGResponse(
+                final_answer="",
+                sources=vector_results,
+                searches=[vector_query],
+                aggregations=None,
+                usage={},
+            )
 
         if self.use_cross_encoder and self.reranker_clients:
             # Pool + dedupe, then CE rerank
@@ -216,13 +287,15 @@ class SplitQueryRetriever(BaseRetriever):
             if self.verbose:
                 print(f"\033[96m  Reranked to {len(final_results)} docs\033[0m")
         else:
-            # RRF fusion only (no reranker)
-            final_results = reciprocal_rank_fusion(
-                [bm25_results, vector_results],
+            # RSF fusion (no reranker)
+            final_results = relative_score_fusion(
+                bm25_results=bm25_results,
+                vector_results=vector_results,
+                alpha=self.rsf_alpha,
                 top_k=self.reranked_k,
             )
             if self.verbose:
-                print(f"\033[96m  RRF fused to {len(final_results)} docs\033[0m")
+                print(f"\033[96m  RSF fused to {len(final_results)} docs (alpha={self.rsf_alpha})\033[0m")
 
         log_dedup(
             retriever="SplitQueryRetriever",
